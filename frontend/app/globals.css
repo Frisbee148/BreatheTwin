@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #020A05;
+  --panel: #04130A;
+  --inset: #061C0E;
+  --line: #12612F;
+  --text-dim: #2FBF63;
+  --text: #4CFF8A;
+  --text-hot: #B6FFCC;
+  --ok: #4CFF8A;
+  --caution: #FFE14A;
+  --warn: #FFA61F;
+  --danger: #FF2A1A;
+}
+
+@theme {
+  --color-bg: #020A05;
+  --color-panel: #04130A;
+  --color-inset: #061C0E;
+  --color-line: #12612F;
+  --color-text-dim: #2FBF63;
+  --color-text-main: #4CFF8A;
+  --color-text-hot: #B6FFCC;
+  --color-ok: #4CFF8A;
+  --color-caution: #FFE14A;
+  --color-warn: #FFA61F;
+  --color-danger: #FF2A1A;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--line);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Static faint scanline overlay per design.md Section 4 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.18) 3px 4px);
+  z-index: 9999;
+}
+
+/* Phosphor Glow Utilities */
+.glow-text {
+  text-shadow: 0 0 6px rgba(76, 255, 138, 0.4);
+}
+
+.glow-hot {
+  text-shadow: 0 0 8px rgba(182, 255, 204, 0.5);
+}
+
+.glow-danger {
+  text-shadow: 0 0 8px rgba(255, 42, 26, 0.5);
+}
+
+.glow-warn {
+  text-shadow: 0 0 8px rgba(255, 166, 31, 0.5);
+}
+
+.glow-caution {
+  text-shadow: 0 0 8px rgba(255, 225, 74, 0.5);
+}
+
+/* Sharp Instrument Label Style per design.md */
+.label-instrument {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Thermal Image wrapper per design.md Section 5 */
+.thermal-img {
+  background: var(--inset);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+
+.thermal-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.08) brightness(0.96);
+}
+
+/* Custom Phosphor Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}

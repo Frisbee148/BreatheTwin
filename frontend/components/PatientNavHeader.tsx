@@ -1,0 +1,121 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { Patient, PATIENTS } from '@/lib/data';
+import StatusChip from './StatusChip';
+
+interface PatientNavHeaderProps {
+  patient: Patient;
+}
+
+export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const tabs = [
+    { label: '[01] DIGITAL TWIN & SENSORS', href: `/patients/${patient.id}` },
+    { label: '[02] 48H FORECAST & REASONS', href: `/patients/${patient.id}/forecast` },
+    { label: '[03] WHAT-IF SANDBOX', href: `/patients/${patient.id}/what-if` },
+  ];
+
+  return (
+    <div className="border border-[#12612F] bg-[#04130A] p-4 sm:p-5 mb-6">
+      {/* Top Breadcrumb and Patient Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#12612F]/50 pb-3 mb-4 text-xs">
+        <div className="flex items-center space-x-2">
+          <Link href="/patients" className="text-[#2FBF63] hover:text-[#4CFF8A] uppercase tracking-wider flex items-center">
+            &larr; COHORT TRIAGE
+          </Link>
+          <span className="text-[#12612F]">/</span>
+          <span className="text-[#B6FFCC] font-mono font-semibold">{patient.id}</span>
+          <span className="text-[#2FBF63]">({patient.name})</span>
+        </div>
+
+        {/* Quick Patient Switcher */}
+        <div className="flex items-center space-x-2 text-[11px]">
+          <span className="text-[#2FBF63] uppercase tracking-wider">SWITCH PATIENT:</span>
+          <select 
+            aria-label="Switch patient selection"
+            value={patient.id}
+            onChange={(e) => {
+              router.push(`/patients/${e.target.value}`);
+            }}
+            className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1 text-xs focus:outline-none focus:border-[#4CFF8A] font-mono"
+            style={{ borderRadius: 0 }}
+          >
+            {PATIENTS.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.id} - {p.name} ({p.risk48h}% Risk - {p.city})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Patient Vital Profile Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">PATIENT NAME</div>
+          <div className="text-sm font-semibold text-[#B6FFCC]">{patient.name}</div>
+          <div className="text-[11px] text-[#2FBF63] font-mono">{patient.age}y &bull; {patient.gender === 'M' ? 'Male' : 'Female'}</div>
+        </div>
+
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">CITY &amp; MONITOR</div>
+          <div className="text-sm font-semibold text-[#4CFF8A]">{patient.city}</div>
+          <div className="text-[10px] text-[#2FBF63] truncate">{patient.station}</div>
+        </div>
+
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">DIAGNOSIS (EHR)</div>
+          <div className="text-sm font-semibold text-[#B6FFCC]">{patient.severity}</div>
+          <div className="text-[11px] text-[#2FBF63]">FEV1: {patient.baselineFEV1Percent}% pred</div>
+        </div>
+
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">48H FLARE-UP RISK</div>
+          <div className="text-lg font-bold tabular-nums text-[#FF2A1A] glow-danger">
+            {patient.risk48h}%
+          </div>
+          <div className="text-[10px] text-[#2FBF63] font-mono">
+            CI: [{patient.risk48hInterval[0]}% - {patient.risk48hInterval[1]}%]
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">CONTROLLER ADHERENCE</div>
+          <div className="text-sm font-semibold text-[#B6FFCC]">{patient.controllerAdherence}%</div>
+          <div className="text-[10px] text-[#2FBF63] truncate">{patient.controllerMedication}</div>
+        </div>
+
+        <div className="flex flex-col justify-center items-start sm:items-end">
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63] mb-1">CLINICAL STATUS</div>
+          <StatusChip status={patient.riskLevel} />
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-t border-[#12612F] pt-3 space-x-2 sm:space-x-4 overflow-x-auto">
+        {tabs.map(tab => {
+          const isTabActive = pathname === tab.href;
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`px-3 py-2 text-xs uppercase tracking-wider font-medium whitespace-nowrap transition-colors border ${
+                isTabActive 
+                  ? 'border-[#4CFF8A] bg-[#020A05] text-[#B6FFCC] font-semibold underline underline-offset-4' 
+                  : 'border-transparent text-[#2FBF63] hover:text-[#4CFF8A] hover:border-[#12612F]'
+              }`}
+              style={{ borderRadius: 0 }}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
