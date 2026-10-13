@@ -3,12 +3,25 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
+export interface LungMarker {
+  id: string;
+  name: string;
+  shortLabel: string;
+  x: number; // percentage from left
+  y: number; // percentage from top
+  status: 'HIGH' | 'ELEVATED' | 'CAUTION' | 'STABLE';
+  value: string;
+  baseline: string;
+  description: string;
+}
+
 interface InteractiveThermalRevealProps {
   bodySrc?: string;
   lungsSrc?: string;
   className?: string;
   patientId?: string;
   onRegionHover?: (region: string | null) => void;
+  onMarkerSelect?: (marker: LungMarker | null) => void;
 }
 
 export default function InteractiveThermalReveal({
@@ -16,20 +29,57 @@ export default function InteractiveThermalReveal({
   lungsSrc = '/images/lungs.webp',
   className = '',
   patientId = 'PT-8821',
-  onRegionHover
+  onRegionHover,
+  onMarkerSelect
 }: InteractiveThermalRevealProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Fallback state if WebGL is unavailable
+  // Fallback and state
   const [webglSupported, setWebglSupported] = useState<boolean>(true);
   const [isLungsActive, setIsLungsActive] = useState<boolean>(false);
   const [isHovering, setIsHovering] = useState<boolean>(false);
-  const [scannerRadiusPreset, setScannerRadiusPreset] = useState<'normal' | 'wide' | 'pinpoint'>('normal');
   const [activeZone, setActiveZone] = useState<string>('PARIETAL THORAX');
-  const [hudCoordinates, setHudCoordinates] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
-  // References for animation loop and uniforms
+  // Markers placed on the revealed lungs linked directly to product features
+  const markers: LungMarker[] = [
+    {
+      id: 'inflammation',
+      name: 'Airway Inflammation State I(t)',
+      shortLabel: 'I(t) 0.84',
+      x: 50,
+      y: 38,
+      status: 'HIGH',
+      value: '0.84 / 1.0 (Critical)',
+      baseline: 'Personal baseline: 0.28',
+      description: 'Latent mucosal edema and smooth muscle constriction calculated from inhaled PM2.5 dose and controller adherence.'
+    },
+    {
+      id: 'respiratory-rate',
+      name: 'Resting Respiratory Rate Drift',
+      shortLabel: 'RR +4.2/m',
+      x: 33,
+      y: 48,
+      status: 'ELEVATED',
+      value: '22.4 breaths/min',
+      baseline: 'Personal baseline: 18.2 breaths/min',
+      description: 'Early autonomic compensation detected during nocturnal rest, preceding patient-perceived shortness of breath by 36 hours.'
+    },
+    {
+      id: 'spo2',
+      name: 'Nocturnal SpO2 Nadir',
+      shortLabel: 'SpO2 89.4%',
+      x: 66,
+      y: 60,
+      status: 'HIGH',
+      value: '89.4% Min Nadir',
+      baseline: 'Normative target: ≥95.0%',
+      description: 'Basilar airway micro-obstruction and ventilation-perfusion mismatch during sleep, recording 3 distinct nocturnal desaturations.'
+    }
+  ];
+
+  // Animation and physics state
   const stateRef = useRef({
     targetMouse: { x: 0.5, y: 0.5 },
     currentMouse: { x: 0.5, y: 0.5 },
@@ -44,21 +94,8 @@ export default function InteractiveThermalReveal({
     material: null as THREE.ShaderMaterial | null,
     animationFrameId: 0,
     startTime: 0,
-    isDestroyed: false,
-    isIdle: true
+    isDestroyed: false
   });
-
-  // Handle radius preset change
-  const handlePresetChange = (preset: 'normal' | 'wide' | 'pinpoint') => {
-    setScannerRadiusPreset(preset);
-    const px = preset === 'pinpoint' ? 95 : preset === 'wide' ? 210 : 140;
-    stateRef.current.baseRadiusPx = px;
-    if (stateRef.current.isHovering && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const minDim = Math.min(rect.width, rect.height) || 400;
-      stateRef.current.targetRadius = px / minDim;
-    }
-  };
 
   // Toggle SHOW LUNGS
   const toggleLungsReveal = () => {
@@ -69,27 +106,31 @@ export default function InteractiveThermalReveal({
     });
   };
 
-  // Anatomical zone detection based on UV coordinates
+  const handleMarkerClick = (marker: LungMarker, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextId = selectedMarkerId === marker.id ? null : marker.id;
+    setSelectedMarkerId(nextId);
+    if (onMarkerSelect) {
+      onMarkerSelect(nextId ? marker : null);
+    }
+  };
+
+  // Anatomical zone detection
   const updateAnatomicalZone = useCallback((uvX: number, uvY: number) => {
-    // uvX: 0 to 1 (left to right)
-    // uvY: 0 (bottom) to 1 (top)
-    // Converted to screen percent (top-down):
     const screenX = uvX * 100;
     const screenY = (1.0 - uvY) * 100;
 
-    setHudCoordinates({ x: Math.round(screenX), y: Math.round(screenY) });
-
     let zone = 'PERIPHERAL THORACIC SHELL';
     if (screenY < 25) {
-      zone = 'SUPRASTERNAL NOTCH / CERVICAL TRACHEA';
-    } else if (screenY >= 25 && screenY <= 45 && screenX >= 42 && screenX <= 58) {
+      zone = 'SUPRASTERNAL NOTCH / TRACHEA';
+    } else if (screenY >= 25 && screenY <= 45 && screenX >= 40 && screenX <= 60) {
       zone = 'CARINA & MAINSTEM BRONCHIAL TREE';
-    } else if (screenY >= 35 && screenY <= 72 && screenX >= 20 && screenX <= 48) {
-      zone = 'RIGHT PULMONARY LOBE (SUPERIOR / MIDDLE)';
-    } else if (screenY >= 35 && screenY <= 72 && screenX >= 52 && screenX <= 80) {
-      zone = 'LEFT PULMONARY LOBE (SUPERIOR / INFERIOR)';
+    } else if (screenY >= 35 && screenY <= 72 && screenX >= 18 && screenX <= 48) {
+      zone = 'RIGHT PULMONARY LOBE';
+    } else if (screenY >= 35 && screenY <= 72 && screenX >= 52 && screenX <= 82) {
+      zone = 'LEFT PULMONARY LOBE';
     } else if (screenY > 72) {
-      zone = 'DIAPHRAGMATIC SULCUS & BASAL RECESS';
+      zone = 'DIAPHRAGMATIC BASAL RECESS';
     }
 
     setActiveZone(zone);
@@ -168,12 +209,11 @@ export default function InteractiveThermalReveal({
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       stateRef.current.renderer = renderer;
     } catch {
-      console.warn('WebGL not supported, falling back to CSS implementation.');
+      console.warn('WebGL initialization failed, using CSS mask fallback.');
       setWebglSupported(false);
       return;
     }
 
-    // Set up 2D Orthographic Scene
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
@@ -219,14 +259,12 @@ export default function InteractiveThermalReveal({
       uniform float uTime;
       uniform float uFullReveal;
 
-      // Pseudo-random hash
       float hash(vec2 p) {
         p = fract(p * vec2(123.34, 456.21));
         p += dot(p, p + 45.32);
         return fract(p.x * p.y);
       }
 
-      // Smooth 2D noise
       float noise(vec2 p) {
         vec2 i = floor(p);
         vec2 f = fract(p);
@@ -249,36 +287,31 @@ export default function InteractiveThermalReveal({
 
         float dist = distance(aspectUv, aspectMouse);
 
-        // Subtle organic noise perturbation on the boundary
+        // Subtle organic boundary modulation
         vec2 dir = aspectUv - aspectMouse;
         float angle = atan(dir.y, dir.x);
         float n = noise(vec2(angle * 4.0, uTime * 1.2)) * 0.6 + noise(vec2(angle * 9.0 - uTime * 2.0, uTime * 0.5)) * 0.4;
 
-        // Effective radius with slight organic edge distortion
         float effectiveRadius = uRadius * (1.0 + (n - 0.5) * 0.09);
         float edgeFeather = max(0.012, uRadius * 0.26);
 
-        // Soft feathered circular mask (1.0 inside, 0.0 outside)
         float circleMask = 0.0;
         if (uRadius > 0.001) {
           circleMask = 1.0 - smoothstep(effectiveRadius - edgeFeather, effectiveRadius, dist);
         }
 
-        // Combine with uFullReveal (from SHOW LUNGS toggle)
         float revealFactor = clamp(max(circleMask, uFullReveal), 0.0, 1.0);
-
-        // Blend base body and revealed lungs
         vec3 finalColor = mix(bodyColor.rgb, lungColor.rgb, revealFactor);
 
-        // Thermal scan boundary glow (narrow phosphor green halo along the scanner edge)
+        // Phosphor rim halo at the scanning perimeter
         if (uRadius > 0.005 && circleMask > 0.01 && circleMask < 0.98) {
           float rim = smoothstep(0.0, 0.5, circleMask) * (1.0 - smoothstep(0.5, 1.0, circleMask)) * 4.0;
-          vec3 phosphorGlow = vec3(0.28, 1.0, 0.58);
-          finalColor += rim * phosphorGlow * 0.38 * clamp(uRadius * 6.0, 0.0, 1.0);
+          vec3 phosphorGlow = vec3(0.25, 0.95, 0.52);
+          finalColor += rim * phosphorGlow * 0.32 * clamp(uRadius * 6.0, 0.0, 1.0);
         }
 
-        // Subtle horizontal scan lines for military thermal-imaging aesthetic
-        float scanline = sin(vUv.y * uResolution.y * 1.5) * 0.022;
+        // Faint scanlines
+        float scanline = sin(vUv.y * uResolution.y * 1.5) * 0.02;
         finalColor -= scanline;
 
         gl_FragColor = vec4(finalColor, 1.0);
@@ -293,7 +326,7 @@ export default function InteractiveThermalReveal({
         uLungs: { value: lungsTexture },
         uMouse: { value: new THREE.Vector2(0.5, 0.5) },
         uRadius: { value: 0.0 },
-        uResolution: { value: new THREE.Vector2(container.clientWidth || 600, container.clientHeight || 800) },
+        uResolution: { value: new THREE.Vector2(container.clientWidth || 520, container.clientHeight || 690) },
         uTime: { value: 0.0 },
         uFullReveal: { value: 0.0 }
       },
@@ -302,12 +335,10 @@ export default function InteractiveThermalReveal({
     });
     stateRef.current.material = material;
 
-    // Full screen rendering plane
     const geometry = new THREE.PlaneGeometry(2, 2);
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // Resize handler
     const updateSize = () => {
       if (!container || !renderer || !material) return;
       const width = container.clientWidth;
@@ -335,7 +366,6 @@ export default function InteractiveThermalReveal({
       const state = stateRef.current;
       const elapsedTime = (performance.now() - state.startTime) / 1000;
 
-      // Smooth interpolation physics (damped spring / lerp)
       const isReduced = state.prefersReducedMotion;
       const lerpMouse = isReduced ? 1.0 : 0.16;
       const lerpRadius = isReduced ? 1.0 : 0.12;
@@ -346,11 +376,9 @@ export default function InteractiveThermalReveal({
       state.currentRadius += (state.targetRadius - state.currentRadius) * lerpRadius;
       state.currentFullReveal += (state.targetFullReveal - state.currentFullReveal) * lerpReveal;
 
-      // Clamp small tail values to zero
       if (state.currentRadius < 0.0005) state.currentRadius = 0.0;
       if (state.currentFullReveal < 0.0005) state.currentFullReveal = 0.0;
 
-      // Update shader uniforms
       if (material) {
         material.uniforms.uMouse.value.set(state.currentMouse.x, state.currentMouse.y);
         material.uniforms.uRadius.value = state.currentRadius;
@@ -366,14 +394,11 @@ export default function InteractiveThermalReveal({
 
     render();
 
-    // Context loss handling
     const handleContextLost = (event: Event) => {
       event.preventDefault();
-      console.warn('WebGL context lost, pausing render.');
     };
 
     const handleContextRestored = () => {
-      console.info('WebGL context restored, re-initializing.');
       updateSize();
     };
 
@@ -397,152 +422,153 @@ export default function InteractiveThermalReveal({
 
   return (
     <div className={`relative flex flex-col items-center select-none ${className}`}>
-      {/* Visualizer Frame with Military Cybernetic Borders */}
+      {/* Visualizer Frame */}
       <div
         ref={containerRef}
         onPointerEnter={onPointerEnter}
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
-        className="relative w-full max-w-[540px] aspect-[3/4] bg-[#020A05] border border-[#12612F] shadow-[0_0_40px_rgba(4,25,12,0.8)] overflow-hidden cursor-crosshair group touch-none"
+        onClick={() => setSelectedMarkerId(null)}
+        className="relative w-full max-w-[480px] aspect-[3/4] bg-[#020A05] border border-[#12612F] overflow-hidden cursor-crosshair group touch-none"
         role="region"
         aria-label="Interactive Coronal Thermal Torso Scan with Pulmonary Reveal"
       >
-        {/* WebGL Canvas */}
+        {/* WebGL Canvas or Fallback */}
         {webglSupported ? (
           <canvas
             ref={canvasRef}
             className="w-full h-full block"
           />
         ) : (
-          /* CSS-based fallback for environments where WebGL is unavailable */
           <div className="relative w-full h-full">
-            {/* Base Body Image */}
             <img
               src={bodySrc}
               alt="Base thermal scan of human torso"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            {/* Revealed Lungs Image with CSS Mask or Opacity */}
             <img
               src={lungsSrc}
               alt="Revealed internal pulmonary heatmap"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
-                isLungsActive ? 'opacity-100' : isHovering ? 'opacity-80' : 'opacity-0'
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                isLungsActive ? 'opacity-100' : isHovering ? 'opacity-85' : 'opacity-0'
               }`}
             />
           </div>
         )}
 
-        {/* HUD Overlay: Corner Precision Reticles */}
-        <div className="absolute top-2 left-2 pointer-events-none flex items-center space-x-1.5 z-10">
-          <span className="w-2 h-2 border-t-2 border-l-2 border-[#4CFF8A]" />
-          <span className="text-[10px] font-mono tracking-widest text-[#4CFF8A] uppercase bg-[#020A05]/80 px-1.5 py-0.5 border border-[#12612F]/60">
-            {`// TRANSECT: CORONAL • ${patientId}`}
+        {/* Small corner tags */}
+        <div className="absolute top-2.5 left-2.5 pointer-events-none flex items-center space-x-1.5 z-10">
+          <span className="text-[10px] font-mono tracking-wider text-[#4CFF8A] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]">
+            {`// CORONAL TRANSECT • ${patientId}`}
           </span>
         </div>
 
-        <div className="absolute top-2 right-2 pointer-events-none flex items-center space-x-1.5 z-10">
-          <span className="text-[10px] font-mono tracking-widest text-[#B6FFCC] uppercase bg-[#020A05]/80 px-1.5 py-0.5 border border-[#12612F]/60">
-            {isLungsActive ? 'ANATOMY: EXPOSED' : isHovering ? 'SCANNER: SCANNING' : 'OPTICAL EMISSION'}
-          </span>
-          <span className="w-2 h-2 border-t-2 border-r-2 border-[#4CFF8A]" />
-        </div>
-
-        <div className="absolute bottom-2 left-2 pointer-events-none flex items-center space-x-1.5 z-10">
-          <span className="w-2 h-2 border-b-2 border-l-2 border-[#4CFF8A]" />
-          <span className="text-[9px] font-mono tracking-widest text-[#2FBF63] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]/50">
-            X:{hudCoordinates.x}% Y:{hudCoordinates.y}%
+        <div className="absolute top-2.5 right-2.5 pointer-events-none z-10">
+          <span className="text-[10px] font-mono tracking-wider text-[#B6FFCC] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]">
+            {isLungsActive ? 'EXPOSED' : isHovering ? 'ACTIVE SCAN' : 'STANDBY'}
           </span>
         </div>
 
-        <div className="absolute bottom-2 right-2 pointer-events-none flex items-center space-x-1.5 z-10">
-          <span className="text-[9px] font-mono tracking-widest text-[#4CFF8A] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]/50">
-            {isHovering ? '&gt; HOVER ACTIVE' : '&gt; HOVER TO SCAN'}
-          </span>
-          <span className="w-2 h-2 border-b-2 border-r-2 border-[#4CFF8A]" />
-        </div>
+        {/* Clickable Anatomical Hotspot Markers on the Revealed Lungs */}
+        {markers.map((marker) => {
+          const isSelected = selectedMarkerId === marker.id;
+          const statusBorder =
+            marker.status === 'HIGH' ? 'border-[#FF2A1A] text-[#FF2A1A]' :
+            marker.status === 'ELEVATED' ? 'border-[#FFA61F] text-[#FFA61F]' :
+            'border-[#FFE14A] text-[#FFE14A]';
 
-        {/* Anatomical Inspection Crosshair Center Pointer (Visible when hovering) */}
-        {isHovering && !isLungsActive && (
-          <div
-            className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 z-20 transition-transform duration-75 ease-out"
-            style={{ left: `${hudCoordinates.x}%`, top: `${hudCoordinates.y}%` }}
-          >
-            <div className="relative w-12 h-12 flex items-center justify-center">
-              <div className="absolute inset-0 border border-[#4CFF8A]/30 rounded-full animate-ping" />
-              <div className="w-2 h-2 border-t border-l border-[#B6FFCC]" />
-              <div className="w-2 h-2 border-b border-r border-[#B6FFCC]" />
+          return (
+            <div
+              key={marker.id}
+              className="absolute -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-auto"
+              style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
+            >
+              <button
+                type="button"
+                onClick={(e) => handleMarkerClick(marker, e)}
+                aria-expanded={isSelected}
+                aria-label={`Inspect ${marker.name}: ${marker.value}`}
+                className={`group/marker relative flex items-center justify-center p-1 focus:outline-none cursor-pointer transition-transform ${
+                  isSelected ? 'scale-110' : 'hover:scale-105'
+                }`}
+              >
+                {/* Visual marker pin */}
+                <span
+                  className={`w-3.5 h-3.5 border bg-[#020A05]/95 flex items-center justify-center ${statusBorder} ${
+                    isSelected ? 'ring-2 ring-[#B6FFCC]' : ''
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 inline-block ${
+                      marker.status === 'HIGH' ? 'bg-[#FF2A1A]' :
+                      marker.status === 'ELEVATED' ? 'bg-[#FFA61F]' : 'bg-[#FFE14A]'
+                    }`}
+                  />
+                </span>
+
+                {/* Always visible or hover badge */}
+                <span className="absolute left-5 top-1/2 -translate-y-1/2 bg-[#020A05] border border-[#12612F] text-[9px] font-mono uppercase tracking-wider text-[#B6FFCC] px-1 py-0.5 whitespace-nowrap hidden group-hover/marker:block pointer-events-none shadow-sm">
+                  {marker.shortLabel}
+                </span>
+              </button>
+
+              {/* Clickable Tooltip Card */}
+              {isSelected && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-64 bg-[#04130A] border border-[#4CFF8A] p-2.5 text-xs font-mono z-40 shadow-xl"
+                >
+                  <div className="flex items-center justify-between border-b border-[#12612F] pb-1 mb-1.5">
+                    <span className="text-[10px] text-[#2FBF63] uppercase tracking-wider">
+                      {`// HOTSPOT TELEMETRY`}
+                    </span>
+                    <button
+                      onClick={() => setSelectedMarkerId(null)}
+                      className="text-[#2FBF63] hover:text-[#FF2A1A] text-xs font-bold px-1"
+                      aria-label="Close tooltip"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                  <div className="font-semibold text-[#B6FFCC] text-[11px] uppercase mb-1">
+                    {marker.name}
+                  </div>
+                  <div className="text-[12px] font-bold text-[#FF2A1A] mb-0.5">
+                    {marker.value}
+                  </div>
+                  <div className="text-[10px] text-[#2FBF63] mb-1.5">
+                    {marker.baseline}
+                  </div>
+                  <p className="text-[10px] text-[#4CFF8A] leading-relaxed border-t border-[#12612F]/40 pt-1">
+                    {marker.description}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Control Console & Accessibility Strip */}
-      <div className="w-full max-w-[540px] mt-3 border border-[#12612F] bg-[#04130A] p-3 text-xs font-mono space-y-2.5">
-        {/* Main Status & Accessibility Toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/40 pb-2">
-          <div className="flex items-center space-x-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full inline-block transition-colors ${
-                isLungsActive || isHovering ? 'bg-[#FF2A1A] animate-pulse shadow-[0_0_8px_#FF2A1A]' : 'bg-[#2FBF63]'
-              }`}
-            />
-            <span className="text-[11px] font-semibold text-[#B6FFCC] uppercase tracking-wider">
-              {activeZone}
-            </span>
-          </div>
-
-          {/* Accessible SHOW LUNGS toggle button (Requirement 7) */}
-          <button
-            onClick={toggleLungsReveal}
-            aria-pressed={isLungsActive}
-            aria-label="Toggle full pulmonary lung thermal view"
-            className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border cursor-pointer transition-all ${
-              isLungsActive
-                ? 'bg-[#FF2A1A] text-[#020A05] border-[#FF2A1A] shadow-[0_0_12px_rgba(255,42,26,0.6)]'
-                : 'bg-[#061C0E] text-[#4CFF8A] border-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05]'
-            }`}
-          >
-            {isLungsActive ? 'HIDE LUNGS [ACTIVE]' : 'SHOW LUNGS'}
-          </button>
+      {/* Caption & Show Lungs Toggle Strip */}
+      <div className="w-full max-w-[480px] mt-2.5 flex items-center justify-between px-1 text-xs font-mono">
+        <div className="text-[11px] text-[#2FBF63] flex items-center space-x-1.5">
+          <span className="text-[#4CFF8A]">&gt;</span>
+          <span>Hover to look inside · tap markers to inspect</span>
         </div>
 
-        {/* Diagnostics & Scan Aperture Selector */}
-        <div className="flex flex-wrap items-center justify-between text-[10px] text-[#2FBF63] pt-0.5">
-          <div className="flex items-center space-x-2">
-            <span className="uppercase tracking-widest text-[#2FBF63]">SCAN BEAM:</span>
-            <div className="inline-flex border border-[#12612F] bg-[#020A05]">
-              <button
-                onClick={() => handlePresetChange('pinpoint')}
-                className={`px-2 py-0.5 cursor-pointer uppercase transition-colors ${
-                  scannerRadiusPreset === 'pinpoint' ? 'bg-[#12612F] text-[#B6FFCC]' : 'hover:text-[#4CFF8A]'
-                }`}
-              >
-                95PX
-              </button>
-              <button
-                onClick={() => handlePresetChange('normal')}
-                className={`px-2 py-0.5 cursor-pointer uppercase border-x border-[#12612F] transition-colors ${
-                  scannerRadiusPreset === 'normal' ? 'bg-[#12612F] text-[#B6FFCC]' : 'hover:text-[#4CFF8A]'
-                }`}
-              >
-                140PX
-              </button>
-              <button
-                onClick={() => handlePresetChange('wide')}
-                className={`px-2 py-0.5 cursor-pointer uppercase transition-colors ${
-                  scannerRadiusPreset === 'wide' ? 'bg-[#12612F] text-[#B6FFCC]' : 'hover:text-[#4CFF8A]'
-                }`}
-              >
-                210PX
-              </button>
-            </div>
-          </div>
-
-          <div className="text-[10px] text-[#4CFF8A] font-mono">
-            TOUCH / HOVER TO REVEAL INFLAMMATION
-          </div>
-        </div>
+        {/* Accessible SHOW LUNGS toggle */}
+        <button
+          onClick={toggleLungsReveal}
+          aria-pressed={isLungsActive}
+          aria-label="Toggle full pulmonary lung reveal"
+          className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border cursor-pointer transition-colors ${
+            isLungsActive
+              ? 'bg-[#FF2A1A] text-[#020A05] border-[#FF2A1A]'
+              : 'bg-[#04130A] text-[#4CFF8A] border-[#12612F] hover:border-[#4CFF8A]'
+          }`}
+        >
+          {isLungsActive ? 'HIDE LUNGS' : 'SHOW LUNGS'}
+        </button>
       </div>
     </div>
   );
