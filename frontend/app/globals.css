@@ -5,9 +5,9 @@
   --panel: #04130A;
   --inset: #061C0E;
   --line: #12612F;
-  --text-dim: #2FBF63;
-  --text: #4CFF8A;
-  --text-hot: #B6FFCC;
+  --text-dim: #3DE07A;
+  --text: #5CFF95;
+  --text-hot: #FFFFFF;
   --ok: #4CFF8A;
   --caution: #FFE14A;
   --warn: #FFA61F;
@@ -19,9 +19,9 @@
   --color-panel: #04130A;
   --color-inset: #061C0E;
   --color-line: #12612F;
-  --color-text-dim: #2FBF63;
-  --color-text-main: #4CFF8A;
-  --color-text-hot: #B6FFCC;
+  --color-text-dim: #3DE07A;
+  --color-text-main: #5CFF95;
+  --color-text-hot: #FFFFFF;
   --color-ok: #4CFF8A;
   --color-caution: #FFE14A;
   --color-warn: #FFA61F;
@@ -33,41 +33,47 @@
   border-color: var(--line);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
+  font-family: var(--font-inter), "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
   font-variant-numeric: tabular-nums;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   position: relative;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Static faint scanline overlay per design.md Section 4 */
+/* Very subtle atmospheric background texture behind content (never degrades text sharpness) */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(to bottom, transparent 0 3px, rgba(0,0,0,0.18) 3px 4px);
-  z-index: 9999;
+  background: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(0, 0, 0, 0.05) 4px 5px);
+  z-index: 0;
 }
 
-/* Phosphor Glow Utilities */
+/* Brilliant Phosphor Glow Utilities */
 .glow-text {
-  text-shadow: 0 0 6px rgba(76, 255, 138, 0.4);
+  text-shadow: 0 0 8px rgba(76, 255, 138, 0.45);
 }
 
 .glow-hot {
-  text-shadow: 0 0 8px rgba(182, 255, 204, 0.5);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
 .glow-danger {
-  text-shadow: 0 0 8px rgba(255, 42, 26, 0.5);
+  text-shadow: 0 0 10px rgba(255, 42, 26, 0.6);
 }
 
 .glow-warn {
@@ -78,16 +84,46 @@ body::before {
   text-shadow: 0 0 8px rgba(255, 225, 74, 0.5);
 }
 
-/* Sharp Instrument Label Style per design.md */
+/* Sharp Instrument Label Style */
 .label-instrument {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-dim);
 }
 
-/* Thermal Image wrapper per design.md Section 5 */
+/* Hero Highlight Flare Transition: First only yellow -> Faded to yellow then red -> Red */
+@keyframes highlight-flare-flow {
+  0%, 18% {
+    background-position: 0% 50%;
+    box-shadow: 0 0 16px rgba(255, 225, 74, 0.5);
+  }
+  45%, 65% {
+    background-position: 50% 50%;
+    box-shadow: 0 0 18px rgba(255, 166, 31, 0.5);
+  }
+  85%, 100% {
+    background-position: 100% 50%;
+    box-shadow: 0 0 20px rgba(255, 42, 26, 0.6);
+  }
+}
+
+.highlight-flare-transition {
+  background: linear-gradient(
+    90deg,
+    #FFE14A 0%,
+    #FFE14A 33.333%,
+    #FFA61F 50%,
+    #FF2A1A 66.667%,
+    #FF2A1A 100%
+  );
+  background-size: 300% 100%;
+  animation: highlight-flare-flow 6s ease-in-out infinite alternate;
+  box-shadow: 0 0 16px rgba(255, 225, 74, 0.5);
+}
+
+/* Thermal Image wrapper */
 .thermal-img {
   background: var(--inset);
   border: 1px solid var(--line);
@@ -105,8 +141,8 @@ body::before {
 
 /* Custom Phosphor Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg);

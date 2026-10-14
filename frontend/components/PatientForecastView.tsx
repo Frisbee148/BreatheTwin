@@ -1,13 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PATIENTS } from '@/lib/data';
+import { PATIENTS, Patient } from '@/lib/data';
+import { getPatient } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
 
 export default function PatientForecastView({ patientId }: { patientId: string }) {
-  const patient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
+  const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
+  const [patient, setPatient] = useState<Patient>(initialPatient);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLive = async () => {
+      try {
+        const livePatient = await getPatient(patientId);
+        if (isMounted && livePatient) setPatient(livePatient);
+      } catch (err) {
+        console.warn('Using local cache for patient forecast:', err);
+      }
+    };
+    fetchLive();
+    return () => { isMounted = false; };
+  }, [patientId]);
+
   const isHighRisk = patient.riskLevel === 'HIGH RISK';
 
   return (

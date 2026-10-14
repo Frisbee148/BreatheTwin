@@ -1,14 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PATIENTS } from '@/lib/data';
+import { PATIENTS, Patient } from '@/lib/data';
+import { getPatients, getPatient } from '@/lib/api';
 
 export default function PatientPreviewPage() {
+  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
   const [selectedPatientId, setSelectedPatientId] = useState<string>('PT-8821');
+  const [patient, setPatient] = useState<Patient>(PATIENTS[0]);
   const [inhalerConfirmed, setInhalerConfirmed] = useState<boolean>(false);
 
-  const patient = PATIENTS.find(p => p.id === selectedPatientId) || PATIENTS[0];
+  useEffect(() => {
+    let isMounted = true;
+    getPatients().then((pts) => {
+      if (isMounted && pts && pts.length > 0) {
+        setPatients(pts);
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    getPatient(selectedPatientId).then((livePatient) => {
+      if (isMounted && livePatient) {
+        setPatient(livePatient);
+      }
+    });
+    return () => { isMounted = false; };
+  }, [selectedPatientId]);
 
   return (
     <div className="space-y-8">
@@ -36,7 +57,7 @@ export default function PatientPreviewPage() {
             className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1.5 text-xs focus:outline-none focus:border-[#4CFF8A] font-mono"
             style={{ borderRadius: 0 }}
           >
-            {PATIENTS.map(p => (
+            {patients.map(p => (
               <option key={p.id} value={p.id}>{p.name} ({p.id})</option>
             ))}
           </select>

@@ -429,42 +429,44 @@ export default function InteractiveThermalReveal({
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
         onClick={() => setSelectedMarkerId(null)}
-        className="relative w-full max-w-[480px] aspect-[3/4] bg-[#020A05] border border-[#12612F] overflow-hidden cursor-crosshair group touch-none"
+        className="relative w-full max-w-[500px] aspect-[3/4] bg-[#020A05] border border-[#12612F] cursor-crosshair group touch-none select-none"
         role="region"
         aria-label="Interactive Coronal Thermal Torso Scan with Pulmonary Reveal"
       >
-        {/* WebGL Canvas or Fallback */}
-        {webglSupported ? (
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full block"
-          />
-        ) : (
-          <div className="relative w-full h-full">
-            <img
-              src={bodySrc}
-              alt="Base thermal scan of human torso"
-              className="absolute inset-0 w-full h-full object-cover"
+        {/* Canvas & Fallback Images clipped inside frame */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {webglSupported ? (
+            <canvas
+              ref={canvasRef}
+              className="w-full h-full block pointer-events-auto"
             />
-            <img
-              src={lungsSrc}
-              alt="Revealed internal pulmonary heatmap"
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                isLungsActive ? 'opacity-100' : isHovering ? 'opacity-85' : 'opacity-0'
-              }`}
-            />
-          </div>
-        )}
+          ) : (
+            <div className="relative w-full h-full pointer-events-auto">
+              <img
+                src={bodySrc}
+                alt="Base thermal scan of human torso"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <img
+                src={lungsSrc}
+                alt="Revealed internal pulmonary heatmap"
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                  isLungsActive ? 'opacity-100' : isHovering ? 'opacity-85' : 'opacity-0'
+                }`}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* Small corner tags */}
-        <div className="absolute top-2.5 left-2.5 pointer-events-none flex items-center space-x-1.5 z-10">
-          <span className="text-[10px] font-mono tracking-wider text-[#4CFF8A] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]">
+        {/* Header corner tags */}
+        <div className="absolute top-3 left-3 pointer-events-none flex items-center space-x-2 z-20">
+          <span className="text-xs font-mono font-medium tracking-wider text-white uppercase bg-[#020A05]/90 px-2 py-0.5 border border-[#12612F]">
             {`// CORONAL TRANSECT • ${patientId}`}
           </span>
         </div>
 
-        <div className="absolute top-2.5 right-2.5 pointer-events-none z-10">
-          <span className="text-[10px] font-mono tracking-wider text-[#B6FFCC] uppercase bg-[#020A05]/85 px-1.5 py-0.5 border border-[#12612F]">
+        <div className="absolute top-3 right-3 pointer-events-none z-20">
+          <span className="text-xs font-mono font-semibold tracking-wider text-[#5CFF95] uppercase bg-[#020A05]/90 px-2 py-0.5 border border-[#12612F]">
             {isLungsActive ? 'EXPOSED' : isHovering ? 'ACTIVE SCAN' : 'STANDBY'}
           </span>
         </div>
@@ -488,71 +490,92 @@ export default function InteractiveThermalReveal({
                 onClick={(e) => handleMarkerClick(marker, e)}
                 aria-expanded={isSelected}
                 aria-label={`Inspect ${marker.name}: ${marker.value}`}
-                className={`group/marker relative flex items-center justify-center p-1 focus:outline-none cursor-pointer transition-transform ${
-                  isSelected ? 'scale-110' : 'hover:scale-105'
+                className={`group/marker relative flex items-center justify-center p-2 focus:outline-none cursor-pointer transition-transform ${
+                  isSelected ? 'scale-125' : 'hover:scale-110'
                 }`}
               >
                 {/* Visual marker pin */}
                 <span
-                  className={`w-3.5 h-3.5 border bg-[#020A05]/95 flex items-center justify-center ${statusBorder} ${
-                    isSelected ? 'ring-2 ring-[#B6FFCC]' : ''
+                  className={`w-4 h-4 border bg-[#020A05]/95 flex items-center justify-center ${statusBorder} ${
+                    isSelected ? 'ring-2 ring-white shadow-[0_0_12px_#4CFF8A]' : ''
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 inline-block ${
+                    className={`w-2 h-2 inline-block ${
                       marker.status === 'HIGH' ? 'bg-[#FF2A1A]' :
                       marker.status === 'ELEVATED' ? 'bg-[#FFA61F]' : 'bg-[#FFE14A]'
                     }`}
                   />
                 </span>
 
-                {/* Always visible or hover badge */}
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 bg-[#020A05] border border-[#12612F] text-[9px] font-mono uppercase tracking-wider text-[#B6FFCC] px-1 py-0.5 whitespace-nowrap hidden group-hover/marker:block pointer-events-none shadow-sm">
+                {/* Hover badge: smart positioned toward thorax center so it never clips */}
+                <span
+                  className={`absolute top-1/2 -translate-y-1/2 bg-[#020A05] border border-[#12612F] text-[11px] font-mono font-semibold uppercase tracking-wider text-white px-2 py-0.5 whitespace-nowrap hidden group-hover/marker:block pointer-events-none shadow-md z-30 ${
+                    marker.x >= 50 ? 'right-6' : 'left-6'
+                  }`}
+                >
                   {marker.shortLabel}
                 </span>
               </button>
-
-              {/* Clickable Tooltip Card */}
-              {isSelected && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 w-64 bg-[#04130A] border border-[#4CFF8A] p-2.5 text-xs font-mono z-40 shadow-xl"
-                >
-                  <div className="flex items-center justify-between border-b border-[#12612F] pb-1 mb-1.5">
-                    <span className="text-[10px] text-[#2FBF63] uppercase tracking-wider">
-                      {`// HOTSPOT TELEMETRY`}
-                    </span>
-                    <button
-                      onClick={() => setSelectedMarkerId(null)}
-                      className="text-[#2FBF63] hover:text-[#FF2A1A] text-xs font-bold px-1"
-                      aria-label="Close tooltip"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                  <div className="font-semibold text-[#B6FFCC] text-[11px] uppercase mb-1">
-                    {marker.name}
-                  </div>
-                  <div className="text-[12px] font-bold text-[#FF2A1A] mb-0.5">
-                    {marker.value}
-                  </div>
-                  <div className="text-[10px] text-[#2FBF63] mb-1.5">
-                    {marker.baseline}
-                  </div>
-                  <p className="text-[10px] text-[#4CFF8A] leading-relaxed border-t border-[#12612F]/40 pt-1">
-                    {marker.description}
-                  </p>
-                </div>
-              )}
             </div>
           );
         })}
+
+        {/* Selected Hotspot Telemetry Card - Rendered at container level to prevent being cut off */}
+        {(() => {
+          const selectedMarker = markers.find((m) => m.id === selectedMarkerId);
+          if (!selectedMarker) return null;
+
+          return (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                // Smart desktop coordinates based on marker position
+                ...(selectedMarker.x > 50
+                  ? { right: `calc(${100 - selectedMarker.x}% + 18px)`, top: `calc(${selectedMarker.y}% - 70px)` }
+                  : selectedMarker.x < 50
+                  ? { left: `calc(${selectedMarker.x}% + 18px)`, top: `calc(${selectedMarker.y}% - 60px)` }
+                  : { left: 'calc(50% - 140px)', top: `calc(${selectedMarker.y}% + 22px)` })
+              }}
+              className="absolute z-40 bg-[#04130A] border border-[#4CFF8A] p-3.5 text-xs font-mono shadow-[0_12px_36px_rgba(0,0,0,0.95),0_0_18px_rgba(76,255,138,0.25)]
+                max-sm:!left-3 max-sm:!right-3 max-sm:!bottom-3 max-sm:!top-auto
+                sm:w-[280px]
+              "
+            >
+              <div className="flex items-center justify-between border-b border-[#12612F] pb-1.5 mb-2">
+                <span className="text-[11px] text-[#3DE07A] font-semibold uppercase tracking-wider flex items-center space-x-1.5">
+                  <span className="w-1.5 h-1.5 bg-[#4CFF8A] inline-block shadow-[0_0_6px_#4CFF8A]" />
+                  <span>{`// HOTSPOT TELEMETRY`}</span>
+                </span>
+                <button
+                  onClick={() => setSelectedMarkerId(null)}
+                  className="text-[#3DE07A] hover:text-[#FF2A1A] text-base leading-none font-bold px-1.5 py-0.5 cursor-pointer"
+                  aria-label="Close tooltip"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="font-bold text-white text-xs sm:text-sm uppercase mb-1">
+                {selectedMarker.name}
+              </div>
+              <div className="text-sm font-bold text-[#FF2A1A] mb-0.5">
+                {selectedMarker.value}
+              </div>
+              <div className="text-xs text-[#5CFF95] mb-2 font-mono">
+                {selectedMarker.baseline}
+              </div>
+              <p className="text-xs text-[#85FFAE] leading-relaxed border-t border-[#12612F]/50 pt-2 font-sans">
+                {selectedMarker.description}
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Caption & Show Lungs Toggle Strip */}
-      <div className="w-full max-w-[480px] mt-2.5 flex items-center justify-between px-1 text-xs font-mono">
-        <div className="text-[11px] text-[#2FBF63] flex items-center space-x-1.5">
-          <span className="text-[#4CFF8A]">&gt;</span>
+      <div className="w-full max-w-[500px] mt-3 flex items-center justify-between px-1 text-xs sm:text-sm font-mono">
+        <div className="text-xs sm:text-[13px] text-[#5CFF95] flex items-center space-x-2">
+          <span className="text-white font-bold">&gt;</span>
           <span>Hover to look inside · tap markers to inspect</span>
         </div>
 
@@ -561,10 +584,10 @@ export default function InteractiveThermalReveal({
           onClick={toggleLungsReveal}
           aria-pressed={isLungsActive}
           aria-label="Toggle full pulmonary lung reveal"
-          className={`px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider border cursor-pointer transition-colors ${
+          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider border cursor-pointer transition-colors ${
             isLungsActive
               ? 'bg-[#FF2A1A] text-[#020A05] border-[#FF2A1A]'
-              : 'bg-[#04130A] text-[#4CFF8A] border-[#12612F] hover:border-[#4CFF8A]'
+              : 'bg-[#04130A] text-white border-[#12612F] hover:border-[#4CFF8A] hover:text-[#5CFF95]'
           }`}
         >
           {isLungsActive ? 'HIDE LUNGS' : 'SHOW LUNGS'}

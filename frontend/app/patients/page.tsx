@@ -1,17 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
-import { PATIENTS } from '@/lib/data';
+import { PATIENTS, Patient } from '@/lib/data';
+import { getPatients, getClock, stepClock, ClockInfo } from '@/lib/api';
 
 export default function PatientsTriagePage() {
+  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+  const [clock, setClock] = useState<ClockInfo | null>(null);
+  const [isClockStepping, setIsClockStepping] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  const filteredPatients = PATIENTS.filter(p => {
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const [pts, clk] = await Promise.all([getPatients(12), getClock()]);
+        if (isMounted) {
+          if (pts && pts.length > 0) setPatients(pts);
+          if (clk) setClock(clk);
+        }
+      } catch (err) {
+        console.warn('Using local patients cache:', err);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleStepClock = async (hours: number) => {
+    setIsClockStepping(true);
+    try {
+      const updatedClock = await stepClock(hours);
+      if (updatedClock) {
+        setClock(updatedClock);
+        const updatedPatients = await getPatients(12, updatedClock.current_hour);
+        if (updatedPatients && updatedPatients.length > 0) {
+          setPatients(updatedPatients);
+        }
+      }
+    } finally {
+      setIsClockStepping(false);
+    }
+  };
+
+  const filteredPatients = patients.filter(p => {
     const matchesSearch = 
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -25,9 +62,17 @@ export default function PatientsTriagePage() {
     return sortOrder === 'desc' ? b.risk48h - a.risk48h : a.risk48h - b.risk48h;
   });
 
-  const totalMonitored = PATIENTS.length;
-  const highRiskCount = PATIENTS.filter(p => p.riskLevel === 'HIGH RISK').length;
-  const avgRisk = Math.round(PATIENTS.reduce((sum, p) => sum + p.risk48h, 0) / totalMonitored);
+  const totalMonitored = patients.length;
+  const highRiskCount = patients.filter(p => p.riskLevel === 'HIGH RISK').length;
+  const avgRisk = Math.round(patients.reduce((sum, p) => sum + p.risk48h, 0) / (totalMonitored || 1));
+
+  const maxAQIPatient = patients.length > 0 
+    ? patients.reduce((prev, curr) => (curr.currentAirQuality?.aqi || 0) > (prev.currentAirQuality?.aqi || 0) ? curr : prev, patients[0])
+    : null;
+  const peakAQI = maxAQIPatient?.currentAirQuality?.aqi || 0;
+  const peakAQICategory = maxAQIPatient?.currentAirQuality?.aqiCategory || 'Moderate';
+  const peakPM25 = maxAQIPatient?.currentAirQuality?.pm25 || 0;
+  const peakCity = maxAQIPatient?.city || 'Delhi';
 
   return (
     <div className="space-y-8">
@@ -46,8 +91,32 @@ export default function PatientsTriagePage() {
         <div className="flex items-center space-x-2 text-xs">
           <span className="text-[#2FBF63] uppercase">REPLAY CLOCK:</span>
           <span className="font-mono text-[#B6FFCC] border border-[#12612F] px-2 py-1 bg-[#04130A]">
-            DAY 7 &bull; T+48H FORECAST
+            {clock ? `${clock.day_label} (H${clock.current_hour})` : 'DAY 7 • HOUR 168'}
           </span>
+          <button
+            onClick={() => handleStepClock(-12)}
+            disabled={isClockStepping}
+            className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
+            title="Step clock back 12 hours"
+          >
+            -12H
+          </button>
+          <button
+            onClick={() => handleStepClock(12)}
+            disabled={isClockStepping}
+            className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
+            title="Step clock forward 12 hours"
+          >
+            +12H
+          </button>
+          <button
+            onClick={() => handleStepClock(24)}
+            disabled={isClockStepping}
+            className="font-mono text-[10px] text-[#4CFF8A] hover:bg-[#12612F]/40 border border-[#4CFF8A] px-2 py-1 bg-[#061C0E]"
+            title="Step clock forward 24 hours"
+          >
+            +24H &gt;
+          </button>
         </div>
       </div>
 
@@ -72,9 +141,9 @@ export default function PatientsTriagePage() {
         </div>
 
         <div className="border border-[#12612F] bg-[#04130A] p-4">
-          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">DELHI AQI HOTSPOT</div>
-          <div className="text-2xl font-bold font-mono text-[#FF2A1A] tabular-nums mt-1">362</div>
-          <div className="text-[11px] text-[#FF2A1A]">Severe &bull; PM2.5 192 µg/m³</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">{peakCity.toUpperCase()} AQI PEAK</div>
+          <div className="text-2xl font-bold font-mono text-[#FF2A1A] tabular-nums mt-1">{peakAQI}</div>
+          <div className="text-[11px] text-[#FF2A1A]">{peakAQICategory} &bull; PM2.5 {peakPM25} µg/m³</div>
         </div>
       </div>
 

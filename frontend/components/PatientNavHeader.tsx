@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Patient, PATIENTS } from '@/lib/data';
+import { getPatients } from '@/lib/api';
 import StatusChip from './StatusChip';
 
 interface PatientNavHeaderProps {
@@ -13,6 +14,15 @@ interface PatientNavHeaderProps {
 export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+
+  useEffect(() => {
+    let isMounted = true;
+    getPatients().then((pts) => {
+      if (isMounted && pts && pts.length > 0) setPatients(pts);
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   const tabs = [
     { label: '[01] DIGITAL TWIN & SENSORS', href: `/patients/${patient.id}` },
@@ -45,7 +55,7 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
             className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1 text-xs focus:outline-none focus:border-[#4CFF8A] font-mono"
             style={{ borderRadius: 0 }}
           >
-            {PATIENTS.map(p => (
+            {patients.map(p => (
               <option key={p.id} value={p.id}>
                 {p.id} - {p.name} ({p.risk48h}% Risk - {p.city})
               </option>

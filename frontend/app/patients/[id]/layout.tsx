@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { PATIENTS } from '@/lib/data';
 
 export function generateStaticParams() {
@@ -11,5 +12,5 @@ export default function PatientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return <Suspense fallback={null}>{children}</Suspense>;
 }

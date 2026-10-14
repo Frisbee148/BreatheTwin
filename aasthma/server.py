@@ -1,0 +1,220 @@
+import os
+from typing import Dict, Any, List, Optional
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from aasthma.inference.inference_engine import InferenceEngine, DEMO_PERSONAS
+from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
+from aasthma.simulation.clock import global_clock
+from aasthma.simulation.clinical_data import SIMULATOR_ASSUMPTIONS, BENCHMARKS
+
+from contextlib import asynccontextmanager
+
+# Singleton instances initialized on server startup
+engine: Optional[InferenceEngine] = None
+simulator = MechanisticSimulator()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global engine
+    print("[BreathTwin API] Initializing neural digital twin model and preprocessors...")
+    engine = InferenceEngine()
+    print("[BreathTwin API] Model loaded successfully. Service ready on port 8000.")
+    yield
+
+
+app = FastAPI(
+    title="BreathTwin Clinical Digital Twin Service",
+    description="Multimodal neural inference and mechanistic counterfactual simulator API (PRD FR-1 to FR-8)",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# Enable CORS for Next.js frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Pydantic Request Models
+class ClockSetRequest(BaseModel):
+    hour: int = Field(..., ge=12, le=239, description="Simulation hour between 12 and 239")
+
+
+class ClockStepRequest(BaseModel):
+    hours: int = Field(default=1, description="Number of simulation hours to step (positive or negative)")
+
+
+class WhatIfRequest(BaseModel):
+    patient_id: Optional[str] = "PT-8821"
+    base_risk_48h: float = Field(default=82.0, ge=0.0, le=100.0)
+    base_inflammation: float = Field(default=0.84, ge=0.0, le=1.0)
+    current_pm25: float = Field(default=184.0, ge=0.0)
+    current_adherence_pct: float = Field(default=68.0, ge=0.0, le=100.0)
+    outdoor_hours: float = Field(default=2.5, ge=0.0, le=12.0)
+    wear_n95: bool = False
+    target_adherence_pct: Optional[float] = None
+    hepa_purifier: bool = False
+    horizon_hours: int = Field(default=48, ge=12, le=96)
+
+
+# Routes
+@app.get("/")
+@app.get("/api/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "BreathTwin Multimodal Digital Twin Core",
+        "version": "1.0.0",
+        "simulation_clock": global_clock.get_time_info(),
+        "model_loaded": engine is not None,
+    }
+
+
+@app.get("/api/clock")
+def get_clock():
+    """Returns the current simulation clock temporal position (PRD FR-4)."""
+    return global_clock.get_time_info()
+
+
+@app.post("/api/clock/set")
+def set_clock(req: ClockSetRequest):
+    """Sets the simulation replay clock to a specific hour."""
+    new_hour = global_clock.set_hour(req.hour)
+    return {
+        "message": f"Simulation clock updated to hour {new_hour}",
+        "clock": global_clock.get_time_info(),
+    }
+
+
+@app.post("/api/clock/step")
+def step_clock(req: ClockStepRequest):
+    """Advances or rewinds the simulation clock."""
+    new_hour = global_clock.step(req.hours)
+    return {
+        "message": f"Simulation clock stepped by {req.hours}h to hour {new_hour}",
+        "clock": global_clock.get_time_info(),
+    }
+
+
+@app.post("/api/clock/reset")
+def reset_clock():
+    """Resets the simulation clock to baseline Day 7 (Hour 168)."""
+    new_hour = global_clock.reset()
+    return {
+        "message": f"Simulation clock reset to baseline Day 7 (hour {new_hour})",
+        "clock": global_clock.get_time_info(),
+    }
+
+
+@app.get("/api/patients")
+def list_patients(
+    limit: int = Query(default=12, ge=1, le=50),
+    hour: Optional[int] = Query(default=None, ge=12, le=239)
+):
+    """
+    Returns the ranked cohort roster for the doctor dashboard triage view (PRD FR-1, FR-5, FR-8).
+    Evaluated dynamically up to the specified hour (or current simulation clock hour).
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    cohort = engine.predict_cohort(end_hour=eval_hour, limit=limit)
+    return cohort
+
+
+@app.get("/api/patients/{patient_id}")
+def get_patient_detail(
+    patient_id: str,
+    hour: Optional[int] = Query(default=None, ge=12, le=239)
+):
+    """
+    Returns full digital twin state for a single patient with 24h & 48h neural risk,
+    conformal prediction intervals, and ranked SHAP feature attributions (PRD FR-5, FR-6).
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    try:
+        patient_data = engine.get_formatted_patient(patient_id, end_hour=eval_hour)
+        return patient_data
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
+
+@app.get("/api/patients/{patient_id}/telemetry")
+def get_patient_telemetry(
+    patient_id: str,
+    hour: Optional[int] = Query(default=None, ge=12, le=239)
+):
+    """
+    Returns daily aggregated telemetry points (Day 1 through current day)
+    replayed through the simulation clock feed (PRD FR-4).
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    resolved_pid = engine.resolve_patient_id(patient_id)
+    p_ts = engine.ts_df[engine.ts_df["patient_id"] == resolved_pid]
+
+    if p_ts.empty:
+        raise HTTPException(status_code=404, detail=f"No telemetry found for patient {patient_id}")
+
+    # Temporarily set clock hour if user passed an explicit query hour
+    orig_hour = global_clock.current_hour
+    try:
+        if hour is not None:
+            global_clock.set_hour(hour)
+        daily_points = global_clock.aggregate_daily_telemetry(p_ts)
+        return {
+            "patient_id": patient_id,
+            "dataset_id": resolved_pid,
+            "current_hour": global_clock.current_hour,
+            "points": daily_points,
+        }
+    finally:
+        if hour is not None:
+            global_clock.set_hour(orig_hour)
+
+
+@app.post("/api/what-if")
+def simulate_counterfactual(req: WhatIfRequest):
+    """
+    Runs mechanistic counterfactual What-If simulation by numerically integrating
+    the latent airway inflammation differential equation and re-scoring neural risk (PRD FR-7).
+    """
+    result = simulator.simulate_what_if(
+        base_risk_48h=req.base_risk_48h,
+        base_inflammation=req.base_inflammation,
+        current_pm25=req.current_pm25,
+        current_adherence_pct=req.current_adherence_pct,
+        outdoor_hours=req.outdoor_hours,
+        wear_n95=req.wear_n95,
+        target_adherence_pct=req.target_adherence_pct,
+        hepa_purifier=req.hepa_purifier,
+        horizon_hours=req.horizon_hours,
+    )
+    return result
+
+
+@app.get("/api/assumptions")
+def get_clinical_assumptions():
+    """Returns biological parameter citations and physiological roles (PRD FR-12)."""
+    return SIMULATOR_ASSUMPTIONS
+
+
+@app.get("/api/benchmarks")
+def get_benchmarks():
+    """Returns model benchmark comparisons and ablation test results (PRD Section 11)."""
+    return BENCHMARKS

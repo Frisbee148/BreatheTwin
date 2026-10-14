@@ -1,15 +1,39 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PATIENTS, PATIENT_TELEMETRY_SERIES } from '@/lib/data';
+import { PATIENTS, PATIENT_TELEMETRY_SERIES, Patient, TelemetryPoint } from '@/lib/data';
+import { getPatient, getPatientTelemetry } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import ThermalViewer from '@/components/ThermalViewer';
 import TelemetryChart from '@/components/TelemetryChart';
 
 export default function PatientTwinView({ patientId }: { patientId: string }) {
-  const patient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
-  const telemetry = PATIENT_TELEMETRY_SERIES[patient.id] || PATIENT_TELEMETRY_SERIES['PT-8821'];
+  const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
+  const [patient, setPatient] = useState<Patient>(initialPatient);
+  const [telemetry, setTelemetry] = useState<TelemetryPoint[]>(
+    PATIENT_TELEMETRY_SERIES[patientId] || PATIENT_TELEMETRY_SERIES['PT-8821']
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLive = async () => {
+      try {
+        const [livePatient, liveTelem] = await Promise.all([
+          getPatient(patientId),
+          getPatientTelemetry(patientId),
+        ]);
+        if (isMounted) {
+          if (livePatient) setPatient(livePatient);
+          if (liveTelem && liveTelem.length > 0) setTelemetry(liveTelem);
+        }
+      } catch (err) {
+        console.warn('Using local cache for patient twin:', err);
+      }
+    };
+    fetchLive();
+    return () => { isMounted = false; };
+  }, [patientId]);
 
   return (
     <div className="space-y-6">

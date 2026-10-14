@@ -1,11 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BENCHMARKS } from '@/lib/data';
+import { BENCHMARKS, BenchmarkModel } from '@/lib/data';
+import { getBenchmarks } from '@/lib/api';
 
 export default function BenchmarksPage() {
-  const proposedModel = BENCHMARKS.find(b => b.category === 'BreathTwin Core');
+  const [benchmarks, setBenchmarks] = useState<BenchmarkModel[]>(BENCHMARKS);
+
+  useEffect(() => {
+    let isMounted = true;
+    getBenchmarks().then((data) => {
+      if (isMounted && data && data.length > 0) setBenchmarks(data);
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  const proposedModel = benchmarks.find(b => b.category === 'BreathTwin Core');
 
   return (
     <div className="space-y-8">
@@ -77,7 +88,7 @@ export default function BenchmarksPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#12612F]/40 font-sans">
-            {BENCHMARKS.map((m) => {
+            {benchmarks.map((m) => {
               const isFull = m.category === 'BreathTwin Core';
               return (
                 <tr 

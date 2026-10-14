@@ -1,10 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { SIMULATOR_ASSUMPTIONS } from '@/lib/data';
+import { SIMULATOR_ASSUMPTIONS, SimulatorAssumption } from '@/lib/data';
+import { getAssumptions } from '@/lib/api';
 
 export default function AssumptionsPage() {
+  const [assumptions, setAssumptions] = useState<SimulatorAssumption[]>(SIMULATOR_ASSUMPTIONS);
+
+  useEffect(() => {
+    let isMounted = true;
+    getAssumptions().then((data) => {
+      if (isMounted && data && data.length > 0) setAssumptions(data);
+    });
+    return () => { isMounted = false; };
+  }, []);
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -53,7 +63,7 @@ export default function AssumptionsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#12612F]/40 font-sans">
-            {SIMULATOR_ASSUMPTIONS.map((item) => (
+            {assumptions.map((item) => (
               <tr key={item.id} className="hover:bg-[#061C0E] transition-colors">
                 <td className="py-3.5 px-4 font-mono">
                   <div className="font-bold text-[#B6FFCC]">{item.id}</div>

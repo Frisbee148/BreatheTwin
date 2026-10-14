@@ -115,7 +115,7 @@ export default function ThermalViewer({
                     style={{ backgroundColor: pinColor }}
                   />
                 </span>
-                <span className="absolute left-7 top-1/2 -translate-y-1/2 bg-[#020A05] border border-[#12612F] text-[9px] font-mono uppercase tracking-widest text-[#B6FFCC] px-1.5 py-0.5 whitespace-nowrap hidden group-hover:block pointer-events-none">
+                <span className={`absolute ${marker.x > 50 ? 'right-7' : 'left-7'} top-1/2 -translate-y-1/2 bg-[#020A05] border border-[#12612F] text-[9px] font-mono uppercase tracking-widest text-[#B6FFCC] px-1.5 py-0.5 whitespace-nowrap hidden group-hover:block pointer-events-none z-20 shadow-md`}>
                   {marker.name}
                 </span>
               </button>
