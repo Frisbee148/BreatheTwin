@@ -460,8 +460,9 @@ export default function InteractiveThermalReveal({
 
         {/* Header corner tags */}
         <div className="absolute top-3 left-3 pointer-events-none flex items-center space-x-2 z-20">
-          <span className="text-xs font-mono font-medium tracking-wider text-white uppercase bg-[#020A05]/90 px-2 py-0.5 border border-[#12612F]">
-            {`// CORONAL TRANSECT • ${patientId}`}
+          <span className="text-xs font-mono font-medium tracking-wider text-white uppercase bg-[#020A05]/90 px-2 py-0.5 border border-[#12612F] flex items-center space-x-1.5">
+            <span className="text-[#4CFF8A]">◈</span>
+            <span>CORONAL TRANSECT &bull; {patientId}</span>
           </span>
         </div>
 
@@ -545,7 +546,7 @@ export default function InteractiveThermalReveal({
               <div className="flex items-center justify-between border-b border-[#12612F] pb-1.5 mb-2">
                 <span className="text-[11px] text-[#3DE07A] font-semibold uppercase tracking-wider flex items-center space-x-1.5">
                   <span className="w-1.5 h-1.5 bg-[#4CFF8A] inline-block shadow-[0_0_6px_#4CFF8A]" />
-                  <span>{`// HOTSPOT TELEMETRY`}</span>
+                  <span>HOTSPOT TELEMETRY</span>
                 </span>
                 <button
                   onClick={() => setSelectedMarkerId(null)}

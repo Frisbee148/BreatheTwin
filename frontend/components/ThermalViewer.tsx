@@ -149,8 +149,9 @@ export default function ThermalViewer({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#12612F]/40 pb-3 mb-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
-              {`// PHYSIOLOGICAL TWIN VIEWPORT • ${patientId}`}
+            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] flex items-center space-x-1.5">
+              <span className="text-[#4CFF8A]">◈</span>
+              <span>PHYSIOLOGICAL TWIN VIEWPORT &bull; {patientId}</span>
             </span>
             <span className="text-[9px] font-mono px-1.5 py-0.2 border border-[#12612F] text-[#4CFF8A] bg-[#061C0E]">
               {viewFormat === '3d' ? '3D MESH ACTIVE' : '2D SCAN ACTIVE'}

@@ -71,7 +71,10 @@ export default function TelemetryChart({
       {/* Header */}
       <div className="flex items-center justify-between mb-3 border-b border-[#12612F]/40 pb-2">
         <div className="flex items-center space-x-2">
-          <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// ${title}`}</span>
+          <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] flex items-center space-x-1.5">
+            <span className="text-[#4CFF8A]">◈</span>
+            <span>{title}</span>
+          </span>
           {isAlert && (
             <span className="text-[10px] tracking-widest text-[#FF2A1A] border border-[#FF2A1A] px-1.5 py-0.2 uppercase font-bold">
               THRESHOLD EXCEEDED

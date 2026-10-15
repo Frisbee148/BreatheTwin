@@ -6,6 +6,7 @@ import { PATIENTS, Patient } from '@/lib/data';
 import { getPatient } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
+import ScrambleText from '@/components/ScrambleText';
 
 export default function PatientForecastView({ patientId }: { patientId: string }) {
   const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
@@ -55,7 +56,12 @@ export default function PatientForecastView({ patientId }: { patientId: string }
         <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
             <div>
-              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// 24-HOUR FORECAST HORIZON`}</span>
+              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
+                <ScrambleText
+                  text="24-HOUR FORECAST HORIZON"
+                  prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+                />
+              </span>
               <div className="text-xs text-[#B6FFCC] font-mono">TARGET: ADVERSE EVENT WITHIN 24H</div>
             </div>
             <StatusChip status={patient.risk24h >= 70 ? 'HIGH RISK' : patient.risk24h >= 50 ? 'ELEVATED' : 'NORMAL'} size="sm" />
@@ -93,7 +99,12 @@ export default function PatientForecastView({ patientId }: { patientId: string }
         }`}>
           <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
             <div>
-              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// 48-HOUR PRIMARY CLINICAL HORIZON`}</span>
+              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
+                <ScrambleText
+                  text="48-HOUR PRIMARY CLINICAL HORIZON"
+                  prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+                />
+              </span>
               <div className="text-xs text-[#B6FFCC] font-mono">TARGET: 48H ADVERSE EVENT PREDICTION</div>
             </div>
             <StatusChip status={patient.riskLevel} size="sm" />
@@ -128,7 +139,12 @@ export default function PatientForecastView({ patientId }: { patientId: string }
       <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
           <div>
-            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// AMBIENT POLLUTION CONTEXT &bull; {patient.city.toUpperCase()} ({patient.station})`}</span>
+            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
+              <ScrambleText
+                text={`AMBIENT POLLUTION CONTEXT • ${patient.city.toUpperCase()} (${patient.station})`}
+                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              />
+            </span>
             <div className="text-xs text-[#B6FFCC] font-mono">STREAM: OPEN CPCB / OPENAQ INDIA REAL-TIME INGESTION</div>
           </div>
           <span className="text-xs font-mono text-[#FFE14A] border border-[#12612F] px-2 py-0.5 bg-[#020A05]">
@@ -167,7 +183,12 @@ export default function PatientForecastView({ patientId }: { patientId: string }
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-[#12612F] pb-2">
           <div>
-            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">{`// Explainable AI: Ranked Alert Drivers (SHAP Attribution)`}</h2>
+            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">
+              <ScrambleText
+                text="EXPLAINABLE AI: RANKED ALERT DRIVERS (SHAP ATTRIBUTION)"
+                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              />
+            </h2>
             <div className="text-xs text-[#2FBF63]">
               Section 9 &amp; 11 Compliance: Never show a risk probability without auditable clinical reasons.
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
 import InteractiveThermalReveal, { LungMarker } from '@/components/InteractiveThermalReveal';
+import ScrambleText from '@/components/ScrambleText';
 import { PATIENTS, Patient } from '@/lib/data';
 import { getPatient, simulateWhatIf } from '@/lib/api';
 
@@ -146,7 +147,10 @@ export default function HomePage() {
             {selectedHotspot && (
               <div className="border border-[#4CFF8A] bg-[#04130A] p-4 text-xs font-mono space-y-1.5 shadow-lg">
                 <div className="text-xs text-[#3DE07A] uppercase font-semibold">
-                  {`// SELECTED BIOMARKER`}
+                  <ScrambleText
+                    text="SELECTED BIOMARKER"
+                    prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+                  />
                 </div>
                 <div className="text-sm font-bold text-white">
                   {selectedHotspot.name}: <span className="text-[#FF2A1A]">{selectedHotspot.value}</span>
@@ -175,9 +179,11 @@ export default function HomePage() {
       ========================================================================= */}
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div>
-          <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-            {`// 01 THE PROBLEM`}
-          </span>
+          <ScrambleText
+            text="01 — THE PROBLEM"
+            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+            className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+          />
           <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
             Why flare-ups are unpredictable in polluted cities.
           </h2>
@@ -228,9 +234,11 @@ export default function HomePage() {
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-              {`// 02 HOW IT WORKS`}
-            </span>
+            <ScrambleText
+              text="02 — HOW IT WORKS"
+              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+            />
             <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
               Three streams into one continuous digital twin.
             </h2>
@@ -330,9 +338,11 @@ export default function HomePage() {
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-              {`// 03 PRODUCT PREVIEW`}
-            </span>
+            <ScrambleText
+              text="03 — PRODUCT PREVIEW"
+              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+            />
             <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
               What the treating doctor sees.
             </h2>
@@ -432,9 +442,11 @@ export default function HomePage() {
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-              {`// 04 THE DIFFERENTIATOR`}
-            </span>
+            <ScrambleText
+              text="04 — THE DIFFERENTIATOR"
+              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+            />
             <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
               Counterfactual simulation: test before you prescribe.
             </h2>
@@ -535,9 +547,11 @@ export default function HomePage() {
       ========================================================================= */}
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div>
-          <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-            {`// 05 TRUST AND LIMITS`}
-          </span>
+          <ScrambleText
+            text="05 — TRUST AND LIMITS"
+            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+            className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+          />
           <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
             Operational boundaries and ethical design.
           </h2>
@@ -592,9 +606,11 @@ export default function HomePage() {
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-              {`// 06 UNDER THE HOOD`}
-            </span>
+            <ScrambleText
+              text="06 — UNDER THE HOOD"
+              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+            />
             <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
               Engineering stack and benchmark results.
             </h2>
@@ -680,9 +696,11 @@ export default function HomePage() {
       ========================================================================= */}
       <section id="demo" className="border-t border-[#12612F]/60 pt-12 space-y-6">
         <div>
-          <span className="text-xs sm:text-sm font-mono font-semibold tracking-widest text-[#3DE07A] uppercase">
-            {`// 07 SUBMISSION & ARTIFACTS`}
-          </span>
+          <ScrambleText
+            text="07 — SUBMISSION & ARTIFACTS"
+            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+            className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
+          />
           <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
             Demo walkthrough, artifacts and project team.
           </h2>
@@ -716,7 +734,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm font-mono">
           <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2">
             <div className="text-xs text-[#3DE07A] uppercase font-semibold">TEAM &amp; COLLEGE</div>
-            <div className="text-white font-bold text-base">BreathTwin // Team DigiTwin</div>
+            <div className="text-white font-bold text-base">BreathTwin &bull; Team DigiTwin</div>
             <div className="text-[#5CFF95]">Lead: Aarush Bhattacharjee</div>
             <div className="text-[#75FFA5] text-xs">Department of Pulmonary Informatics</div>
           </div>

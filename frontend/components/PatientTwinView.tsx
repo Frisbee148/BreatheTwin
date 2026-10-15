@@ -7,6 +7,7 @@ import { getPatient, getPatientTelemetry } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import ThermalViewer from '@/components/ThermalViewer';
 import TelemetryChart from '@/components/TelemetryChart';
+import ScrambleText from '@/components/ScrambleText';
 
 export default function PatientTwinView({ patientId }: { patientId: string }) {
   const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
@@ -58,7 +59,11 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
           {/* Latent State I(t) Panel */}
           <div className="border border-[#12612F] bg-[#04130A] p-4 text-xs space-y-4">
             <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
-              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// LATENT AIRWAY STATE I(t)`}</span>
+              <ScrambleText
+                text="LATENT AIRWAY STATE I(t)"
+                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
+              />
               <span className="text-[10px] font-mono text-[#B6FFCC] border border-[#12612F] px-1.5 py-0.5">
                 KALMAN ESTIMATED
               </span>
@@ -113,7 +118,13 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
 
           {/* Quick EHR & Air Quality Snapshot */}
           <div className="border border-[#12612F] bg-[#04130A] p-4 text-xs space-y-3">
-            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] border-b border-[#12612F]/40 pb-2">{`// CURRENT AMBIENT &amp; RESCUE METRICS`}</div>
+            <div className="border-b border-[#12612F]/40 pb-2">
+              <ScrambleText
+                text="CURRENT AMBIENT & RESCUE METRICS"
+                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="border border-[#12612F]/40 p-2 bg-[#061C0E]">
@@ -150,7 +161,12 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-[#12612F] pb-2">
           <div>
-            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">{`// Dynamic Sensor Telemetry (7-Day Replay)`}</h2>
+            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">
+              <ScrambleText
+                text="DYNAMIC SENSOR TELEMETRY (7-DAY REPLAY)"
+                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
+              />
+            </h2>
             <div className="text-xs text-[#2FBF63]">
               Continuous streams replayed through the simulation clock. Compare live deviations against personal baseline.
             </div>
