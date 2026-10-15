@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ThemeToggle from './ThemeToggle';
 
 interface NavLinkItem {
   label: string;
@@ -179,11 +180,13 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        {/* Right: CTA Button & Mobile Toggle */}
-        <div className="flex items-center space-x-3">
+        {/* Right: Theme Toggle, CTA Button & Mobile Toggle */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <ThemeToggle />
+
           <Link
             href="/patients"
-            className="hidden sm:flex h-9 px-4 text-xs sm:text-sm font-semibold border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] hover:bg-transparent hover:text-white transition-all duration-150 items-center justify-center shadow-[0_0_10px_rgba(76,255,138,0.25)]"
+            className="hidden sm:flex h-9 px-4 text-xs sm:text-sm font-semibold border border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05] hover:bg-transparent hover:text-white transition-all duration-150 items-center justify-center shadow-[0_0_10px_rgba(76,255,138,0.25)]"
           >
             Open dashboard
           </Link>
@@ -208,8 +211,12 @@ export default function Navbar() {
       {menuOpen && (
         <nav
           aria-label="Mobile Navigation"
-          className="md:hidden border-t border-[#12612F] bg-[#020A05] px-4 py-3 space-y-2"
+          className="md:hidden border-t border-[#12612F] bg-[#020A05] px-4 py-3 space-y-3"
         >
+          <div className="pb-2 border-b border-[#12612F]/40 flex items-center justify-between">
+            <span className="text-xs uppercase font-mono text-[#2FBF63]">MODE:</span>
+            <ThemeToggle />
+          </div>
           <ul className="space-y-1">
             {NAV_LINKS.map((link) => {
               const isActive = activeHref === link.href;
@@ -236,7 +243,7 @@ export default function Navbar() {
             <Link
               href="/patients"
               onClick={() => setMenuOpen(false)}
-              className="flex h-10 items-center justify-center border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-bold text-xs uppercase tracking-wider"
+              className="flex h-10 items-center justify-center border border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05] font-bold text-xs uppercase tracking-wider"
             >
               Open dashboard
             </Link>

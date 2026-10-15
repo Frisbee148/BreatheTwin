@@ -130,7 +130,7 @@ export default function HomePage() {
             <div className="flex flex-wrap gap-4 pt-1">
               <Link
                 href="/patients"
-                className="h-12 px-8 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-[#020A05] bg-[#4CFF8A] hover:bg-transparent hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-[0_0_16px_rgba(76,255,138,0.35)]"
+                className="h-12 px-8 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-white dark:text-[#020A05] bg-[#4CFF8A] hover:bg-transparent hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-[0_0_16px_rgba(76,255,138,0.35)]"
               >
                 OPEN DASHBOARD &gt;
               </Link>

@@ -45,6 +45,7 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
         {/* Left Column: Interactive Thermal Pulmonary Twin */}
         <div className="lg:col-span-8">
           <ThermalViewer
+            patient={patient}
             patientName={patient.name}
             patientId={patient.id}
             overallStatus={patient.riskLevel}

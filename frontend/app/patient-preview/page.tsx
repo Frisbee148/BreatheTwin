@@ -145,8 +145,8 @@ export default function PatientPreviewPage() {
                   disabled={inhalerConfirmed}
                   className={`w-full py-2 text-xs uppercase tracking-wider font-semibold border transition-colors ${
                     inhalerConfirmed
-                      ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
-                      : 'border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05]'
+                      ? 'border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05]'
+                      : 'border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-white dark:hover:text-[#020A05]'
                   }`}
                   style={{ borderRadius: 0 }}
                 >

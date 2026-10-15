@@ -203,7 +203,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
               }}
               className={`h-9 px-4 text-xs font-mono font-semibold uppercase tracking-wider border transition-colors ${
                 wearN95
-                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
+                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05]'
                   : 'border-[#12612F] bg-[#020A05] text-[#2FBF63] hover:border-[#4CFF8A]'
               }`}
               style={{ borderRadius: 0 }}
@@ -259,7 +259,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
               }}
               className={`h-9 px-4 text-xs font-mono font-semibold uppercase tracking-wider border transition-colors ${
                 hepaPurifier
-                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
+                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05]'
                   : 'border-[#12612F] bg-[#020A05] text-[#2FBF63] hover:border-[#4CFF8A]'
               }`}
               style={{ borderRadius: 0 }}

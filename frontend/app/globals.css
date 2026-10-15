@@ -1,10 +1,39 @@
 @import "tailwindcss";
 
+/* =========================================================================
+   BREATHTWIN THEME SYSTEM
+   Light Mode: Default (Fresh clinical light mint tone #F4F8F5)
+   Dark Mode: Preserved Identically (Terminal obsidian #020A05 / Phosphor green)
+========================================================================= */
+
 :root {
+  /* LIGHT MODE (DEFAULT) */
+  --bg: #F4F8F5;
+  --panel: #FFFFFF;
+  --inset: #EAF3EC;
+  --line: #C8E2CF;
+  --line-soft: #DCEFE2;
+  --text-dim: #236B3D;
+  --text: #0E2E1B;
+  --text-hot: #051E0E;
+  --ok: #0D7A3E;
+  --caution: #B45309;
+  --warn: #C2410C;
+  --danger: #DC2626;
+
+  --toggle-light-bg: #0E793C;
+  --toggle-light-text: #FFFFFF;
+  --toggle-dark-bg: transparent;
+  --toggle-dark-text: #2FBF63;
+}
+
+html.dark {
+  /* DARK MODE (PRESERVED IDENTICALLY) */
   --bg: #020A05;
   --panel: #04130A;
   --inset: #061C0E;
   --line: #12612F;
+  --line-soft: #12612F;
   --text-dim: #3DE07A;
   --text: #5CFF95;
   --text-hot: #FFFFFF;
@@ -12,20 +41,25 @@
   --caution: #FFE14A;
   --warn: #FFA61F;
   --danger: #FF2A1A;
+
+  --toggle-light-bg: transparent;
+  --toggle-light-text: #2FBF63;
+  --toggle-dark-bg: #4CFF8A;
+  --toggle-dark-text: #020A05;
 }
 
 @theme {
-  --color-bg: #020A05;
-  --color-panel: #04130A;
-  --color-inset: #061C0E;
-  --color-line: #12612F;
-  --color-text-dim: #3DE07A;
-  --color-text-main: #5CFF95;
-  --color-text-hot: #FFFFFF;
-  --color-ok: #4CFF8A;
-  --color-caution: #FFE14A;
-  --color-warn: #FFA61F;
-  --color-danger: #FF2A1A;
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-inset: var(--inset);
+  --color-line: var(--line);
+  --color-text-dim: var(--text-dim);
+  --color-text-main: var(--text);
+  --color-text-hot: var(--text-hot);
+  --color-ok: var(--ok);
+  --color-caution: var(--caution);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
 }
 
 * {
@@ -35,6 +69,8 @@
 
 html {
   scrollbar-gutter: stable;
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 body {
@@ -53,7 +89,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Very subtle atmospheric background texture behind content (never degrades text sharpness) */
+/* Atmospheric subtle scanline texture */
 body::before {
   content: "";
   position: fixed;
@@ -63,7 +99,7 @@ body::before {
   z-index: 0;
 }
 
-/* Brilliant Phosphor Glow Utilities */
+/* Phosphor Glow Utilities in Dark Mode */
 .glow-text {
   text-shadow: 0 0 8px rgba(76, 255, 138, 0.45);
 }
@@ -139,7 +175,7 @@ body::before {
   filter: contrast(1.08) brightness(0.96);
 }
 
-/* Custom Phosphor Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -153,4 +189,396 @@ body::before {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
+}
+
+/* Theme Toggle Button Active States */
+.theme-toggle-light-active {
+  background-color: #0E793C !important;
+  color: #FFFFFF !important;
+}
+
+.theme-toggle-dark-active {
+  background-color: #4CFF8A !important;
+  color: #020A05 !important;
+}
+
+html.dark .theme-toggle-dark-active {
+  background-color: #4CFF8A !important;
+  color: #020A05 !important;
+}
+
+html.dark .theme-toggle-light-active {
+  background-color: transparent !important;
+  color: #2FBF63 !important;
+}
+
+html:not(.dark) .theme-toggle-light-active,
+html.light .theme-toggle-light-active,
+html[data-theme="light"] .theme-toggle-light-active {
+  background-color: #0E793C !important;
+  color: #FFFFFF !important;
+}
+
+html:not(.dark) .theme-toggle-dark-active,
+html.light .theme-toggle-dark-active,
+html[data-theme="light"] .theme-toggle-dark-active {
+  background-color: transparent !important;
+  color: #24693D !important;
+}
+
+/* =========================================================================
+   LIGHT MODE OVERRIDES (APPLIED WHEN .dark IS ABSENT)
+   Transforms hardcoded terminal classes into a clean, bright, lighter clinical tone
+========================================================================= */
+
+html:not(.dark) body::before,
+html.light body::before,
+html[data-theme="light"] body::before {
+  display: none !important;
+}
+
+/* Backgrounds in Light Mode */
+html:not(.dark) body,
+html.light body,
+html[data-theme="light"] body {
+  background-color: #F4F8F5 !important;
+  color: #0E2E1B !important;
+}
+
+html:not(.dark) .bg-\[\#020A05\],
+html.light .bg-\[\#020A05\],
+html[data-theme="light"] .bg-\[\#020A05\] {
+  background-color: #F4F8F5 !important;
+}
+
+html:not(.dark) .bg-\[\#020A05\]\/85,
+html.light .bg-\[\#020A05\]\/85,
+html[data-theme="light"] .bg-\[\#020A05\]\/85,
+html:not(.dark) .bg-\[\#020A05\]\/90,
+html.light .bg-\[\#020A05\]\/90,
+html[data-theme="light"] .bg-\[\#020A05\]\/90,
+html:not(.dark) .bg-\[\#020A05\]\/95,
+html.light .bg-\[\#020A05\]\/95,
+html[data-theme="light"] .bg-\[\#020A05\]\/95 {
+  background-color: rgba(244, 248, 245, 0.94) !important;
+}
+
+html:not(.dark) .bg-\[\#04130A\],
+html.light .bg-\[\#04130A\],
+html[data-theme="light"] .bg-\[\#04130A\] {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 1px 3px rgba(14, 46, 27, 0.05);
+}
+
+html:not(.dark) .bg-\[\#061C0E\],
+html.light .bg-\[\#061C0E\],
+html[data-theme="light"] .bg-\[\#061C0E\] {
+  background-color: #EAF3EC !important;
+}
+
+html:not(.dark) .bg-\[\#0B3519\]\/75,
+html.light .bg-\[\#0B3519\]\/75,
+html:not(.dark) .bg-\[\#0B3519\]\/80,
+html.light .bg-\[\#0B3519\]\/80,
+html:not(.dark) .bg-\[\#0B3519\],
+html.light .bg-\[\#0B3519\],
+html[data-theme="light"] .bg-\[\#0B3519\] {
+  background-color: #D6EDE0 !important;
+}
+
+html:not(.dark) .bg-\[\#062413\],
+html.light .bg-\[\#062413\],
+html[data-theme="light"] .bg-\[\#062413\] {
+  background-color: #E2EFE5 !important;
+}
+
+/* Borders in Light Mode */
+html:not(.dark) .border-\[\#12612F\],
+html.light .border-\[\#12612F\],
+html[data-theme="light"] .border-\[\#12612F\] {
+  border-color: #C8E2CF !important;
+}
+
+html:not(.dark) .border-\[\#12612F\]\/40,
+html.light .border-\[\#12612F\]\/40,
+html:not(.dark) .border-\[\#12612F\]\/50,
+html.light .border-\[\#12612F\]\/50,
+html:not(.dark) .border-\[\#12612F\]\/60,
+html.light .border-\[\#12612F\]\/60,
+html[data-theme="light"] .border-\[\#12612F\]\/40,
+html[data-theme="light"] .border-\[\#12612F\]\/50,
+html[data-theme="light"] .border-\[\#12612F\]\/60 {
+  border-color: #DCEFE2 !important;
+}
+
+html:not(.dark) .border-\[\#166E34\]\/50,
+html.light .border-\[\#166E34\]\/50,
+html[data-theme="light"] .border-\[\#166E34\]\/50 {
+  border-color: #BDE4C8 !important;
+}
+
+html:not(.dark) .border-\[\#4CFF8A\],
+html.light .border-\[\#4CFF8A\],
+html[data-theme="light"] .border-\[\#4CFF8A\] {
+  border-color: #0E793C !important;
+}
+
+html:not(.dark) .border-\[\#4CFF8A\]\/60,
+html.light .border-\[\#4CFF8A\]\/60,
+html[data-theme="light"] .border-\[\#4CFF8A\]\/60 {
+  border-color: rgba(14, 121, 60, 0.45) !important;
+}
+
+html:not(.dark) .border-\[\#B6FFCC\],
+html.light .border-\[\#B6FFCC\],
+html[data-theme="light"] .border-\[\#B6FFCC\] {
+  border-color: #0E793C !important;
+}
+
+html:not(.dark) .divide-\[\#12612F\]\/40 > *,
+html.light .divide-\[\#12612F\]\/40 > *,
+html[data-theme="light"] .divide-\[\#12612F\]\/40 > * {
+  border-color: #DCEFE2 !important;
+}
+
+/* Typography in Light Mode */
+html:not(.dark) .text-\[\#B6FFCC\],
+html.light .text-\[\#B6FFCC\],
+html[data-theme="light"] .text-\[\#B6FFCC\] {
+  color: #072713 !important;
+  font-weight: 600;
+}
+
+html:not(.dark) .text-\[\#4CFF8A\],
+html.light .text-\[\#4CFF8A\],
+html[data-theme="light"] .text-\[\#4CFF8A\] {
+  color: #0D6F37 !important;
+}
+
+html:not(.dark) .text-\[\#5CFF95\],
+html.light .text-\[\#5CFF95\],
+html[data-theme="light"] .text-\[\#5CFF95\] {
+  color: #0F351B !important;
+}
+
+html:not(.dark) .text-\[\#2FBF63\],
+html.light .text-\[\#2FBF63\],
+html[data-theme="light"] .text-\[\#2FBF63\] {
+  color: #24693D !important;
+}
+
+html:not(.dark) .text-\[\#3DE07A\],
+html.light .text-\[\#3DE07A\],
+html[data-theme="light"] .text-\[\#3DE07A\] {
+  color: #0D6F37 !important;
+}
+
+html:not(.dark) .text-\[\#75FFA5\],
+html.light .text-\[\#75FFA5\],
+html[data-theme="light"] .text-\[\#75FFA5\] {
+  color: #185830 !important;
+}
+
+html:not(.dark) .text-\[\#85FFAE\],
+html.light .text-\[\#85FFAE\],
+html[data-theme="light"] .text-\[\#85FFAE\] {
+  color: #185830 !important;
+}
+
+html:not(.dark) .text-\[\#12612F\],
+html.light .text-\[\#12612F\],
+html[data-theme="light"] .text-\[\#12612F\] {
+  color: #24693D !important;
+}
+
+html:not(.dark) .text-white,
+html.light .text-white,
+html[data-theme="light"] .text-white {
+  color: #041A0C !important;
+}
+
+/* Alert Colors in Light Mode */
+html:not(.dark) .text-\[\#FFE14A\],
+html.light .text-\[\#FFE14A\],
+html[data-theme="light"] .text-\[\#FFE14A\] {
+  color: #92400E !important;
+  font-weight: 600;
+}
+
+html:not(.dark) .text-\[\#FFA61F\],
+html.light .text-\[\#FFA61F\],
+html[data-theme="light"] .text-\[\#FFA61F\] {
+  color: #C2410C !important;
+  font-weight: 600;
+}
+
+html:not(.dark) .text-\[\#FF2A1A\],
+html.light .text-\[\#FF2A1A\],
+html[data-theme="light"] .text-\[\#FF2A1A\] {
+  color: #DC2626 !important;
+  font-weight: 600;
+}
+
+html:not(.dark) .border-\[\#FF2A1A\],
+html.light .border-\[\#FF2A1A\],
+html[data-theme="light"] .border-\[\#FF2A1A\] {
+  border-color: #DC2626 !important;
+}
+
+html:not(.dark) .border-\[\#FFA61F\],
+html.light .border-\[\#FFA61F\],
+html[data-theme="light"] .border-\[\#FFA61F\] {
+  border-color: #EA580C !important;
+}
+
+html:not(.dark) .border-\[\#FFE14A\],
+html.light .border-\[\#FFE14A\],
+html[data-theme="light"] .border-\[\#FFE14A\] {
+  border-color: #D97706 !important;
+}
+
+/* Buttons and Accents in Light Mode */
+html:not(.dark) .bg-\[\#4CFF8A\],
+html.light .bg-\[\#4CFF8A\],
+html[data-theme="light"] .bg-\[\#4CFF8A\],
+html:not(.dark) .bg-\[\#4CFF8A\] *,
+html.light .bg-\[\#4CFF8A\] *,
+html[data-theme="light"] .bg-\[\#4CFF8A\] * {
+  background-color: #0E793C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #0E793C !important;
+}
+
+html:not(.dark) .bg-\[\#4CFF8A\]:hover,
+html.light .bg-\[\#4CFF8A\]:hover,
+html[data-theme="light"] .bg-\[\#4CFF8A\]:hover,
+html:not(.dark) .bg-\[\#4CFF8A\]:hover *,
+html.light .bg-\[\#4CFF8A\]:hover *,
+html[data-theme="light"] .bg-\[\#4CFF8A\]:hover * {
+  background-color: #0A5E2E !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+html:not(.dark) .hover\:bg-\[\#4CFF8A\]:hover,
+html.light .hover\:bg-\[\#4CFF8A\]:hover,
+html[data-theme="light"] .hover\:bg-\[\#4CFF8A\]:hover,
+html:not(.dark) .hover\:bg-\[\#4CFF8A\]:hover *,
+html.light .hover\:bg-\[\#4CFF8A\]:hover *,
+html[data-theme="light"] .hover\:bg-\[\#4CFF8A\]:hover *,
+html:not(.dark) .group:hover .group-hover\:text-\[\#020A05\],
+html.light .group:hover .group-hover\:text-\[\#020A05\],
+html[data-theme="light"] .group:hover .group-hover\:text-\[\#020A05\] {
+  background-color: #0E793C !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #0E793C !important;
+}
+
+/* Red Solid Buttons */
+html:not(.dark) .bg-\[\#FF2A1A\],
+html.light .bg-\[\#FF2A1A\],
+html[data-theme="light"] .bg-\[\#FF2A1A\],
+html:not(.dark) .bg-\[\#FF2A1A\] *,
+html.light .bg-\[\#FF2A1A\] *,
+html[data-theme="light"] .bg-\[\#FF2A1A\] * {
+  background-color: #DC2626 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  border-color: #DC2626 !important;
+}
+
+/* Green Borders - ONLY set border-color, NEVER clobber text color */
+html:not(.dark) .border-\[\#4CFF8A\],
+html.light .border-\[\#4CFF8A\],
+html[data-theme="light"] .border-\[\#4CFF8A\],
+html:not(.dark) button.border-\[\#4CFF8A\],
+html.light button.border-\[\#4CFF8A\],
+html[data-theme="light"] button.border-\[\#4CFF8A\],
+html:not(.dark) a.border-\[\#4CFF8A\],
+html.light a.border-\[\#4CFF8A\],
+html[data-theme="light"] a.border-\[\#4CFF8A\] {
+  border-color: #0E793C !important;
+}
+
+/* Navbar active underline in Light Mode */
+html:not(.dark) [aria-label="Main Navigation"] .bg-white,
+html.light [aria-label="Main Navigation"] .bg-white {
+  background-color: #0E793C !important;
+  box-shadow: 0 1px 4px rgba(14, 121, 60, 0.3) !important;
+}
+
+/* Inputs, Selects, Sliders in Light Mode */
+html:not(.dark) input[type="text"],
+html.light input[type="text"],
+html:not(.dark) select,
+html.light select {
+  background-color: #FFFFFF !important;
+  border-color: #C8E2CF !important;
+  color: #0E2E1B !important;
+}
+
+html:not(.dark) input::placeholder,
+html.light input::placeholder {
+  color: #649675 !important;
+}
+
+html:not(.dark) select option,
+html.light select option {
+  background-color: #FFFFFF !important;
+  color: #0E2E1B !important;
+}
+
+/* Preserve text inside colorful warning elements */
+html:not(.dark) .highlight-flare-transition,
+html.light .highlight-flare-transition {
+  color: #020A05 !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4) !important;
+}
+
+html:not(.dark) .highlight-flare-transition span,
+html.light .highlight-flare-transition span {
+  color: #020A05 !important;
+}
+
+/* SVG Chart lines in Light Mode */
+html:not(.dark) svg line[stroke="#12612F"],
+html.light svg line[stroke="#12612F"] {
+  stroke: #D2E8D7 !important;
+}
+
+html:not(.dark) svg path[stroke="#4CFF8A"],
+html.light svg path[stroke="#4CFF8A"] {
+  stroke: #0E793C !important;
+  stroke-width: 2.2 !important;
+}
+
+html:not(.dark) svg circle[fill="#4CFF8A"],
+html.light svg circle[fill="#4CFF8A"] {
+  fill: #0E793C !important;
+}
+
+html:not(.dark) svg line[stroke="#4CFF8A"],
+html.light svg line[stroke="#4CFF8A"] {
+  stroke: #0E793C !important;
+}
+
+html:not(.dark) svg text,
+html.light svg text {
+  fill: #24693D !important;
+}
+
+/* Disable harsh text-shadows in Light Mode */
+html:not(.dark) .glow-text,
+html.light .glow-text,
+html:not(.dark) .glow-hot,
+html.light .glow-hot,
+html:not(.dark) .glow-danger,
+html.light .glow-danger,
+html:not(.dark) .glow-warn,
+html.light .glow-warn,
+html:not(.dark) .glow-caution,
+html.light .glow-caution {
+  text-shadow: none !important;
 }

@@ -586,7 +586,7 @@ export default function InteractiveThermalReveal({
           aria-label="Toggle full pulmonary lung reveal"
           className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider border cursor-pointer transition-colors ${
             isLungsActive
-              ? 'bg-[#FF2A1A] text-[#020A05] border-[#FF2A1A]'
+              ? 'bg-[#FF2A1A] text-white border-[#FF2A1A]'
               : 'bg-[#04130A] text-white border-[#12612F] hover:border-[#4CFF8A] hover:text-[#5CFF95]'
           }`}
         >
