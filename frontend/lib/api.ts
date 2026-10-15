@@ -258,3 +258,60 @@ export async function getBenchmarks(): Promise<BenchmarkModel[]> {
   } catch {}
   return BENCHMARKS;
 }
+
+export interface DatabaseStatus {
+  status: string;
+  database: string;
+  version: string;
+  counts: {
+    patients: number;
+    patient_history: number;
+    clinical_events: number;
+    timeseries_telemetry: number;
+    patient_daily_logs: number;
+  };
+}
+
+/** Get live PostgreSQL database status and row counts */
+export async function getDatabaseStatus(): Promise<DatabaseStatus | null> {
+  try {
+    const res = await fetch(`${API_BASE}/db/status`, { cache: 'no-store' });
+    if (res.ok) return await res.json();
+  } catch {}
+  return null;
+}
+
+export interface PatientDailyLogPayload {
+  rescue_puffs: number;
+  controller_taken: boolean;
+  cough_score: number;
+  wheezing_score: number;
+  chest_tightness_score: number;
+  breathlessness_score: number;
+  notes?: string;
+}
+
+/** Submit a patient self-reported daily check-in to PostgreSQL */
+export async function submitPatientCheckIn(patientId: string, data: PatientDailyLogPayload) {
+  try {
+    const res = await fetch(`${API_BASE}/patients/${patientId}/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) return await res.json();
+  } catch (err) {
+    console.error('Failed to submit patient check-in:', err);
+  }
+  return null;
+}
+
+/** Get patient self-reported check-in history from PostgreSQL */
+export async function getPatientCheckIns(patientId: string) {
+  try {
+    const res = await fetch(`${API_BASE}/patients/${patientId}/logs`, { cache: 'no-store' });
+    if (res.ok) return await res.json();
+  } catch {}
+  return { patient_id: patientId, count: 0, logs: [] };
+}
+

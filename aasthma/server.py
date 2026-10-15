@@ -8,6 +8,13 @@ from aasthma.inference.inference_engine import InferenceEngine, DEMO_PERSONAS
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 from aasthma.simulation.clock import global_clock
 from aasthma.simulation.clinical_data import SIMULATOR_ASSUMPTIONS, BENCHMARKS
+from aasthma.database import (
+    get_db_status,
+    get_patient_by_id,
+    get_patient_telemetry_series,
+    add_patient_daily_log,
+    get_patient_daily_logs,
+)
 
 from contextlib import asynccontextmanager
 
@@ -64,14 +71,26 @@ class WhatIfRequest(BaseModel):
     horizon_hours: int = Field(default=48, ge=12, le=96)
 
 
+class PatientDailyLogRequest(BaseModel):
+    rescue_puffs: int = Field(default=0, ge=0, le=30, description="Rescue inhaler actuations")
+    controller_taken: bool = Field(default=True, description="Did patient take prescribed controller medication?")
+    cough_score: int = Field(default=0, ge=0, le=3, description="Cough severity (0: None, 1: Mild, 2: Moderate, 3: Severe)")
+    wheezing_score: int = Field(default=0, ge=0, le=3, description="Wheezing score (0-3)")
+    chest_tightness_score: int = Field(default=0, ge=0, le=3, description="Chest tightness score (0-3)")
+    breathlessness_score: int = Field(default=0, ge=0, le=3, description="Breathlessness score (0-3)")
+    notes: Optional[str] = Field(default=None, description="Clinical or self-reported notes")
+
+
 # Routes
 @app.get("/")
 @app.get("/api/health")
 def health_check():
+    db_status = get_db_status()
     return {
-        "status": "healthy",
+        "status": "healthy" if db_status.get("status") == "connected" else "degraded",
         "service": "BreathTwin Multimodal Digital Twin Core",
         "version": "1.0.0",
+        "database": db_status,
         "simulation_clock": global_clock.get_time_info(),
         "model_loaded": engine is not None,
     }
@@ -218,3 +237,45 @@ def get_clinical_assumptions():
 def get_benchmarks():
     """Returns model benchmark comparisons and ablation test results (PRD Section 11)."""
     return BENCHMARKS
+
+
+@app.get("/api/db/status")
+def database_status():
+    """Returns PostgreSQL connection state and table record statistics."""
+    return get_db_status()
+
+
+@app.post("/api/patients/{patient_id}/log")
+def record_patient_check_in(patient_id: str, req: PatientDailyLogRequest):
+    """
+    Patient-Reported Outcomes (PRO) Entry Endpoint
+    Allows the patient to enter daily symptoms, rescue inhaler puffs, and controller adherence into PostgreSQL.
+    """
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    saved_log = add_patient_daily_log(
+        patient_id=resolved_pid,
+        rescue_puffs=req.rescue_puffs,
+        controller_taken=req.controller_taken,
+        cough_score=req.cough_score,
+        wheezing_score=req.wheezing_score,
+        chest_tightness_score=req.chest_tightness_score,
+        breathlessness_score=req.breathlessness_score,
+        notes=req.notes,
+    )
+    return {
+        "message": "Patient check-in recorded successfully in PostgreSQL",
+        "log": saved_log,
+    }
+
+
+@app.get("/api/patients/{patient_id}/logs")
+def list_patient_logs(patient_id: str, limit: int = Query(default=20, ge=1, le=100)):
+    """Fetches patient self-reported check-in history from PostgreSQL."""
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    logs = get_patient_daily_logs(resolved_pid, limit=limit)
+    return {
+        "patient_id": patient_id,
+        "dataset_id": resolved_pid,
+        "count": len(logs),
+        "logs": logs,
+    }

@@ -3,29 +3,33 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
-import { PATIENTS, Patient } from '@/lib/data';
+import { Patient } from '@/lib/data';
 import { getPatients, getClock, stepClock, ClockInfo } from '@/lib/api';
 
 export default function PatientsTriagePage() {
-  const [patients, setPatients] = useState<Patient[]>(PATIENTS);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [clock, setClock] = useState<ClockInfo | null>(null);
+  const [loading, setLoading] = useState(false);
   const [isClockStepping, setIsClockStepping] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
     const load = async () => {
       try {
-        const [pts, clk] = await Promise.all([getPatients(12), getClock()]);
+        const [pts, clk] = await Promise.all([getPatients(), getClock()]);
         if (isMounted) {
           if (pts && pts.length > 0) setPatients(pts);
           if (clk) setClock(clk);
         }
       } catch (err) {
         console.warn('Using local patients cache:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     load();
@@ -59,7 +63,11 @@ export default function PatientsTriagePage() {
 
     return matchesSearch && matchesRisk && matchesCity;
   }).sort((a, b) => {
-    return sortOrder === 'desc' ? b.risk48h - a.risk48h : a.risk48h - b.risk48h;
+    return (() => {
+        const diff = sortOrder === 'desc' ? b.risk48h - a.risk48h : a.risk48h - b.risk48h;
+        if (diff !== 0) return diff;
+        return a.id.localeCompare(b.id);
+      })();
   });
 
   const totalMonitored = patients.length;
@@ -252,8 +260,8 @@ export default function PatientsTriagePage() {
                       <div className="font-semibold text-[#B6FFCC]">{p.city}</div>
                       <div className="text-[10px] text-[#2FBF63] truncate max-w-[160px]">{p.station}</div>
                       <div className="text-[10px] font-mono mt-0.5">
-                        <span className="text-[#FFE14A]">AQI {p.currentAirQuality.aqi}</span> &bull; 
-                        <span className="text-[#2FBF63] ml-1">PM2.5: {p.currentAirQuality.pm25}</span>
+                        <span className="text-[#FFE14A]">AQI {p.currentAirQuality?.aqi ?? '—'}</span> •
+                        <span className="text-[#2FBF63] ml-1">PM2.5: {p.currentAirQuality?.pm25 ?? '—'}</span>
                       </div>
                     </td>
 
