@@ -120,7 +120,7 @@ const [searchTerm, setSearchTerm] = useState('');
           <button
             onClick={() => handleStepClock(24)}
             disabled={isClockStepping}
-            className="font-mono text-[10px] text-[#4CFF8A] hover:bg-[#12612F]/40 border border-[#4CFF8A] px-2 py-1 bg-[#061C0E]"
+            className="font-mono text-[10px] text-[#4CFF8A] hover:bg-[#0E793C]/20 dark:hover:bg-[#12612F]/40 border border-[#4CFF8A] px-2 py-1 bg-[#061C0E]"
             title="Step clock forward 24 hours"
           >
             +24H &gt;
@@ -244,9 +244,7 @@ const [searchTerm, setSearchTerm] = useState('');
                 return (
                   <tr 
                     key={p.id}
-                    className={`hover:bg-[#061C0E] transition-colors ${
-                      isHighRisk ? 'bg-[#FF2A1A]/5' : ''
-                    }`}
+                    className={`triage-row transition-colors ${isHighRisk ? 'is-high-risk' : ''}`}
                   >
                     {/* Patient ID and Name */}
                     <td className="py-3.5 px-4">

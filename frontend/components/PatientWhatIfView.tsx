@@ -338,23 +338,23 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
             </div>
           </div>
 
-          {/* Quick link to Mobile Mockup */}
+          {/* Quick link to Model Benchmarks */}
           <div className="border border-[#12612F] bg-[#061C0E] p-4 text-xs space-y-2">
             <div className="text-[10px] text-[#2FBF63] uppercase tracking-wider">
-              PRD SECTION 4 COMPLIANCE
+              PRD SECTION 12 VALIDATION
             </div>
             <div className="text-xs font-semibold text-[#B6FFCC]">
-              Preview Patient Mobile Smartphone Alert
+              Model Benchmarks &amp; Assumptions
             </div>
             <p className="text-[11px] text-[#2FBF63]">
-              View how this plain-language warning and recommended action will appear on the patient’s phone screen.
+              Review causal intervention benchmarks, ablation studies, and grounded differential equations.
             </p>
             <div className="pt-1">
               <Link
-                href="/patient-preview"
+                href="/benchmarks"
                 className="text-xs uppercase font-semibold text-[#4CFF8A] hover:underline flex items-center"
               >
-                OPEN MOBILE ALERT MOCKUP &rarr;
+                OPEN BENCHMARKS &amp; ASSUMPTIONS &rarr;
               </Link>
             </div>
           </div>

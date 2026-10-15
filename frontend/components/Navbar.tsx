@@ -13,9 +13,7 @@ interface NavLinkItem {
 const NAV_LINKS: NavLinkItem[] = [
   { label: 'Home', href: '/' },
   { label: 'Patients', href: '/patients' },
-  { label: 'Benchmarks', href: '/benchmarks' },
-  { label: 'Assumptions', href: '/assumptions' },
-  { label: 'Preview', href: '/patient-preview' },
+  { label: 'Benchmarks & Assumptions', href: '/benchmarks' },
 ];
 
 export default function Navbar() {
@@ -38,6 +36,7 @@ export default function Navbar() {
   // Determine active route link
   const getActiveHref = (currentPath: string) => {
     if (currentPath === '/') return '/';
+    if (currentPath.startsWith('/assumptions')) return '/benchmarks';
     const match = NAV_LINKS.slice(1).find((link) => currentPath.startsWith(link.href));
     return match ? match.href : '/';
   };

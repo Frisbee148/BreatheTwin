@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* =========================================================================
    BREATHTWIN THEME SYSTEM
    Light Mode: Default (Fresh clinical light mint tone #F4F8F5)
@@ -274,6 +276,68 @@ html:not(.dark) .bg-\[\#061C0E\],
 html.light .bg-\[\#061C0E\],
 html[data-theme="light"] .bg-\[\#061C0E\] {
   background-color: #EAF3EC !important;
+}
+
+/* =========================================================================
+   TABLE ROW HOVER STYLES - STRICTLY ISOLATED BY THEME
+========================================================================= */
+
+/* LIGHT MODE ONLY: Clean, soft, extremely light green hover */
+html:not(.dark) .triage-row:hover,
+html:not(.dark) .benchmark-row:hover,
+html:not(.dark) .assumption-row:hover,
+html.light .triage-row:hover,
+html.light .benchmark-row:hover,
+html.light .assumption-row:hover,
+html[data-theme="light"] .triage-row:hover,
+html[data-theme="light"] .benchmark-row:hover,
+html[data-theme="light"] .assumption-row:hover {
+  background-color: #E8F8EE !important;
+}
+
+html:not(.dark) .triage-row.is-high-risk,
+html.light .triage-row.is-high-risk,
+html[data-theme="light"] .triage-row.is-high-risk {
+  background-color: rgba(220, 38, 38, 0.05) !important;
+}
+
+html:not(.dark) .benchmark-row.is-core,
+html.light .benchmark-row.is-core,
+html[data-theme="light"] .benchmark-row.is-core {
+  background-color: rgba(14, 121, 60, 0.05) !important;
+}
+
+/* DARK MODE ONLY: Original tactical terminal hover */
+html.dark .triage-row:hover,
+html.dark .benchmark-row:hover,
+html.dark .assumption-row:hover,
+html[data-theme="dark"] .triage-row:hover,
+html[data-theme="dark"] .benchmark-row:hover,
+html[data-theme="dark"] .assumption-row:hover {
+  background-color: #061C0E !important;
+}
+
+html.dark .triage-row.is-high-risk,
+html[data-theme="dark"] .triage-row.is-high-risk {
+  background-color: rgba(255, 42, 26, 0.05) !important;
+}
+
+html.dark .benchmark-row.is-core,
+html[data-theme="dark"] .benchmark-row.is-core {
+  background-color: rgba(76, 255, 138, 0.05) !important;
+}
+
+/* Text Selection Highlights */
+html:not(.dark) ::selection,
+html.light ::selection,
+html[data-theme="light"] ::selection {
+  background-color: #C6F6D5 !important;
+  color: #072713 !important;
+}
+
+html.dark ::selection {
+  background-color: #12612F !important;
+  color: #B6FFCC !important;
 }
 
 html:not(.dark) .bg-\[\#0B3519\]\/75,

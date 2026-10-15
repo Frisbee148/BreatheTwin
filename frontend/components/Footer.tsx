@@ -59,18 +59,8 @@ export default function Footer() {
             <div className="text-white font-bold tracking-wider uppercase text-xs sm:text-sm font-mono">{`// AUDIT & VALIDATION`}</div>
             <ul className="space-y-1.5 text-sm">
               <li>
-                <Link href="/assumptions" className="hover:text-white hover:underline">
-                  /assumptions &mdash; Latent Coefficients &amp; Citations
-                </Link>
-              </li>
-              <li>
                 <Link href="/benchmarks" className="hover:text-white hover:underline">
-                  /benchmarks &mdash; Ablations &amp; Model Metrics
-                </Link>
-              </li>
-              <li>
-                <Link href="/patient-preview" className="hover:text-white hover:underline">
-                  /patient-preview &mdash; Patient Alert Mobile View
+                  /benchmarks &mdash; Benchmarks &amp; Physiology Assumptions
                 </Link>
               </li>
             </ul>
