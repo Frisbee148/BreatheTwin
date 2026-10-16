@@ -649,103 +649,65 @@ html.light .glow-caution {
 
 /* =========================================================================
    MEDICAL VECTOR LIFELINE (HOMEPAGE BACKGROUND)
-   - Light Mode: Green line (#0E793C)
-   - Dark Mode: White line (#FFFFFF)
+   - Continuous horizontal looping translation
+   - Light Mode: Vibrant Medical Green (#0E793C)
+   - Dark Mode: Radiant Crisp White (#FFFFFF)
 ========================================================================= */
 
-@keyframes lifeline-sweep {
+@keyframes lifeline-horizontal-loop {
   0% {
-    stroke-dashoffset: 4100px;
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    stroke-dashoffset: 0px;
+    transform: translate3d(-360px, 0, 0);
   }
 }
 
-.animate-lifeline-sweep {
-  animation: lifeline-sweep 3.8s linear infinite;
+.lifeline-loop-track {
+  animation: lifeline-horizontal-loop 3.6s linear infinite;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-lifeline-sweep {
+  .lifeline-loop-track {
     animation: none !important;
-    stroke-dashoffset: 0px !important;
   }
 }
 
 /* Light Mode: Vibrant Medical Green */
-.lifeline-base-path {
+.lifeline-path {
   stroke: #0E793C !important;
-  opacity: 0.75;
-}
-
-.lifeline-pulse-path {
-  stroke: #0E793C !important;
-  opacity: 1 !important;
-  filter: drop-shadow(0 0 10px rgba(14, 121, 60, 0.9)) drop-shadow(0 0 20px rgba(14, 121, 60, 0.6));
-}
-
-.lifeline-head-path {
-  stroke: #075E29 !important;
-  opacity: 1 !important;
-  filter: drop-shadow(0 0 14px rgba(14, 121, 60, 1)) drop-shadow(0 0 28px rgba(14, 121, 60, 0.9));
-}
-
-.lifeline-telemetry-text {
-  color: #0E793C !important;
-  opacity: 1;
-  font-weight: 700;
+  opacity: 0.82;
+  filter: drop-shadow(0 0 6px rgba(14, 121, 60, 0.45));
 }
 
 .lifeline-grid-stroke {
-  stroke: rgba(14, 121, 60, 0.18) !important;
+  stroke: rgba(14, 121, 60, 0.12) !important;
 }
 
 .lifeline-grid-dot {
-  fill: rgba(14, 121, 60, 0.35) !important;
+  fill: rgba(14, 121, 60, 0.25) !important;
 }
 
 /* Dark Mode: Radiant Crisp White */
-:where(.dark, .dark *) .lifeline-base-path,
-html.dark .lifeline-base-path,
-html[data-theme="dark"] .lifeline-base-path {
+:where(.dark, .dark *) .lifeline-path,
+html.dark .lifeline-path,
+html[data-theme="dark"] .lifeline-path {
   stroke: #FFFFFF !important;
-  opacity: 0.65;
-}
-
-:where(.dark, .dark *) .lifeline-pulse-path,
-html.dark .lifeline-pulse-path,
-html[data-theme="dark"] .lifeline-pulse-path {
-  stroke: #FFFFFF !important;
-  opacity: 1 !important;
-  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 1)) drop-shadow(0 0 24px rgba(255, 255, 255, 0.75));
-}
-
-:where(.dark, .dark *) .lifeline-head-path,
-html.dark .lifeline-head-path,
-html[data-theme="dark"] .lifeline-head-path {
-  stroke: #FFFFFF !important;
-  opacity: 1 !important;
-  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 1)) drop-shadow(0 0 32px rgba(255, 255, 255, 0.95));
-}
-
-:where(.dark, .dark *) .lifeline-telemetry-text,
-html.dark .lifeline-telemetry-text,
-html[data-theme="dark"] .lifeline-telemetry-text {
-  color: #FFFFFF !important;
-  opacity: 1;
-  font-weight: 700;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.35));
 }
 
 :where(.dark, .dark *) .lifeline-grid-stroke,
 html.dark .lifeline-grid-stroke,
 html[data-theme="dark"] .lifeline-grid-stroke {
-  stroke: rgba(255, 255, 255, 0.14) !important;
+  stroke: rgba(255, 255, 255, 0.08) !important;
 }
 
 :where(.dark, .dark *) .lifeline-grid-dot,
 html.dark .lifeline-grid-dot,
 html[data-theme="dark"] .lifeline-grid-dot {
-  fill: rgba(255, 255, 255, 0.3) !important;
+  fill: rgba(255, 255, 255, 0.16) !important;
 }
+
 

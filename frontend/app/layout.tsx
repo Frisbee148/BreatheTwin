@@ -35,7 +35,8 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var t = localStorage.getItem('theme');
+                  var params = new URLSearchParams(window.location.search);
+                  var t = params.get('theme') || localStorage.getItem('theme');
                   if (t === 'dark') {
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');

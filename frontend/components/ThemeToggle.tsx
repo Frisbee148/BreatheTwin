@@ -10,7 +10,8 @@ export default function ThemeToggle() {
     setMounted(true);
     // Light mode is default unless explicitly set to 'dark'
     try {
-      const stored = localStorage.getItem('theme');
+      const params = new URLSearchParams(window.location.search);
+      const stored = params.get('theme') || localStorage.getItem('theme');
       if (stored === 'dark') {
         setThemeState('dark');
         document.documentElement.classList.add('dark');

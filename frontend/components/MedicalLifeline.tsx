@@ -2,48 +2,54 @@
 
 import React from 'react';
 
-export default function MedicalLifeline() {
-  // Realistic medical ECG P-Q-R-S-T wave pattern across 4 cardiac cycles (1600px width)
-  // Baseline is at y = 130. ViewBox is 0 0 1600 260.
-  // R-spike peaks up to y = 15 (amplitude 115px).
-  // S-dip plunges down to y = 225 (amplitude 95px).
-  // Peak-to-peak amplitude is 210px for bold medical visibility!
-  const ecgPath =
-    'M 0,130 ' +
-    // Cardiac Cycle 1 (0 -> 400)
-    'L 80,130 C 92,130 98,110 105,110 C 112,110 118,130 130,130 L 155,130 L 165,145 L 177,15 L 189,225 L 198,122 L 205,130 L 225,130 C 240,130 250,90 260,90 C 270,90 275,130 285,130 L 400,130 ' +
-    // Cardiac Cycle 2 (400 -> 800)
-    'L 480,130 C 492,130 498,110 505,110 C 512,110 518,130 530,130 L 555,130 L 565,145 L 577,15 L 589,225 L 598,122 L 605,130 L 625,130 C 640,130 650,90 660,90 C 670,90 675,130 685,130 L 800,130 ' +
-    // Cardiac Cycle 3 (800 -> 1200)
-    'L 880,130 C 892,130 898,110 905,110 C 912,110 918,130 930,130 L 955,130 L 965,145 L 977,15 L 989,225 L 998,122 L 1005,130 L 1025,130 C 1040,130 1050,90 1060,90 C 1070,90 1075,130 1085,130 L 1200,130 ' +
-    // Cardiac Cycle 4 (1200 -> 1600)
-    'L 1280,130 C 1292,130 1298,110 1305,110 C 1312,110 1318,130 1330,130 L 1355,130 L 1365,145 L 1377,15 L 1389,225 L 1398,122 L 1405,130 L 1425,130 C 1440,130 1450,90 1460,90 C 1470,90 1475,130 1485,130 L 1600,130';
+// Single medical ECG cycle definition (Lead II cardiac rhythm):
+// Width: 360px | Baseline: y = 120 | Height: 240px
+// Features: P-wave (atrial), Q-dip, massive R-spike (ventricular, y=20), S-plunge (y=210), T-wave (repolarization)
+function generateSeamlessEcgPath(
+  numCycles: number = 24,
+  cycleWidth: number = 360,
+  baseline: number = 120
+): string {
+  let d = `M 0,${baseline} `;
+  for (let i = 0; i < numCycles; i++) {
+    const x = i * cycleWidth;
+    d +=
+      `L ${x + 65},${baseline} ` +
+      `C ${x + 75},${baseline} ${x + 82},${baseline - 16} ${x + 92},${baseline - 16} ` +
+      `C ${x + 102},${baseline - 16} ${x + 108},${baseline} ${x + 118},${baseline} ` +
+      `L ${x + 140},${baseline} ` +
+      `L ${x + 150},${baseline + 16} ` +
+      `L ${x + 162},${baseline - 100} ` +
+      `L ${x + 174},${baseline + 90} ` +
+      `L ${x + 185},${baseline} ` +
+      `L ${x + 210},${baseline} ` +
+      `C ${x + 224},${baseline} ${x + 232},${baseline - 32} ${x + 242},${baseline - 32} ` +
+      `C ${x + 252},${baseline - 32} ${x + 260},${baseline} ${x + 274},${baseline} ` +
+      `L ${x + cycleWidth},${baseline} `;
+  }
+  return d;
+}
 
+const TOTAL_CYCLES = 24;
+const CYCLE_WIDTH = 360;
+const TOTAL_WIDTH = TOTAL_CYCLES * CYCLE_WIDTH; // 8640px
+const ECG_PATH_DATA = generateSeamlessEcgPath(TOTAL_CYCLES, CYCLE_WIDTH, 120);
+
+export default function MedicalLifeline() {
   return (
     <div
       aria-hidden="true"
       className="fixed inset-0 pointer-events-none select-none overflow-hidden z-0"
     >
-      {/* Telemetry Horizon Header */}
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-1 flex items-center justify-between text-xs font-mono tracking-widest uppercase lifeline-telemetry-text">
-        <span className="flex items-center space-x-2">
-          <span className="inline-block w-2.5 h-2.5 rounded-full animate-ping bg-[#0E793C] dark:bg-white" />
-          <span className="font-bold">◈ LIVE VITAL SIGNS TELEMETRY // LEAD II ECG</span>
-        </span>
-        <span className="hidden sm:inline font-semibold">
-          CAL: 25mm/s &bull; GAIN: 10mm/mV &bull; HR: 72 BPM &bull; SINUS RHYTHM
-        </span>
-      </div>
-
-      {/* SVG Medical Lifeline Viewport */}
-      <div className="relative w-full h-64 sm:h-80 lg:h-96">
+      {/* Viewport for Medical Lifeline & Subtle Millimeter Grid */}
+      <div className="absolute top-10 sm:top-14 lg:top-16 left-0 right-0 h-64 sm:h-80 lg:h-96 overflow-hidden">
+        {/* Static Medical Millimeter Grid Background */}
         <svg
-          viewBox="0 0 1600 260"
-          preserveAspectRatio="none"
-          className="w-full h-full overflow-visible"
+          width="100%"
+          height="100%"
+          className="absolute inset-0 w-full h-full"
         >
           <defs>
-            {/* Medical Millimeter Grid Pattern */}
             <pattern
               id="medical-lifeline-grid"
               width="40"
@@ -64,58 +70,42 @@ export default function MedicalLifeline() {
               />
             </pattern>
           </defs>
-
-          {/* Medical Telemetry Grid Background */}
-          <rect width="1600" height="260" fill="url(#medical-lifeline-grid)" />
-
-          {/* 1. Base Static Guide Line (Clearly visible medical track) */}
-          <path
-            d={ecgPath}
-            fill="none"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="lifeline-base-path"
-          />
-
-          {/* 2. Active Animated Pulse Beam (Trailing ECG Wave) */}
-          <path
-            d={ecgPath}
-            fill="none"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="400 3700"
-            className="lifeline-pulse-path animate-lifeline-sweep"
-          >
-            <animate
-              attributeName="stroke-dashoffset"
-              from="4100"
-              to="0"
-              dur="3.8s"
-              repeatCount="indefinite"
-            />
-          </path>
-
-          {/* 3. Leading Pulse Head (Intense Phosphor Vital Spark) */}
-          <path
-            d={ecgPath}
-            fill="none"
-            strokeWidth="6.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="50 3700"
-            className="lifeline-head-path animate-lifeline-sweep"
-          >
-            <animate
-              attributeName="stroke-dashoffset"
-              from="4100"
-              to="0"
-              dur="3.8s"
-              repeatCount="indefinite"
-            />
-          </path>
+          <rect width="100%" height="100%" fill="url(#medical-lifeline-grid)" />
         </svg>
+
+        {/* Continuous Looping Horizontal Lifeline Track */}
+        <div className="absolute inset-0 overflow-hidden flex items-center">
+          <div
+            className="flex-none h-full"
+            style={{ width: `${TOTAL_WIDTH}px` }}
+          >
+            <svg
+              viewBox={`0 0 ${TOTAL_WIDTH} 240`}
+              className="w-full h-full overflow-visible"
+              preserveAspectRatio="none"
+            >
+              <g>
+                <path
+                  d={ECG_PATH_DATA}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lifeline-path text-[#0E793C] dark:text-white"
+                />
+                <animateTransform
+                  attributeName="transform"
+                  type="translate"
+                  from="0 0"
+                  to="-360 0"
+                  dur="3.6s"
+                  repeatCount="indefinite"
+                />
+              </g>
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   );
