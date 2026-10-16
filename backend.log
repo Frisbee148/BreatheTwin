@@ -429,3 +429,83 @@ Error processing PATIENT_0012: 'float' object has no attribute 'replace'
 INFO:     127.0.0.1:48022 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
 Error processing PATIENT_0012: 'float' object has no attribute 'replace'
 INFO:     127.0.0.1:48026 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40744 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40720 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40736 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40720 - "POST /api/what-if HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:40716 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:40730 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40716 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33362 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33362 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33362 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33362 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33362 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40276 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40276 - "POST /api/what-if HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:45470 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45442 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45470 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45456 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45442 - "POST /api/what-if HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:45444 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:45428 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45444 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45428 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45444 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35344 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40938 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40960 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:40932 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:40948 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39592 - "GET /api/patients/PATIENT_0008/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39618 - "GET /api/patients/PATIENT_0008/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39604 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39590 - "GET /api/patients/PATIENT_0008 HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:39584 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+Error processing PATIENT_0011: 'float' object has no attribute 'replace'
+Error processing PATIENT_0012: 'float' object has no attribute 'replace'
+INFO:     127.0.0.1:39594 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK

@@ -226,237 +226,296 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
   const thresholdY = getChartY(65); // 65% clinical threshold line
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Patient Vital Navigation Header & Tabs */}
       <PatientNavHeader patient={patient} />
 
       {/* Header Info Banner */}
-      <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 text-xs flex flex-wrap items-center justify-between gap-3 shadow-sm dark:shadow-none transition-colors">
+      <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-3 shadow-sm dark:shadow-none transition-colors">
         <div>
-          <span className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63]">
-            // COUNTERFACTUAL WHAT-IF INTERVENTION SANDBOX
-          </span>
-          <div className="text-xs text-[#0A602F] dark:text-[#B6FFCC] font-mono mt-0.5">
-            MECHANISM: LATENT STATE PERTURBATION • SECTION 9 FORECAST RE-SCORING
+          <div className="flex items-center space-x-2">
+            <span className="text-xs sm:text-sm font-bold tracking-wide uppercase text-[#0E793C] dark:text-[#4CFF8A]">
+              What-If Scenario Simulator
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0A602F] dark:text-[#4CFF8A] font-semibold">
+              REAL-TIME ODE TWIN
+            </span>
+          </div>
+          <div className="text-[11px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">
+            Test how daily preventative actions and clean air habits lower asthma flare-up risk over the next 48 hours.
           </div>
         </div>
         <div className="flex items-center space-x-3">
           <button
             type="button"
             onClick={() => applyPreset('reset')}
-            className="text-xs uppercase font-bold tracking-wider text-[#0E793C] dark:text-[#2FBF63] hover:text-[#0A602F] dark:hover:text-[#4CFF8A] underline cursor-pointer"
+            className="text-xs font-mono font-bold tracking-wider text-[#0E793C] dark:text-[#4CFF8A] hover:underline cursor-pointer flex items-center space-x-1"
           >
-            RESET TO BASELINE
+            <span>↺ RESET TO BASELINE</span>
           </button>
           <span className="text-[#B4E3C5] dark:text-[#12612F]">|</span>
-          <span className="text-[10px] font-mono font-semibold text-[#D97706] dark:text-[#FFE14A]">
-            LATENCY: &lt;50ms INSTANT ODE REPLAY
+          <span className="text-[11px] font-mono font-semibold text-[#0E793C] dark:text-[#4CFF8A] flex items-center space-x-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#0E793C] dark:bg-[#4CFF8A] animate-pulse" />
+            <span>LIVE PREVIEW ACTIVE</span>
           </span>
         </div>
       </div>
 
-      {/* Main Sandbox Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Sandbox Grid - Balanced Columns with items-start to eliminate dead space */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* =========================================================================
-            LEFT COLUMN: INTERVENTION CONTROLS & PRESETS
+            LEFT COLUMN: INTERVENTION CONTROLS & IMPACT BREAKDOWN
         ========================================================================= */}
-        <div className="lg:col-span-7 border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-5 space-y-6 text-xs shadow-sm dark:shadow-none transition-colors">
-          <div className="border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-3 flex flex-wrap justify-between items-center gap-2">
-            <div>
-              <span className="text-xs sm:text-sm font-bold text-[#0E793C] dark:text-[#B6FFCC] uppercase tracking-wider">
-                1. ADJUST CLINICAL INTERVENTIONS
-              </span>
-              <div className="text-[11px] text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
-                Sliders and switches react in real-time. Adjust parameters to test outcomes.
-              </div>
-            </div>
-            <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] font-mono bg-[#EAF8EF] dark:bg-[#061C0E] border border-[#B4E3C5] dark:border-[#12612F] px-2 py-0.5 font-semibold">
-              TARGET: {patient.name}
-            </span>
-          </div>
-
-          {/* Quick Clinical Scenario Presets */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[#4A755A] dark:text-[#2FBF63]">
-              QUICK CLINICAL PROTOCOL PRESETS:
-            </span>
-            <div className="flex flex-wrap gap-2 pt-0.5">
-              {[
-                { id: 'max-shield', label: '🛡 MAXIMUM SHIELD', desc: 'N95 + HEPA + 95% Adherence + Indoors' },
-                { id: 'n95-commute', label: '😷 N95 COMMUTE', desc: 'N95 respirator during commute' },
-                { id: 'inhaler-push', label: '💊 100% INHALER', desc: 'Enforce full controller compliance' },
-                { id: 'safe-haven', label: '🏠 INDOOR HAVEN', desc: 'Stay indoors + Bedroom HEPA' },
-              ].map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => applyPreset(p.id)}
-                  title={p.desc}
-                  className={`px-2.5 py-1.5 text-[11px] font-mono uppercase font-bold border transition-all cursor-pointer ${
-                    activePreset === p.id
-                      ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
-                      : 'border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0E793C] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Slider 1: Outdoor Exposure Hours */}
-          <div className="border border-[#B4E3C5]/40 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3.5 space-y-2.5">
-            <div className="flex justify-between items-center">
+        <div className="lg:col-span-7 space-y-4">
+          {/* Card 1: Preventative Action Controls */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 sm:p-5 space-y-4 text-xs shadow-sm dark:shadow-none transition-colors">
+            <div className="border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-3 flex flex-wrap justify-between items-center gap-2">
               <div>
-                <label htmlFor="outdoor-hours-slider" className="text-xs text-[#0E2E1B] dark:text-[#B6FFCC] uppercase font-bold">
-                  DAILY OUTDOOR TIME (COMMUTE &amp; WORK)
-                </label>
-                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">
-                  Controls daily volume of inhaled ambient PM2.5 particulate matter.
+                <span className="text-xs sm:text-sm font-bold text-[#0E793C] dark:text-[#B6FFCC] uppercase tracking-wider">
+                  1. Choose Preventative Actions
+                </span>
+                <div className="text-[11px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">
+                  Adjust sliders and switches below. The forecast on the right updates instantly.
                 </div>
               </div>
-              <span className="font-mono text-base text-[#0E793C] dark:text-[#4CFF8A] font-bold shrink-0">
-                {outdoorHours.toFixed(1)} <span className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">HOURS/DAY</span>
+              <span className="text-[10px] text-[#0A602F] dark:text-[#4CFF8A] font-mono bg-[#EAF8EF] dark:bg-[#061C0E] border border-[#B4E3C5] dark:border-[#12612F] px-2 py-0.5 font-semibold">
+                PATIENT: {patient.name}
               </span>
             </div>
-            <input
-              id="outdoor-hours-slider"
-              type="range"
-              min="0"
-              max="6"
-              step="0.5"
-              value={outdoorHours}
-              onChange={(e) => {
-                setActivePreset(null);
-                setOutdoorHours(parseFloat(e.target.value));
-              }}
-              className="w-full h-2.5 bg-[#EAF3EC] dark:bg-[#020A05] border border-[#B4E3C5] dark:border-[#12612F] rounded-none appearance-none cursor-pointer accent-[#0E793C] dark:accent-[#4CFF8A]"
-            />
-            <div className="flex justify-between text-[10px] text-[#4A755A] dark:text-[#2FBF63] font-mono font-semibold">
-              <span className={outdoorHours === 0 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>0.0h (STAY INDOORS)</span>
-              <span className={outdoorHours === 2.5 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>2.5h (NORMAL COMMUTE)</span>
-              <span className={outdoorHours === 6.0 ? 'text-[#DC2626] dark:text-[#FF2A1A] font-bold' : ''}>6.0h (HEAVY EXPOSURE)</span>
-            </div>
-          </div>
 
-          {/* Toggle 2: N95 Respirator */}
-          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-3.5 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC] uppercase">
-                WEAR N95 PARTICULATE RESPIRATOR DURING COMMUTE
+            {/* Quick Scenario Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#4A755A] dark:text-[#2FBF63]">
+                QUICK ONE-CLICK SCENARIOS:
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5">
+                {[
+                  { id: 'max-shield', label: '🛡 Maximum Protection', desc: 'N95 Mask + Bedroom HEPA + Strict Inhaler + Stay Indoors' },
+                  { id: 'n95-commute', label: '😷 Wear N95 Mask', desc: 'Filter out 95% of toxic outdoor smoke & transit dust' },
+                  { id: 'inhaler-push', label: '💊 Full Inhaler Dose', desc: '100% adherence to daily prescribed controller medication' },
+                  { id: 'safe-haven', label: '🏠 Stay Indoors', desc: 'Minimize outdoor exposure during smog peak with bedroom air purifier' },
+                ].map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    title={p.desc}
+                    className={`px-2 py-1.5 text-[11px] font-mono font-bold border transition-all cursor-pointer text-center truncate ${
+                      activePreset === p.id
+                        ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
+                        : 'border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0E793C] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
-              <p className="text-[11px] text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
-                Filters 95% of inhaled fine particulate matter during transit (NIOSH standard).
-              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActivePreset(null);
-                setWearN95(prev => !prev);
-              }}
-              className={`h-9 px-4 text-xs font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer shrink-0 ${
-                wearN95
-                  ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
-                  : 'border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#020A05] text-[#4A755A] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
-              }`}
-            >
-              {wearN95 ? '[ ACTIVE: ON ]' : '[ OFF ]'}
-            </button>
+
+            {/* Action 1: Outdoor Exposure Hours */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3 sm:p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <label htmlFor="outdoor-hours-slider" className="text-xs text-[#0E2E1B] dark:text-[#B6FFCC] uppercase font-bold">
+                    Time Spent Outdoors (Commute &amp; Work)
+                  </label>
+                  <div className="text-[10px] text-[#4A755A] dark:text-[#A7E8BD]">
+                    Daily hours outside breathing ambient city air pollution (PM2.5).
+                  </div>
+                </div>
+                <span className="font-mono text-base text-[#0E793C] dark:text-[#4CFF8A] font-bold shrink-0">
+                  {outdoorHours.toFixed(1)} <span className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">HOURS/DAY</span>
+                </span>
+              </div>
+              <input
+                id="outdoor-hours-slider"
+                type="range"
+                min="0"
+                max="6"
+                step="0.5"
+                value={outdoorHours}
+                onChange={(e) => {
+                  setActivePreset(null);
+                  setOutdoorHours(parseFloat(e.target.value));
+                }}
+                className="w-full h-2 bg-[#EAF3EC] dark:bg-[#020A05] border border-[#B4E3C5] dark:border-[#12612F] appearance-none cursor-pointer accent-[#0E793C] dark:accent-[#4CFF8A]"
+              />
+              <div className="flex justify-between text-[10px] text-[#4A755A] dark:text-[#2FBF63] font-mono font-semibold">
+                <span className={outdoorHours === 0 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>0.0h (STAY INDOORS)</span>
+                <span className={outdoorHours === 2.5 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>2.5h (AVERAGE DAY)</span>
+                <span className={outdoorHours === 6.0 ? 'text-[#DC2626] dark:text-[#FF2A1A] font-bold' : ''}>6.0h (HIGH EXPOSURE)</span>
+              </div>
+            </div>
+
+            {/* Action 2: Wear N95 Mask */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3 sm:p-3.5 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC] uppercase">
+                  Wear N95 Mask When Outdoors
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">
+                  Filters 95% of toxic smoke and particulate matter during travel and commute.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePreset(null);
+                  setWearN95(prev => !prev);
+                }}
+                className={`h-8 sm:h-9 px-3 sm:px-4 text-xs font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer shrink-0 ${
+                  wearN95
+                    ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
+                    : 'border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#020A05] text-[#4A755A] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
+                }`}
+              >
+                {wearN95 ? '[ ✓ MASK ON ]' : '[ OFF ]'}
+              </button>
+            </div>
+
+            {/* Action 3: Daily Inhaler Adherence */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3 sm:p-3.5 space-y-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <label htmlFor="target-adherence-slider" className="text-xs text-[#0E2E1B] dark:text-[#B6FFCC] uppercase font-bold">
+                    Daily Controller Inhaler Adherence
+                  </label>
+                  <div className="text-[10px] text-[#4A755A] dark:text-[#A7E8BD]">
+                    Taking prescribed preventer doses calms lung swelling and prevents attacks.
+                  </div>
+                </div>
+                <span className="font-mono text-base text-[#0E793C] dark:text-[#4CFF8A] font-bold shrink-0">
+                  {targetAdherence}% <span className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">(BASE: {initialAdherence}%)</span>
+                </span>
+              </div>
+              <input
+                id="target-adherence-slider"
+                type="range"
+                min={initialAdherence}
+                max="100"
+                step="1"
+                value={targetAdherence}
+                onChange={(e) => {
+                  setActivePreset(null);
+                  setTargetAdherence(parseInt(e.target.value));
+                }}
+                className="w-full h-2 bg-[#EAF3EC] dark:bg-[#020A05] border border-[#B4E3C5] dark:border-[#12612F] appearance-none cursor-pointer accent-[#0E793C] dark:accent-[#4CFF8A]"
+              />
+              <div className="flex justify-between text-[10px] text-[#4A755A] dark:text-[#2FBF63] font-mono font-semibold">
+                <span className={targetAdherence === initialAdherence ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
+                  {initialAdherence}% (CURRENT HABIT)
+                </span>
+                <span className={targetAdherence === 85 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
+                  85% (REGULAR DAILY USE)
+                </span>
+                <span className={targetAdherence === 100 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
+                  100% (STRICT COMPLIANCE)
+                </span>
+              </div>
+            </div>
+
+            {/* Action 4: Bedroom HEPA Air Purifier */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3 sm:p-3.5 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC] uppercase">
+                  Bedroom Air Purifier (HEPA Filter)
+                </div>
+                <p className="text-[10px] sm:text-[11px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">
+                  Cleans bedroom air by 70% while sleeping, giving lungs clean air to heal overnight.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePreset(null);
+                  setHepaPurifier(prev => !prev);
+                }}
+                className={`h-8 sm:h-9 px-3 sm:px-4 text-xs font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer shrink-0 ${
+                  hepaPurifier
+                    ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
+                    : 'border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#020A05] text-[#4A755A] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
+                }`}
+              >
+                {hepaPurifier ? '[ ✓ PURIFIER ON ]' : '[ OFF ]'}
+              </button>
+            </div>
           </div>
 
-          {/* Slider 3: Controller Adherence */}
-          <div className="border border-[#B4E3C5]/40 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E] p-3.5 space-y-2.5">
-            <div className="flex justify-between items-center">
+          {/* Card 2: Estimated Benefit of Each Action (Impact Breakdown) */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 text-xs space-y-2.5 shadow-sm dark:shadow-none transition-colors">
+            <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-2">
               <div>
-                <label htmlFor="target-adherence-slider" className="text-xs text-[#0E2E1B] dark:text-[#B6FFCC] uppercase font-bold">
-                  CONTROLLER ICS ADHERENCE ENFORCEMENT
-                </label>
-                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">
-                  Suppresses bronchial smooth muscle hyper-reactivity and cytokine cascade.
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0E793C] dark:text-[#B6FFCC]">
+                  Estimated Benefit of Each Action
+                </span>
+                <div className="text-[10px] text-[#4A755A] dark:text-[#A7E8BD]">
+                  Individual risk reduction contributed by each preventative choice:
                 </div>
               </div>
-              <span className="font-mono text-base text-[#0E793C] dark:text-[#4CFF8A] font-bold shrink-0">
-                {targetAdherence}% <span className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">(BASE: {initialAdherence}%)</span>
+              <span className="text-[10px] font-mono text-[#0E793C] dark:text-[#4CFF8A] font-semibold">
+                CAUSAL ATTRIBUTION
               </span>
             </div>
-            <input
-              id="target-adherence-slider"
-              type="range"
-              min={initialAdherence}
-              max="100"
-              step="1"
-              value={targetAdherence}
-              onChange={(e) => {
-                setActivePreset(null);
-                setTargetAdherence(parseInt(e.target.value));
-              }}
-              className="w-full h-2.5 bg-[#EAF3EC] dark:bg-[#020A05] border border-[#B4E3C5] dark:border-[#12612F] rounded-none appearance-none cursor-pointer accent-[#0E793C] dark:accent-[#4CFF8A]"
-            />
-            <div className="flex justify-between text-[10px] text-[#4A755A] dark:text-[#2FBF63] font-mono font-semibold">
-              <span className={targetAdherence === initialAdherence ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
-                {initialAdherence}% (CURRENT)
-              </span>
-              <span className={targetAdherence === 85 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
-                85% (REGULAR DOSES)
-              </span>
-              <span className={targetAdherence === 100 ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : ''}>
-                100% (STRICT COMPLIANCE)
-              </span>
-            </div>
-          </div>
 
-          {/* Toggle 4: HEPA Air Purifier at Home */}
-          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-3.5 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC] uppercase">
-                HOME INDOOR HEPA AIR PURIFIER (BEDROOM)
+            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+              {/* N95 Benefit */}
+              <div className="p-2.5 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
+                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] uppercase font-bold">N95 Mask</div>
+                <div className={`font-bold text-sm ${wearN95 ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-gray-400'}`}>
+                  {wearN95 ? '-18.0% Risk' : '0.0% (Not wearing)'}
+                </div>
+                <div className="text-[9.5px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">Filters fine smoke &amp; dust</div>
               </div>
-              <p className="text-[11px] text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
-                Suppresses indoor PM2.5 infiltration during nocturnal sleep period (70% cleaner air).
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActivePreset(null);
-                setHepaPurifier(prev => !prev);
-              }}
-              className={`h-9 px-4 text-xs font-mono font-bold uppercase tracking-wider border transition-all cursor-pointer shrink-0 ${
-                hepaPurifier
-                  ? 'border-[#0E793C] dark:border-[#4CFF8A] bg-[#0E793C] dark:bg-[#4CFF8A] text-white dark:text-[#020A05] shadow-xs'
-                  : 'border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#020A05] text-[#4A755A] dark:text-[#2FBF63] hover:border-[#0E793C] dark:hover:border-[#4CFF8A]'
-              }`}
-            >
-              {hepaPurifier ? '[ ACTIVE: ON ]' : '[ OFF ]'}
-            </button>
-          </div>
 
-          {/* Simulation Status & Recalculate Button */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => {}}
-              disabled={isSimulating}
-              className="w-full h-11 text-xs uppercase tracking-wider font-bold border border-[#0E793C] dark:border-[#4CFF8A] bg-[#EAF8EF] dark:bg-[#061C0E] text-[#0E793C] dark:text-[#4CFF8A] hover:bg-[#0E793C] hover:text-white dark:hover:bg-[#4CFF8A] dark:hover:text-[#020A05] transition-all flex items-center justify-center font-mono cursor-pointer shadow-xs"
-            >
-              {isSimulating ? '⟳ RECALCULATING TWIN TRAJECTORY...' : '◈ CONTINUOUS SIMULATION ACTIVE (LIVE)'}
-            </button>
+              {/* Inhaler Benefit */}
+              <div className="p-2.5 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
+                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] uppercase font-bold">Daily Inhaler</div>
+                <div className={`font-bold text-sm ${adherenceReduction > 0 ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-gray-400'}`}>
+                  {adherenceReduction > 0 ? `-${adherenceReduction.toFixed(1)}% Risk` : '0.0% (At baseline)'}
+                </div>
+                <div className="text-[9.5px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">Calms airway inflammation</div>
+              </div>
+
+              {/* Outdoor Time Benefit */}
+              <div className="p-2.5 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
+                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] uppercase font-bold">Outdoor Exposure</div>
+                <div className={`font-bold text-sm ${outdoorDelta >= 0 ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-[#DC2626]'}`}>
+                  {outdoorDelta >= 0 ? `-${outdoorDelta.toFixed(1)}% Risk` : `+${Math.abs(outdoorDelta).toFixed(1)}% Excess`}
+                </div>
+                <div className="text-[9.5px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">
+                  {outdoorHours <= 2.5 ? 'Avoids peak city smog' : 'Excess exposure in high PM2.5'}
+                </div>
+              </div>
+
+              {/* HEPA Benefit */}
+              <div className="p-2.5 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
+                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] uppercase font-bold">Bedroom Purifier</div>
+                <div className={`font-bold text-sm ${hepaPurifier ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-gray-400'}`}>
+                  {hepaPurifier ? '-9.0% Risk' : '0.0% (Off)'}
+                </div>
+                <div className="text-[9.5px] text-[#4A755A] dark:text-[#A7E8BD] mt-0.5">Cleaner air while sleeping</div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* =========================================================================
-            RIGHT COLUMN: 48-HOUR TRAJECTORY GRAPH & CLINICAL IMPACT
+            RIGHT COLUMN: 48-HOUR FORECAST, TRAJECTORY GRAPH & ACTION PLAN
         ========================================================================= */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Main Trajectory Comparison Card */}
-          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-5 space-y-4 shadow-sm dark:shadow-none transition-colors">
+        <div className="lg:col-span-5 space-y-4">
+          {/* Card 1: 48-Hour Outcome & Trajectory Chart */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 sm:p-5 space-y-4 shadow-sm dark:shadow-none transition-colors">
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-2.5">
-              <span className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63]">
-                // 48-HOUR FORECAST TRAJECTORY COMPARISON
-              </span>
+              <div>
+                <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#0E793C] dark:text-[#B6FFCC]">
+                  2. Predicted 48-Hour Outcome
+                </span>
+                <div className="text-[10px] text-[#4A755A] dark:text-[#A7E8BD]">
+                  Comparing current trajectory against your simulated preventative plan.
+                </div>
+              </div>
               <span className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0A602F] dark:text-[#4CFF8A] font-semibold">
-                ODE NUMERICAL REPLAY
+                ODE SIMULATION
               </span>
             </div>
 
@@ -466,14 +525,14 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
               <div className="border border-[#DC2626]/40 dark:border-[#FF2A1A]/40 bg-[#FEF2F2] dark:bg-[#200808] p-3 space-y-1.5">
                 <div className="text-[10px] text-[#B91C1C] dark:text-[#FF6B6B] uppercase font-mono font-bold flex items-center space-x-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-[#DC2626] dark:bg-[#FF2A1A]" />
-                  <span>CURRENT PATH</span>
+                  <span>WITHOUT CHANGES</span>
                 </div>
                 <div className="text-3xl font-bold font-mono text-[#DC2626] dark:text-[#FF2A1A] tabular-nums">
                   {baseRisk}%
                 </div>
                 <StatusChip status={patient.riskLevel} size="sm" />
                 <div className="text-[10px] text-[#B91C1C] dark:text-[#FF6B6B] pt-0.5 font-mono">
-                  Inflammation I(t) = {patient.estimatedInflammationState.toFixed(2)}
+                  Airway Swelling: {patient.estimatedInflammationState >= 0.7 ? 'Severe' : 'Elevated'} ({patient.estimatedInflammationState.toFixed(2)})
                 </div>
               </div>
 
@@ -481,7 +540,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
               <div className="border border-[#0E793C] dark:border-[#4CFF8A] bg-[#EAF8EF] dark:bg-[#061C0E] p-3 space-y-1.5">
                 <div className="text-[10px] text-[#0A602F] dark:text-[#4CFF8A] uppercase font-mono font-bold flex items-center space-x-1">
                   <span className="inline-block w-2 h-2 rounded-full bg-[#0E793C] dark:bg-[#4CFF8A]" />
-                  <span>SIMULATED PATH</span>
+                  <span>WITH YOUR ACTIONS</span>
                 </div>
                 <div className={`text-3xl font-bold font-mono tabular-nums ${
                   simulatedRisk < 40 ? 'text-[#0E793C] dark:text-[#4CFF8A]' :
@@ -491,19 +550,16 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
                 </div>
                 <StatusChip status={simulatedStatus} size="sm" />
                 <div className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] pt-0.5 font-mono">
-                  Inflammation I(t) = {simulatedInflammation.toFixed(2)}
+                  Airway Swelling: {simulatedInflammation <= 0.4 ? 'Calmed' : simulatedInflammation <= 0.6 ? 'Moderate' : 'Elevated'} ({simulatedInflammation.toFixed(2)})
                 </div>
               </div>
             </div>
 
-            {/* =========================================================================
-                THE 48-HOUR DUAL TRAJECTORY GRAPH
-                Visually illustrates the two paths diverging over time!
-            ========================================================================= */}
+            {/* 48-Hour SVG Forecast Graph */}
             <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#020A05] p-3 space-y-2">
               <div className="flex justify-between items-center text-[10px] font-mono text-[#4A755A] dark:text-[#2FBF63]">
                 <span className="font-bold uppercase tracking-wider text-[#0E793C] dark:text-[#B6FFCC]">
-                  TRAJECTORY DIVERGENCE (0H &rarr; 48H)
+                  48-HOUR RISK TRAJECTORY
                 </span>
                 <span className="text-[#0A602F] dark:text-[#4CFF8A] font-semibold">
                   SHADED: PREVENTED RISK
@@ -540,7 +596,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
                     fill="#DC2626"
                     className="font-mono tracking-wider uppercase select-none"
                   >
-                    CRITICAL THRESHOLD (65%)
+                    DANGER THRESHOLD (65% RISK)
                   </text>
 
                   {/* Shaded Risk Divergence Area between Red and Green curves */}
@@ -667,7 +723,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
                           fill="#DC2626"
                           className="font-mono"
                         >
-                          CURRENT: {pt.baselineRisk}%
+                          NO ACTION: {pt.baselineRisk}%
                         </text>
                         <text
                           x={Math.min(x - 55, chartW - 120) + 55}
@@ -678,7 +734,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
                           fill="#0E793C"
                           className="dark:fill-[#4CFF8A] font-mono"
                         >
-                          SIMULATED: {pt.simulatedRisk}%
+                          WITH ACTION: {pt.simulatedRisk}%
                         </text>
                       </g>
                     );
@@ -690,99 +746,56 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
               <div className="flex flex-wrap items-center justify-between text-[10px] font-mono pt-1 border-t border-[#B4E3C5]/40 dark:border-[#12612F]/20">
                 <span className="flex items-center space-x-1.5 text-[#DC2626] font-bold">
                   <span className="w-3 h-0.5 bg-[#DC2626]" />
-                  <span>CURRENT TRAJECTORY</span>
+                  <span>CURRENT PATH (NO ACTION)</span>
                 </span>
                 <span className="flex items-center space-x-1.5 text-[#0E793C] dark:text-[#4CFF8A] font-bold">
                   <span className="w-3 h-0.5 bg-[#0E793C] dark:bg-[#4CFF8A]" />
-                  <span>SIMULATED MITIGATION</span>
+                  <span>WITH PREVENTATIVE PLAN</span>
                 </span>
               </div>
             </div>
 
-            {/* Total Delta Callout */}
-            <div className="border border-[#0E793C] dark:border-[#4CFF8A]/80 bg-[#EAF8EF] dark:bg-[#020A05] p-3.5 flex items-center justify-between">
+            {/* Total Risk Reduction Banner */}
+            <div className="border border-[#0E793C] dark:border-[#4CFF8A]/80 bg-[#EAF8EF] dark:bg-[#020A05] p-3 sm:p-3.5 flex items-center justify-between">
               <div>
                 <span className="text-xs uppercase font-bold text-[#0A602F] dark:text-[#2FBF63]">
-                  TOTAL RISK SUPPRESSION:
+                  Total Risk Reduction:
                 </span>
-                <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">
-                  Projected 48h exacerbation delta
+                <div className="text-[10px] text-[#4A755A] dark:text-[#A7E8BD]">
+                  Projected drop in 48-hour asthma attack risk
                 </div>
               </div>
               <span className={`text-lg sm:text-xl font-mono font-bold tabular-nums ${
                 riskDelta < 0 ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-gray-500'
               }`}>
-                {riskDelta === 0 ? '0% (NO DELTA)' : `${riskDelta}% DELTA`}
+                {riskDelta === 0 ? '0% (No Change)' : `${Math.abs(riskDelta)}% Lower Risk`}
               </span>
-            </div>
-
-            {/* Intervention Contribution Breakdown */}
-            <div className="space-y-1.5 text-xs font-mono">
-              <span className="text-[10px] uppercase font-bold text-[#4A755A] dark:text-[#2FBF63]">
-                INTERVENTION IMPACT BREAKDOWN:
-              </span>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="p-2 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
-                  <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">N95 RESPIRATOR</div>
-                  <div className="font-bold text-[#0E793C] dark:text-[#4CFF8A]">
-                    {wearN95 ? '-18.0% RISK' : '0.0% (OFF)'}
-                  </div>
-                </div>
-                <div className="p-2 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
-                  <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">INHALER ADHERENCE</div>
-                  <div className="font-bold text-[#0E793C] dark:text-[#4CFF8A]">
-                    {adherenceReduction > 0 ? `-${adherenceReduction.toFixed(1)}% RISK` : '0.0% (AT BASELINE)'}
-                  </div>
-                </div>
-                <div className="p-2 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
-                  <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">OUTDOOR TIME</div>
-                  <div className={`font-bold ${outdoorDelta >= 0 ? 'text-[#0E793C] dark:text-[#4CFF8A]' : 'text-[#DC2626]'}`}>
-                    {outdoorDelta >= 0 ? `-${outdoorDelta.toFixed(1)}% RISK` : `+${Math.abs(outdoorDelta).toFixed(1)}% EXPOSURE`}
-                  </div>
-                </div>
-                <div className="p-2 border border-[#B4E3C5]/60 dark:border-[#12612F]/40 bg-[#F6FBF7] dark:bg-[#061C0E]">
-                  <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63]">HEPA PURIFIER</div>
-                  <div className="font-bold text-[#0E793C] dark:text-[#4CFF8A]">
-                    {hepaPurifier ? '-9.0% RISK' : '0.0% (OFF)'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Generated Clinical Recommendation */}
-            <div className="space-y-1.5 pt-2 border-t border-[#B4E3C5]/60 dark:border-[#12612F]/40 text-xs">
-              <div className="text-[#0E793C] dark:text-[#B6FFCC] font-bold uppercase tracking-wider">
-                ◈ CLINICAL RECOMMENDATION:
-              </div>
-              <p className="text-[11px] text-[#0E2E1B] dark:text-[#4CFF8A] leading-relaxed">
-                {backendResult?.recommendedAction 
-                  ? backendResult.recommendedAction
-                  : simulatedRisk < 40 
-                  ? `Counterfactual intervention successful. Adopting N95 during commute, limiting outdoor exposure to ${outdoorHours}h, and maintaining ${targetAdherence}% controller adherence suppresses airway inflammation below trigger threshold (Projected 48h risk: ${simulatedRisk}%).`
-                  : simulatedRisk < baseRisk
-                  ? `Partial risk reduction (${Math.abs(riskDelta)}% reduction). Projected 48h risk remains ${simulatedStatus} (${simulatedRisk}%). Consider temporary step-up of inhaled steroid dosage until regional PM2.5 inversion clears.`
-                  : `Even with current parameters, projected 48h risk remains critical (${simulatedRisk}%). Stricter indoor confinement and dual-controller therapy recommended.`}
-              </p>
             </div>
           </div>
 
-          {/* Quick link to Model Benchmarks */}
-          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#061C0E] p-4 text-xs space-y-2 shadow-sm dark:shadow-none transition-colors">
-            <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] uppercase tracking-wider font-semibold">
-              PRD SECTION 12 VALIDATION
+          {/* Card 2: Clinical & Patient Action Recommendation */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 text-xs space-y-2 shadow-sm dark:shadow-none transition-colors">
+            <div className="text-[#0E793C] dark:text-[#B6FFCC] font-bold uppercase tracking-wider flex items-center space-x-1.5">
+              <span>◈ RECOMMENDED ACTION PLAN</span>
             </div>
-            <div className="text-xs font-bold text-[#0E793C] dark:text-[#B6FFCC]">
-              Model Benchmarks &amp; Grounded ODE Parameters
-            </div>
-            <p className="text-[11px] text-[#4A755A] dark:text-[#2FBF63]">
-              Review biological parameter citations, ablation studies, and causal differential equations.
+            <p className="text-[11px] text-[#0E2E1B] dark:text-[#4CFF8A] leading-relaxed">
+              {backendResult?.recommendedAction 
+                ? backendResult.recommendedAction
+                : simulatedRisk < 40 
+                ? `✓ Safe Outcome: Taking these preventative steps reduces 48-hour flare-up risk from ${baseRisk}% down to ${simulatedRisk}% (Low Risk). Airway inflammation is successfully calmed below the critical threshold. Prioritize wearing an N95 mask during your commute, taking daily inhaler doses, and keeping the bedroom air purifier running.`
+                : simulatedRisk < baseRisk
+                ? `⚠ Meaningful Progress: These actions reduce 48-hour flare-up risk by ${Math.abs(riskDelta)}% (from ${baseRisk}% to ${simulatedRisk}%). While this significantly lowers the chance of an attack, severe outdoor pollution means maintaining strict inhaler adherence and limiting outdoor commute time remain vital.`
+                : `🚨 High Risk Alert: Without protective measures, 48-hour flare-up risk remains in the danger zone at ${simulatedRisk}%. Immediate protective steps — wearing an N95 mask outdoors, taking prescribed preventer inhaler doses, and staying inside with air purification — are strongly advised.`}
             </p>
-            <div className="pt-1">
+            <div className="pt-2 border-t border-[#B4E3C5]/60 dark:border-[#12612F]/40 flex items-center justify-between text-[10px] font-mono">
+              <span className="text-[#4A755A] dark:text-[#A7E8BD]">
+                Grounded in clinical ODE parameters &amp; air quality science
+              </span>
               <Link
                 href="/benchmarks"
-                className="text-xs uppercase font-bold text-[#0E793C] dark:text-[#4CFF8A] hover:underline flex items-center"
+                className="font-bold text-[#0E793C] dark:text-[#4CFF8A] hover:underline"
               >
-                OPEN BENCHMARKS &amp; ASSUMPTIONS &rarr;
+                VIEW EVIDENCE &rarr;
               </Link>
             </div>
           </div>
