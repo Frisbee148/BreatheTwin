@@ -689,25 +689,26 @@ html.light .glow-caution {
   fill: rgba(14, 121, 60, 0.25) !important;
 }
 
-/* Dark Mode: Radiant Crisp White */
+/* Dark Mode: Sophisticated Dimmer White Medical Lifeline */
 :where(.dark, .dark *) .lifeline-path,
 html.dark .lifeline-path,
 html[data-theme="dark"] .lifeline-path {
   stroke: #FFFFFF !important;
-  opacity: 0.85;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.35));
+  stroke-width: 2px !important;
+  opacity: 0.42;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.25));
 }
 
 :where(.dark, .dark *) .lifeline-grid-stroke,
 html.dark .lifeline-grid-stroke,
 html[data-theme="dark"] .lifeline-grid-stroke {
-  stroke: rgba(255, 255, 255, 0.08) !important;
+  stroke: rgba(255, 255, 255, 0.05) !important;
 }
 
 :where(.dark, .dark *) .lifeline-grid-dot,
 html.dark .lifeline-grid-dot,
 html[data-theme="dark"] .lifeline-grid-dot {
-  fill: rgba(255, 255, 255, 0.16) !important;
+  fill: rgba(255, 255, 255, 0.10) !important;
 }
 
 

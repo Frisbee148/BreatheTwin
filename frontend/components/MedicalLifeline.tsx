@@ -92,7 +92,7 @@ export default function MedicalLifeline() {
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="lifeline-path text-[#0E793C] dark:text-white"
+                  className="lifeline-path text-[#0E793C] dark:text-white/50"
                 />
                 <animateTransform
                   attributeName="transform"
