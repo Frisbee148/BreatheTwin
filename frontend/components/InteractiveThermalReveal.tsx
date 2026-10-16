@@ -429,7 +429,7 @@ export default function InteractiveThermalReveal({
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
         onClick={() => setSelectedMarkerId(null)}
-        className="relative w-full max-w-[500px] aspect-[3/4] bg-[#020A05] border border-[#12612F] cursor-crosshair group touch-none select-none"
+        className="relative w-full max-w-[500px] aspect-[3/4] bg-[#020A05]/75 backdrop-blur-sm border border-[#12612F] cursor-crosshair group touch-none select-none"
         role="region"
         aria-label="Interactive Coronal Thermal Torso Scan with Pulmonary Reveal"
       >

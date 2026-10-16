@@ -5,6 +5,7 @@ import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
 import InteractiveThermalReveal, { LungMarker } from '@/components/InteractiveThermalReveal';
 import ScrambleText from '@/components/ScrambleText';
+import MedicalLifeline from '@/components/MedicalLifeline';
 import { PATIENTS, Patient } from '@/lib/data';
 import { getPatient, simulateWhatIf } from '@/lib/api';
 
@@ -105,7 +106,11 @@ export default function HomePage() {
   const currentWhatIf = whatIfExamples[activeWhatIfTab];
 
   return (
-    <div className="space-y-20 font-sans pb-20 max-w-[1240px] mx-auto px-4 sm:px-6">
+    <div className="relative min-h-screen">
+      {/* Medical Vector Lifeline Background (Only on Home Page) */}
+      <MedicalLifeline />
+
+      <div className="relative z-10 space-y-20 font-sans pb-20 max-w-[1240px] mx-auto px-4 sm:px-6">
       {/* =========================================================================
           1. HERO (THE REVEAL)
       ========================================================================= */}
@@ -759,6 +764,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }
