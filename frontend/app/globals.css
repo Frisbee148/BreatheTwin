@@ -711,4 +711,72 @@ html[data-theme="dark"] .lifeline-grid-dot {
   fill: rgba(255, 255, 255, 0.10) !important;
 }
 
+/* =========================================================================
+   TELEMETRY CHART THEME STYLING
+   - Light Mode: High-contrast medical green & red with clean light backdrops
+   - Dark Mode: Glowing tactical terminal green & red with dark translucent backdrops
+========================================================================= */
+
+/* Light Mode SVG Badges & Reference Lines */
+.chart-badge-baseline-bg {
+  fill: #EAF8EF !important;
+  stroke: #0E793C !important;
+}
+.chart-badge-baseline-text {
+  fill: #0A602F !important;
+}
+.chart-badge-threshold-bg {
+  fill: #FEF2F2 !important;
+  stroke: #DC2626 !important;
+}
+.chart-badge-threshold-text {
+  fill: #B91C1C !important;
+}
+
+.chart-tooltip-bg {
+  fill: #FFFFFF !important;
+  stroke: #0E793C !important;
+}
+.chart-tooltip-text {
+  fill: #0E2E1B !important;
+}
+
+/* Dark Mode Overrides */
+:where(.dark, .dark *) .chart-badge-baseline-bg,
+html.dark .chart-badge-baseline-bg,
+html[data-theme="dark"] .chart-badge-baseline-bg {
+  fill: rgba(4, 25, 12, 0.94);
+  stroke: #12612F;
+}
+:where(.dark, .dark *) .chart-badge-baseline-text,
+html.dark .chart-badge-baseline-text,
+html[data-theme="dark"] .chart-badge-baseline-text {
+  fill: #4CFF8A;
+}
+
+:where(.dark, .dark *) .chart-badge-threshold-bg,
+html.dark .chart-badge-threshold-bg,
+html[data-theme="dark"] .chart-badge-threshold-bg {
+  fill: rgba(35, 8, 8, 0.94);
+  stroke: #FF2A1A;
+}
+:where(.dark, .dark *) .chart-badge-threshold-text,
+html.dark .chart-badge-threshold-text,
+html[data-theme="dark"] .chart-badge-threshold-text {
+  fill: #FF6B6B;
+}
+
+:where(.dark, .dark *) .chart-tooltip-bg,
+html.dark .chart-tooltip-bg,
+html[data-theme="dark"] .chart-tooltip-bg {
+  fill: #020A05;
+  stroke: #4CFF8A;
+}
+:where(.dark, .dark *) .chart-tooltip-text,
+html.dark .chart-tooltip-text,
+html[data-theme="dark"] .chart-tooltip-text {
+  fill: #B6FFCC;
+}
+
+
 
