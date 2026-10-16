@@ -123,8 +123,162 @@ export async function stepClock(hours: number = 1): Promise<ClockInfo | null> {
   return null;
 }
 
+export interface CreatePatientInput {
+  name: string;
+  age: number;
+  gender?: string;
+  city: string;
+  station?: string;
+  asthma_severity: string;
+  baseline_fev1_pct?: number;
+  baseline_fev1_fvc?: number;
+  baseline_pef_lmin?: number;
+  baseline_spo2?: number;
+  baseline_resting_hr?: number;
+  baseline_rr?: number;
+  controller_medication?: string;
+  controller_adherence?: number;
+  smoking_status?: string;
+  pack_years?: number;
+  copd_status?: boolean;
+  comorbidity_burden?: number;
+  flare_ups_last_year?: number;
+  hospitalized?: boolean;
+  allergens?: string;
+}
+
+const CUSTOM_PATIENTS_KEY = 'digi_custom_patients';
+
+export function getStoredCustomPatients(): Patient[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(CUSTOM_PATIENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.warn('Failed to parse custom patients from localStorage:', e);
+    return [];
+  }
+}
+
+export function saveStoredCustomPatient(patient: Patient) {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getStoredCustomPatients().filter((p) => p.id !== patient.id);
+    localStorage.setItem(CUSTOM_PATIENTS_KEY, JSON.stringify([patient, ...existing]));
+  } catch (e) {
+    console.warn('Failed to save custom patient to localStorage:', e);
+  }
+}
+
+/** Enroll a new patient into the multimodal digital twin neural inference core */
+export async function createPatient(input: CreatePatientInput): Promise<Patient> {
+  try {
+    const res = await fetch(`${API_BASE}/patients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (res.ok) {
+      const data: Patient = await res.json();
+      saveStoredCustomPatient(data);
+      return data;
+    }
+  } catch (e) {
+    console.warn('Failed to register patient with API, synthesizing local twin:', e);
+  }
+
+  // Resilient fallback: synthesize digital twin client-side if backend is offline
+  const randId = `PT-${Math.floor(1000 + Math.random() * 9000)}`;
+  const adherence = input.controller_adherence ?? 75;
+  const fev1 = input.baseline_fev1_pct ?? 70;
+  const isHighRisk = fev1 < 60 || adherence < 50 || input.smoking_status === 'Active';
+  const risk48h = isHighRisk ? 72.0 : 18.5;
+  const riskLevel = risk48h >= 70 ? 'HIGH RISK' : risk48h >= 50 ? 'ELEVATED' : 'NORMAL';
+
+  const syntheticPatient: Patient = {
+    id: randId,
+    name: input.name,
+    age: input.age,
+    gender: (input.gender === 'Female' ? 'F' : 'M'),
+    city: input.city,
+    station: input.station || `${input.city} Central Monitor`,
+    severity: (input.asthma_severity.replace('_', ' ') as any) || 'Moderate Persistent',
+    controllerMedication: (input.controller_medication || 'Budesonide Formoterol 200 6').replace(/_/g, ' '),
+    controllerAdherence: adherence,
+    rescueMedication: 'Levosalbutamol 50 µg MDI',
+    baselineFEV1: +(fev1 * 0.035).toFixed(2),
+    baselineFEV1Percent: fev1,
+    baselineFEV1FVC: Math.round((input.baseline_fev1_fvc ?? 0.72) * 100),
+    baselineRR: input.baseline_rr ?? 16,
+    baselineRHR: input.baseline_resting_hr ?? 74,
+    allergens: input.allergens ? input.allergens.split(',').map(s => s.trim()) : ['Dust Mites', 'Vehicle Exhaust'],
+    smokingHistory: input.smoking_status === 'Active' ? `Active Smoker (${input.pack_years || 5} pack-years)` : 'Never Smoked',
+    comorbidities: input.copd_status ? ['COPD', 'Hypertension'] : ['None'],
+    flareUpsLastYear: input.flare_ups_last_year ?? 1,
+    risk24h: +(risk48h * 0.85).toFixed(1),
+    risk24hInterval: [Math.max(0, Math.round(risk48h * 0.7)), Math.min(100, Math.round(risk48h * 0.95))],
+    risk48h,
+    risk48hInterval: [Math.max(0, Math.round(risk48h * 0.8)), Math.min(100, Math.round(risk48h * 1.15))],
+    riskLevel,
+    activeAlert: risk48h >= 70,
+    alertHeadline: risk48h >= 70 ? 'Acute 48h flare-up risk elevation predicted' : 'Airway physiology stable; within baseline bounds',
+    alertTriggerTime: '2026-10-14 06:00 IST',
+    leadTimeHours: 48,
+    estimatedInflammationState: risk48h >= 70 ? 0.78 : 0.22,
+    inflammationThreshold: 0.65,
+    currentTelemetry: {
+      spo2: input.baseline_spo2 ?? 96.0,
+      rr: input.baseline_rr ?? 16,
+      rhr: input.baseline_resting_hr ?? 72,
+      hrv: 48.0,
+      sleepAwakenings: 1,
+      deepSleepPercent: 18.0,
+      steps: 5400,
+      rescuePuffs24h: 1,
+    },
+    currentAirQuality: {
+      pm25: 142.0,
+      pm10: 210.0,
+      aqi: 184,
+      aqiCategory: 'Poor',
+      temp: 26.5,
+      humidity: 58.0,
+    },
+    shapReasons: [
+      {
+        rank: 1,
+        feature: 'Environmental PM2.5 Exposure',
+        impactPercent: 32,
+        direction: 'up',
+        description: `High localized PM2.5 in ${input.city} elevates airway oxidative stress.`,
+        targetStream: 'AIR_QUALITY',
+      },
+      {
+        rank: 2,
+        feature: 'Controller Inhaler Adherence',
+        impactPercent: 24,
+        direction: adherence < 70 ? 'up' : 'down',
+        description: `Adherence recorded at ${adherence}%.`,
+        targetStream: 'MEDICATION',
+      },
+      {
+        rank: 3,
+        feature: 'Baseline Airway Obstruction (FEV1)',
+        impactPercent: 18,
+        direction: fev1 < 70 ? 'up' : 'down',
+        description: `Baseline FEV1 at ${fev1}% of predicted.`,
+        targetStream: 'EHR',
+      },
+    ],
+  };
+
+  saveStoredCustomPatient(syntheticPatient);
+  return syntheticPatient;
+}
+
 /** Get cohort roster with live 24h & 48h neural risks */
 export async function getPatients(limit: number = 12, hour?: number): Promise<Patient[]> {
+  const localCustom = getStoredCustomPatients();
   try {
     const url = new URL(`${API_BASE}/patients`);
     url.searchParams.set('limit', limit.toString());
@@ -133,19 +287,29 @@ export async function getPatients(limit: number = 12, hour?: number): Promise<Pa
     }
     const res = await fetch(url.toString(), { cache: 'no-store' });
     if (res.ok) {
-      const data = await res.json();
+      const data: Patient[] = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        return data;
+        // Merge any locally stored custom patients that aren't already present in backend roster
+        const existingIds = new Set(data.map((p) => p.id));
+        const missingCustom = localCustom.filter((p) => !existingIds.has(p.id));
+        return [...missingCustom, ...data];
       }
     }
   } catch (e) {
     console.warn('Failed to fetch patients from API, using local cache:', e);
   }
-  return PATIENTS;
+
+  // Merge static PATIENTS with custom patients
+  const existingIds = new Set(localCustom.map((p) => p.id));
+  const combined = [...localCustom, ...PATIENTS.filter((p) => !existingIds.has(p.id))];
+  return combined;
 }
 
 /** Get individual patient digital twin state */
 export async function getPatient(patientId: string, hour?: number): Promise<Patient> {
+  const localCustom = getStoredCustomPatients();
+  const cachedMatch = localCustom.find((p) => p.id === patientId);
+
   try {
     const url = new URL(`${API_BASE}/patients/${encodeURIComponent(patientId)}`);
     if (hour !== undefined) {
@@ -153,14 +317,18 @@ export async function getPatient(patientId: string, hour?: number): Promise<Pati
     }
     const res = await fetch(url.toString(), { cache: 'no-store' });
     if (res.ok) {
-      const data = await res.json();
+      const data: Patient = await res.json();
       if (data && data.id) {
+        // Update local cache with latest state from server
+        saveStoredCustomPatient(data);
         return data;
       }
     }
   } catch (e) {
     console.warn(`Failed to fetch patient ${patientId} from API, using local cache:`, e);
   }
+
+  if (cachedMatch) return cachedMatch;
   return PATIENTS.find((p) => p.id === patientId) || PATIENTS[0];
 }
 
@@ -184,6 +352,35 @@ export async function getPatientTelemetry(
   } catch (e) {
     console.warn(`Failed to fetch telemetry for ${patientId}, using local cache:`, e);
   }
+
+  // If this is a custom registered patient, synthesize 8 daily telemetry points conditioned on their vitals
+  const custom = getStoredCustomPatients().find((p) => p.id === patientId);
+  if (custom) {
+    const baseSpo2 = custom.currentTelemetry.spo2;
+    const baseRR = custom.baselineRR;
+    const baseRHR = custom.baselineRHR;
+    return Array.from({ length: 8 }, (_, i) => {
+      const dayNum = i + 1;
+      const factor = i / 7;
+      const rescuePuffs = custom.risk48h > 50 ? (i >= 5 ? 2 + (i - 5) : 0) : 0;
+      const inflammationState = +(0.2 + (custom.risk48h / 100) * 0.6 * factor).toFixed(2);
+      return {
+        day: dayNum === 8 ? 'Day 8 (Now)' : `Day ${dayNum}`,
+        dayShort: `D${dayNum}`,
+        date: `2026-10-${String(7 + i).padStart(2, '0')}`,
+        spo2: +(baseSpo2 - (custom.risk48h > 50 ? factor * 2.2 : 0)).toFixed(1),
+        rr: +(baseRR + (custom.risk48h > 50 ? factor * 4.0 : 0)).toFixed(1),
+        rhr: +(baseRHR + (custom.risk48h > 50 ? factor * 6.5 : 0)).toFixed(1),
+        hrv: +(48.0 - (custom.risk48h > 50 ? factor * 14.0 : 0)).toFixed(1),
+        sleepAwakenings: custom.risk48h > 50 ? Math.round(1 + factor * 3) : 1,
+        rescuePuffs,
+        pm25: custom.currentAirQuality.pm25,
+        inflammationState,
+        threshold: 0.65,
+      };
+    });
+  }
+
   return PATIENT_TELEMETRY_SERIES[patientId] || PATIENT_TELEMETRY_SERIES['PT-8821'];
 }
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
-import { simulateWhatIf, WhatIfResponse, getPatient } from '@/lib/api';
+import { simulateWhatIf, WhatIfResponse, getPatient, getStoredCustomPatients } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
 
@@ -15,14 +15,14 @@ interface TrajectoryHourPoint {
   divergence: number;
 }
 
-export default function PatientWhatIfView({ patientId }: { patientId: string }) {
-  const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
-  const [patient, setPatient] = useState<Patient>(initialPatient);
+export default function PatientWhatIfView({ patientId, initialPatient: propPatient }: { patientId: string; initialPatient?: Patient }) {
+  const defaultPatient = propPatient || PATIENTS.find(p => p.id === patientId) || getStoredCustomPatients().find(p => p.id === patientId) || PATIENTS[0];
+  const [patient, setPatient] = useState<Patient>(defaultPatient);
 
   // Counterfactual Sandbox Interactive States
   const [outdoorHours, setOutdoorHours] = useState<number>(2.5);
   const [wearN95, setWearN95] = useState<boolean>(false);
-  const [targetAdherence, setTargetAdherence] = useState<number>(initialPatient.controllerAdherence);
+  const [targetAdherence, setTargetAdherence] = useState<number>(defaultPatient.controllerAdherence);
   const [hepaPurifier, setHepaPurifier] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
 

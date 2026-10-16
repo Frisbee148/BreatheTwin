@@ -30,6 +30,12 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
     { label: '[03] WHAT-IF SANDBOX', href: `/patients/${patient.id}/what-if` },
   ];
 
+  const allPatients = React.useMemo(() => {
+    if (!patient || !patient.id) return patients;
+    const exists = patients.some(p => p.id === patient.id);
+    return exists ? patients : [patient, ...patients];
+  }, [patients, patient]);
+
   return (
     <div className="border border-[#12612F] bg-[#04130A] p-4 sm:p-5 mb-6">
       {/* Top Breadcrumb and Patient Switcher */}
@@ -50,17 +56,25 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
             aria-label="Switch patient selection"
             value={patient.id}
             onChange={(e) => {
-              router.push(`/patients/${e.target.value}`);
+              const tabSuffix = pathname.endsWith('/forecast') ? '/forecast' : pathname.endsWith('/what-if') ? '/what-if' : '';
+              router.push(`/patients/${e.target.value}${tabSuffix}`);
             }}
             className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1 text-xs focus:outline-none focus:border-[#4CFF8A] font-mono"
             style={{ borderRadius: 0 }}
           >
-            {patients.map(p => (
+            {allPatients.map(p => (
               <option key={p.id} value={p.id}>
                 {p.id} - {p.name} ({p.risk48h}% Risk - {p.city})
               </option>
             ))}
           </select>
+          <Link
+            href="/patients?enroll=true"
+            className="font-mono text-[11px] font-bold text-white bg-[#0E793C] hover:bg-[#2FBF63] hover:text-black border border-[#4CFF8A] px-2 py-1 transition-all flex items-center gap-1 cursor-pointer"
+            title="Enroll a new patient digital twin"
+          >
+            + ENROLL
+          </Link>
         </div>
       </div>
 

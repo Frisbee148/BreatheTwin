@@ -1,6 +1,9 @@
 import React, { Suspense } from 'react';
 import PatientForecastView from '@/components/PatientForecastView';
 import { PATIENTS } from '@/lib/data';
+import { getPatient } from '@/lib/api';
+
+export const dynamicParams = true;
 
 export function generateStaticParams() {
   return PATIENTS.map((p) => ({
@@ -10,7 +13,8 @@ export function generateStaticParams() {
 
 async function ForecastContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <PatientForecastView patientId={id} />;
+  const initialPatient = await getPatient(id);
+  return <PatientForecastView patientId={id} initialPatient={initialPatient} />;
 }
 
 export default function PatientForecastPage({

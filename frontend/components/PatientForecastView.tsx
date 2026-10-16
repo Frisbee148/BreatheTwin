@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
-import { getPatient } from '@/lib/api';
+import { getPatient, getStoredCustomPatients } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
 
-export default function PatientForecastView({ patientId }: { patientId: string }) {
-  const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
-  const [patient, setPatient] = useState<Patient>(initialPatient);
+export default function PatientForecastView({ patientId, initialPatient: propPatient }: { patientId: string; initialPatient?: Patient }) {
+  const defaultPatient = propPatient || PATIENTS.find(p => p.id === patientId) || getStoredCustomPatients().find(p => p.id === patientId) || PATIENTS[0];
+  const [patient, setPatient] = useState<Patient>(defaultPatient);
 
   useEffect(() => {
     let isMounted = true;
@@ -128,7 +128,7 @@ export default function PatientForecastView({ patientId }: { patientId: string }
       <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-4">
         <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
           <div>
-            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// AMBIENT POLLUTION CONTEXT &bull; {patient.city.toUpperCase()} ({patient.station})`}</span>
+            <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// AMBIENT POLLUTION CONTEXT • ${patient.city.toUpperCase()} (${patient.station})`}</span>
             <div className="text-xs text-[#B6FFCC] font-mono">STREAM: OPEN CPCB / OPENAQ INDIA REAL-TIME INGESTION</div>
           </div>
           <span className="text-xs font-mono text-[#FFE14A] border border-[#12612F] px-2 py-0.5 bg-[#020A05]">

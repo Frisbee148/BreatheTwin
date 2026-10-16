@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { PATIENTS } from '@/lib/data';
 
+export const dynamicParams = true;
+
 export function generateStaticParams() {
   return PATIENTS.map((p) => ({
     id: p.id,

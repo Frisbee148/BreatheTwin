@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
+import NewPatientModal from '@/components/NewPatientModal';
 import { Patient } from '@/lib/data';
 import { getPatients, getClock, stepClock, ClockInfo } from '@/lib/api';
 
@@ -11,10 +12,20 @@ export default function PatientsTriagePage() {
   const [clock, setClock] = useState<ClockInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [isClockStepping, setIsClockStepping] = useState(false);
-const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('enroll') === 'true') {
+        setIsModalOpen(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -96,35 +107,47 @@ const [searchTerm, setSearchTerm] = useState('');
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 text-xs">
-          <span className="text-[#2FBF63] uppercase">REPLAY CLOCK:</span>
-          <span className="font-mono text-[#B6FFCC] border border-[#12612F] px-2 py-1 bg-[#04130A]">
-            {clock ? `${clock.day_label} (H${clock.current_hour})` : 'DAY 7 • HOUR 168'}
-          </span>
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => handleStepClock(-12)}
-            disabled={isClockStepping}
-            className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
-            title="Step clock back 12 hours"
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="font-mono text-xs font-bold px-3.5 py-1.5 border border-[#4CFF8A] bg-[#0E793C] hover:bg-[#2FBF63] text-white hover:text-black transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+            title="Enroll a new patient digital twin"
           >
-            -12H
+            <span className="text-sm font-black leading-none">+</span>
+            <span>ENROLL NEW PATIENT TWIN</span>
           </button>
-          <button
-            onClick={() => handleStepClock(12)}
-            disabled={isClockStepping}
-            className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
-            title="Step clock forward 12 hours"
-          >
-            +12H
-          </button>
-          <button
-            onClick={() => handleStepClock(24)}
-            disabled={isClockStepping}
-            className="font-mono text-[10px] text-[#4CFF8A] hover:bg-[#0E793C]/20 dark:hover:bg-[#12612F]/40 border border-[#4CFF8A] px-2 py-1 bg-[#061C0E]"
-            title="Step clock forward 24 hours"
-          >
-            +24H &gt;
-          </button>
+
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="text-[#2FBF63] uppercase">REPLAY CLOCK:</span>
+            <span className="font-mono text-[#B6FFCC] border border-[#12612F] px-2 py-1 bg-[#04130A]">
+              {clock ? `${clock.day_label} (H${clock.current_hour})` : 'DAY 7 • HOUR 168'}
+            </span>
+            <button
+              onClick={() => handleStepClock(-12)}
+              disabled={isClockStepping}
+              className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
+              title="Step clock back 12 hours"
+            >
+              -12H
+            </button>
+            <button
+              onClick={() => handleStepClock(12)}
+              disabled={isClockStepping}
+              className="font-mono text-[10px] text-[#2FBF63] hover:text-[#4CFF8A] border border-[#12612F] px-1.5 py-1 bg-[#061C0E]"
+              title="Step clock forward 12 hours"
+            >
+              +12H
+            </button>
+            <button
+              onClick={() => handleStepClock(24)}
+              disabled={isClockStepping}
+              className="font-mono text-[10px] text-[#4CFF8A] hover:bg-[#0E793C]/20 dark:hover:bg-[#12612F]/40 border border-[#4CFF8A] px-2 py-1 bg-[#061C0E]"
+              title="Step clock forward 24 hours"
+            >
+              +24H &gt;
+            </button>
+          </div>
         </div>
       </div>
 
@@ -337,6 +360,15 @@ const [searchTerm, setSearchTerm] = useState('');
           </tbody>
         </table>
       </div>
+
+      {/* Enroll New Patient Twin Modal */}
+      <NewPatientModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onPatientCreated={(newPatient) => {
+          setPatients((prev) => [newPatient, ...prev.filter((p) => p.id !== newPatient.id)]);
+        }}
+      />
     </div>
   );
 }

@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PATIENTS, PATIENT_TELEMETRY_SERIES, Patient, TelemetryPoint } from '@/lib/data';
-import { getPatient, getPatientTelemetry } from '@/lib/api';
+import { getPatient, getPatientTelemetry, getStoredCustomPatients } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import ThermalViewer from '@/components/ThermalViewer';
 import TelemetryChart from '@/components/TelemetryChart';
 
-export default function PatientTwinView({ patientId }: { patientId: string }) {
-  const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
-  const [patient, setPatient] = useState<Patient>(initialPatient);
+export default function PatientTwinView({ patientId, initialPatient: propPatient }: { patientId: string; initialPatient?: Patient }) {
+  const defaultPatient = propPatient || PATIENTS.find(p => p.id === patientId) || getStoredCustomPatients().find(p => p.id === patientId) || PATIENTS[0];
+  const [patient, setPatient] = useState<Patient>(defaultPatient);
   const [telemetry, setTelemetry] = useState<TelemetryPoint[]>(
     PATIENT_TELEMETRY_SERIES[patientId] || PATIENT_TELEMETRY_SERIES['PT-8821']
   );

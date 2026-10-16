@@ -41,6 +41,7 @@ class InferenceEngine:
 
     def __init__(self, device: Optional[str] = None):
         self.device = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.registered_demo_ids: List[str] = ["PT-8821", "PT-4409", "PT-1923", "PT-6031", "PT-3118", "PT-5290"]
         self._load_preprocessors()
         self._load_model()
         self._load_data()
@@ -125,19 +126,19 @@ class InferenceEngine:
             "height_cm": float(p["height_cm"]),
             "weight_kg": float(p["weight_kg"]),
             "bmi": float(p["bmi"]),
-            "severity": p["asthma_severity"].replace("_", " "),
-            "copd_status": bool(p["copd_status"]),
-            "controller_medication": p["controller_medication"].replace("_", " "),
-            "controller_adherence": int(float(p["medication_adherence"]) * 100),
-            "baseline_fev1_pct": float(p["baseline_fev1_pct"]),
-            "baseline_fev1_fvc": float(p["baseline_fev1_fvc"]),
-            "baseline_pef_lmin": float(p["baseline_pef_lmin"]),
-            "baseline_spo2": float(p["baseline_spo2"]),
-            "baseline_resting_hr": int(p["baseline_resting_hr"]),
-            "baseline_rr": int(p["baseline_rr"]),
-            "comorbidity_burden": int(p["comorbidity_burden"]),
-            "previous_disease": h.get("previous_disease", "None").replace("_", " "),
-            "hospitalized": bool(h.get("hospitalized", 0)),
+            "severity": str(p["asthma_severity"]).replace("_", " ") if pd.notna(p.get("asthma_severity")) else "Moderate Persistent",
+            "copd_status": bool(p["copd_status"]) if pd.notna(p.get("copd_status")) else False,
+            "controller_medication": str(p["controller_medication"]).replace("_", " ") if pd.notna(p.get("controller_medication")) else "Budesonide/Formoterol 200/6 µg",
+            "controller_adherence": int(float(p["medication_adherence"]) * 100) if pd.notna(p.get("medication_adherence")) else 75,
+            "baseline_fev1_pct": float(p["baseline_fev1_pct"]) if pd.notna(p.get("baseline_fev1_pct")) else 75.0,
+            "baseline_fev1_fvc": float(p["baseline_fev1_fvc"]) if pd.notna(p.get("baseline_fev1_fvc")) else 0.72,
+            "baseline_pef_lmin": float(p["baseline_pef_lmin"]) if pd.notna(p.get("baseline_pef_lmin")) else 380.0,
+            "baseline_spo2": float(p["baseline_spo2"]) if pd.notna(p.get("baseline_spo2")) else 95.0,
+            "baseline_resting_hr": int(p["baseline_resting_hr"]) if pd.notna(p.get("baseline_resting_hr")) else 72,
+            "baseline_rr": int(p["baseline_rr"]) if pd.notna(p.get("baseline_rr")) else 16,
+            "comorbidity_burden": int(p["comorbidity_burden"]) if pd.notna(p.get("comorbidity_burden")) else 1,
+            "previous_disease": str(h.get("previous_disease", "None")).replace("_", " ") if pd.notna(h.get("previous_disease")) else "None",
+            "hospitalized": bool(h.get("hospitalized", 0)) if pd.notna(h.get("hospitalized")) else False,
         }
 
     def get_patient_window(self, pid: str, end_hour: int = 240, window_size: int = 12) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
@@ -413,7 +414,7 @@ class InferenceEngine:
     def predict_cohort(self, end_hour: int = 168, limit: int = 12) -> List[Dict[str, Any]]:
         """Generates the triage cohort roster for the doctor dashboard."""
         cohort = []
-        demo_ids = ["PT-8821", "PT-4409", "PT-1923", "PT-6031", "PT-3118", "PT-5290"]
+        demo_ids = list(self.registered_demo_ids)
 
         for did in demo_ids:
             try:
@@ -435,4 +436,168 @@ class InferenceEngine:
         # Sort descending by 48h risk
         cohort.sort(key=lambda x: x["risk48h"], reverse=True)
         return cohort
+
+    def register_patient(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Dynamically onboards a new patient into the digital twin core,
+        synthesizes their 7-day baseline wearable & environmental stream,
+        runs the multimodal neural model forward pass, and returns the live twin state.
+        """
+        import random
+        # Generate new demo ID and dataset ID
+        existing_nums = [
+            int(k.split("-")[1]) for k in DEMO_PERSONAS.keys() if k.startswith("PT-") and k.split("-")[1].isdigit()
+        ]
+        next_num = max(existing_nums, default=9000) + random.randint(11, 89)
+        demo_id = data.get("id") or f"PT-{next_num}"
+        dataset_id = f"PATIENT_{len(self.patients_df) + 1:04d}"
+
+        name = data.get("name", f"Patient {next_num}")
+        city = data.get("city", "New Delhi")
+        station = data.get("station") or f"{city} Central CPCB"
+        gender = data.get("gender", "Male")
+        sex = "Male" if gender in ["Male", "M"] else "Female"
+        age = int(data.get("age", 40))
+        bmi = float(data.get("bmi", 24.5))
+        height_cm = float(data.get("height_cm", 172.0))
+        weight_kg = float(data.get("weight_kg", round(bmi * ((height_cm / 100) ** 2), 1)))
+
+        asthma_severity = data.get("asthma_severity", "Moderate_Persistent")
+        controller_medication = data.get("controller_medication", "Budesonide_Formoterol_200_6")
+        medication_adherence = float(data.get("controller_adherence", 75)) / 100.0
+        baseline_fev1_pct = float(data.get("baseline_fev1_pct", 72.0))
+        baseline_fev1_fvc = float(data.get("baseline_fev1_fvc", 0.72))
+        baseline_pef_lmin = float(data.get("baseline_pef_lmin", 380.0))
+        baseline_spo2 = float(data.get("baseline_spo2", 95.0))
+        baseline_resting_hr = int(data.get("baseline_resting_hr", 74))
+        baseline_rr = int(data.get("baseline_rr", 16))
+        smoking_status = data.get("smoking_status", "Never")
+        pack_years = int(data.get("pack_years", 10 if smoking_status == "Former" else (20 if smoking_status == "Current" else 0)))
+        copd_status = bool(data.get("copd_status", False))
+        comorbidity_burden = int(data.get("comorbidity_burden", 1))
+
+        # Add to demo mapping
+        DEMO_PERSONAS[demo_id] = {
+            "dataset_id": dataset_id,
+            "name": name,
+            "city": city,
+            "station": station
+        }
+        DATASET_TO_DEMO[dataset_id] = demo_id
+        if demo_id not in self.registered_demo_ids:
+            self.registered_demo_ids.append(demo_id)
+
+        # 1. Add to patients_df
+        p_row = {
+            "patient_id": dataset_id,
+            "age": age,
+            "sex": sex,
+            "height_cm": height_cm,
+            "weight_kg": weight_kg,
+            "bmi": bmi,
+            "smoking_status": smoking_status,
+            "pack_years": pack_years,
+            "asthma_severity": asthma_severity,
+            "copd_status": copd_status,
+            "allergic_rhinitis": int(bool(data.get("allergic_rhinitis", True if comorbidity_burden > 1 else False))),
+            "baseline_fev1_pct": baseline_fev1_pct,
+            "baseline_fev1_fvc": baseline_fev1_fvc,
+            "baseline_pef_lmin": baseline_pef_lmin,
+            "baseline_spo2": baseline_spo2,
+            "baseline_resting_hr": baseline_resting_hr,
+            "baseline_rr": baseline_rr,
+            "controller_medication": controller_medication,
+            "medication_adherence": medication_adherence,
+            "baseline_rescue_use_weekly": int(data.get("baseline_rescue_use_weekly", 2)),
+            "comorbidity_burden": comorbidity_burden,
+        }
+        self.patients_df = pd.concat([self.patients_df, pd.DataFrame([p_row])], ignore_index=True)
+
+        # 2. Add to history_df
+        h_row = {
+            "patient_id": dataset_id,
+            "previous_disease": data.get("previous_disease", "None"),
+            "episode_count": int(data.get("flare_ups_last_year", 1)),
+            "time_since_episode_months": int(data.get("time_since_episode_months", 6)),
+            "previous_severity": data.get("previous_severity", "Mild"),
+            "hospitalized": int(bool(data.get("hospitalized", False))),
+            "hospital_stay_duration_days": int(data.get("hospital_stay_duration_days", 0)),
+            "intensive_care_required": int(bool(data.get("intensive_care_required", False))),
+            "previous_complication": data.get("previous_complication", "None"),
+            "residual_symptoms": data.get("residual_symptoms", "None"),
+            "recovery_status": data.get("recovery_status", "Full"),
+        }
+        self.history_df = pd.concat([self.history_df, pd.DataFrame([h_row])], ignore_index=True)
+
+        # 3. Recompute normalized static features
+        merged = pd.merge(self.patients_df, self.history_df, on="patient_id")
+        encoded = pd.get_dummies(merged.drop(columns=["patient_id"]))
+        encoded = encoded.reindex(columns=self.static_feature_names, fill_value=0)
+        encoded = encoded.fillna(0)
+        self.norm_static_df = (encoded - self.static_mean) / (self.static_std + 1e-8)
+        self.norm_static_df = self.norm_static_df.fillna(0)
+        self.norm_static_df["patient_id"] = merged["patient_id"].values
+        self.patient_ids.append(dataset_id)
+
+        # 4. Synthesize 240 hours of continuous telemetry
+        np.random.seed(next_num % 1000)
+        ts_rows = []
+        is_high_risk = "Severe" in asthma_severity or pack_years > 10 or baseline_fev1_pct < 65 or medication_adherence < 0.6
+        base_pm25 = 145.0 if city in ["New Delhi", "Kolkata"] else (95.0 if city == "Mumbai" else 65.0)
+
+        for h in range(240):
+            hour_of_day = h % 24
+            is_night = hour_of_day >= 22 or hour_of_day <= 6
+            commute_spike = 1.6 if (7 <= hour_of_day <= 10 or 17 <= hour_of_day <= 20) else 1.0
+
+            # Ambient air quality
+            pm25 = max(15.0, base_pm25 * commute_spike + np.sin(h / 12.0) * 20.0 + np.random.normal(0, 8.0))
+            pm10 = pm25 * 1.6 + np.random.normal(0, 10.0)
+            aqi = min(500, int(pm25 * 1.35))
+
+            # Wearable signals oscillating around personal baseline
+            hr_drift = (3.0 if is_high_risk and h > 120 else 0.0) + (10.0 if not is_night and 9 <= hour_of_day <= 18 else -4.0)
+            hr = max(50.0, baseline_resting_hr + hr_drift + np.random.normal(0, 2.5))
+
+            rr_drift = (2.5 if is_high_risk and h > 120 else 0.0) + (1.5 if not is_night else -1.0)
+            rr = max(10.0, baseline_rr + rr_drift + np.random.normal(0, 1.2))
+
+            spo2_dip = (-2.5 if is_high_risk and is_night else 0.0)
+            spo2 = max(86.0, min(99.0, baseline_spo2 + spo2_dip + np.random.normal(0, 0.6)))
+
+            hrv = max(15.0, min(85.0, 48.0 - (15.0 if is_high_risk else 0.0) + np.random.normal(0, 4.0)))
+            cough = int(np.random.choice([0, 1, 2, 3], p=[0.7, 0.2, 0.07, 0.03] if not is_high_risk else [0.35, 0.35, 0.20, 0.10]))
+            wheeze = int(np.random.choice([0, 1, 2, 3], p=[0.8, 0.15, 0.04, 0.01] if not is_high_risk else [0.4, 0.35, 0.18, 0.07]))
+            rescue_puffs = 1 if (is_high_risk and h % 24 in [8, 22] and np.random.rand() > 0.4) else 0
+
+            ts_rows.append({
+                "patient_id": dataset_id,
+                "timestamp_hour": h,
+                "spo2": round(spo2, 1),
+                "heart_rate": round(hr, 1),
+                "hrv_rmssd": round(hrv, 1),
+                "respiratory_rate": round(rr, 1),
+                "skin_temp_c": 36.6,
+                "step_count": int(max(0, (np.random.randint(100, 800) if not is_night else 0))),
+                "activity_intensity": 1 if not is_night else 0,
+                "active_minutes": np.random.randint(5, 20) if not is_night else 0,
+                "sleep_duration_hrs": 0.0 if not is_night else 1.0,
+                "sleep_interruptions": 0,
+                "breathlessness_score": 1 if is_high_risk and not is_night else 0,
+                "cough_severity": cough,
+                "wheezing_score": wheeze,
+                "chest_tightness": 1 if is_high_risk else 0,
+                "sputum_severity": 0,
+                "fatigue_score": 1 if is_high_risk else 0,
+                "rescue_inhaler_puffs": rescue_puffs,
+                "pm25_concentration": round(pm25, 1),
+                "pm10_concentration": round(pm10, 1),
+                "aqi_index": int(aqi),
+            })
+
+        new_ts_df = pd.DataFrame(ts_rows)
+        self.ts_df = pd.concat([self.ts_df, new_ts_df], ignore_index=True)
+
+        # 5. Return live formatted patient twin state
+        return self.get_formatted_patient(demo_id, end_hour=168)
 

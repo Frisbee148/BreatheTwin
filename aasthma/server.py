@@ -81,6 +81,30 @@ class PatientDailyLogRequest(BaseModel):
     notes: Optional[str] = Field(default=None, description="Clinical or self-reported notes")
 
 
+class CreatePatientRequest(BaseModel):
+    name: str = Field(default="New Patient", description="Full name of patient")
+    age: int = Field(default=40, ge=5, le=105)
+    gender: str = Field(default="Male")
+    city: str = Field(default="New Delhi")
+    station: Optional[str] = None
+    asthma_severity: str = Field(default="Moderate_Persistent")
+    baseline_fev1_pct: float = Field(default=72.0, ge=20.0, le=120.0)
+    baseline_fev1_fvc: float = Field(default=0.72, ge=0.3, le=1.0)
+    baseline_pef_lmin: float = Field(default=380.0, ge=100.0, le=800.0)
+    baseline_spo2: float = Field(default=95.0, ge=80.0, le=100.0)
+    baseline_resting_hr: int = Field(default=74, ge=45, le=140)
+    baseline_rr: int = Field(default=16, ge=8, le=40)
+    controller_medication: str = Field(default="Budesonide_Formoterol_200_6")
+    controller_adherence: int = Field(default=75, ge=0, le=100)
+    smoking_status: str = Field(default="Never")
+    pack_years: int = Field(default=0, ge=0, le=100)
+    copd_status: bool = False
+    comorbidity_burden: int = Field(default=1, ge=0, le=5)
+    flare_ups_last_year: int = Field(default=1, ge=0, le=20)
+    hospitalized: bool = False
+    allergens: Optional[str] = "Dust Mites, Vehicle Exhaust"
+
+
 # Routes
 @app.get("/")
 @app.get("/api/health")
@@ -147,6 +171,21 @@ def list_patients(
     eval_hour = hour if hour is not None else global_clock.current_hour
     cohort = engine.predict_cohort(end_hour=eval_hour, limit=limit)
     return cohort
+
+
+@app.post("/api/patients", status_code=201)
+def create_patient(req: CreatePatientRequest):
+    """
+    Onboards a new patient into the digital twin core, runs multimodal neural inference,
+    and returns their initialized twin state with 24h & 48h risks and SHAP attributions.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    try:
+        new_twin = engine.register_patient(req.model_dump())
+        return new_twin
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create patient twin: {str(e)}")
 
 
 @app.get("/api/patients/{patient_id}")

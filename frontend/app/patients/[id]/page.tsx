@@ -1,11 +1,13 @@
 import React, { Suspense } from 'react';
 import PatientTwinView from '@/components/PatientTwinView';
+import { getPatient } from '@/lib/api';
 
 // With `cacheComponents` enabled, reading request-time `params` must happen
 // inside a <Suspense> boundary, so the await lives in a child component.
 async function PatientContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <PatientTwinView patientId={id} />;
+  const initialPatient = await getPatient(id);
+  return <PatientTwinView patientId={id} initialPatient={initialPatient} />;
 }
 
 export default function PatientPage({
