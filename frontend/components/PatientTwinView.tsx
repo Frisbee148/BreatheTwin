@@ -7,7 +7,6 @@ import { getPatient, getPatientTelemetry } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import ThermalViewer from '@/components/ThermalViewer';
 import TelemetryChart from '@/components/TelemetryChart';
-import ScrambleText from '@/components/ScrambleText';
 
 export default function PatientTwinView({ patientId }: { patientId: string }) {
   const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
@@ -44,7 +43,7 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
       {/* Main Grid: Thermal Twin Viewport + Latent Mechanistic State */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Interactive Thermal Pulmonary Twin */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-8 min-w-0">
           <ThermalViewer
             patient={patient}
             patientName={patient.name}
@@ -55,15 +54,11 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
         </div>
 
         {/* Right Column: Latent Mechanistic State Gauge & Quick EHR */}
-        <div className="lg:col-span-4 space-y-5">
+        <div className="lg:col-span-4 space-y-5 min-w-0">
           {/* Latent State I(t) Panel */}
           <div className="border border-[#12612F] bg-[#04130A] p-4 text-xs space-y-4">
             <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
-              <ScrambleText
-                text="LATENT AIRWAY STATE I(t)"
-                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-              />
+              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// LATENT AIRWAY STATE I(t)`}</span>
               <span className="text-[10px] font-mono text-[#B6FFCC] border border-[#12612F] px-1.5 py-0.5">
                 KALMAN ESTIMATED
               </span>
@@ -118,13 +113,7 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
 
           {/* Quick EHR & Air Quality Snapshot */}
           <div className="border border-[#12612F] bg-[#04130A] p-4 text-xs space-y-3">
-            <div className="border-b border-[#12612F]/40 pb-2">
-              <ScrambleText
-                text="CURRENT AMBIENT & RESCUE METRICS"
-                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-              />
-            </div>
+            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] border-b border-[#12612F]/40 pb-2">{`// CURRENT AMBIENT & RESCUE METRICS`}</div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="border border-[#12612F]/40 p-2 bg-[#061C0E]">
@@ -158,15 +147,10 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
       </div>
 
       {/* 7-Day Physiological Time-Series Streams */}
-      <div className="space-y-4">
+      <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between border-b border-[#12612F] pb-2">
           <div>
-            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">
-              <ScrambleText
-                text="DYNAMIC SENSOR TELEMETRY (7-DAY REPLAY)"
-                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-              />
-            </h2>
+            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">{`// Dynamic Sensor Telemetry (7-Day Replay)`}</h2>
             <div className="text-xs text-[#2FBF63]">
               Continuous streams replayed through the simulation clock. Compare live deviations against personal baseline.
             </div>
@@ -176,58 +160,66 @@ export default function PatientTwinView({ patientId }: { patientId: string }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           {/* Chart 1: Resting Respiratory Rate */}
-          <TelemetryChart
-            title="RESTING RESPIRATORY RATE"
-            data={telemetry}
-            dataKey="rr"
-            baseline={patient.baselineRR}
-            threshold={18.0}
-            thresholdDirection="above"
-            unit="breaths/min"
-            color="#4CFF8A"
-          />
+          <div className="min-w-0 w-full">
+            <TelemetryChart
+              title="RESTING RESPIRATORY RATE"
+              data={telemetry}
+              dataKey="rr"
+              baseline={patient.baselineRR}
+              threshold={18.0}
+              thresholdDirection="above"
+              unit="breaths/min"
+              color="#4CFF8A"
+            />
+          </div>
 
           {/* Chart 2: Nocturnal SpO2 */}
-          <TelemetryChart
-            title="NOCTURNAL SPO2 SATURATION"
-            data={telemetry}
-            dataKey="spo2"
-            baseline={96.5}
-            threshold={92.0}
-            thresholdDirection="below"
-            unit="%"
-            color="#4CFF8A"
-            minVal={88}
-            maxVal={100}
-          />
+          <div className="min-w-0 w-full">
+            <TelemetryChart
+              title="NOCTURNAL SPO2 SATURATION"
+              data={telemetry}
+              dataKey="spo2"
+              baseline={96.5}
+              threshold={92.0}
+              thresholdDirection="below"
+              unit="%"
+              color="#4CFF8A"
+              minVal={88}
+              maxVal={100}
+            />
+          </div>
 
           {/* Chart 3: Resting Heart Rate & Autonomic Tone */}
-          <TelemetryChart
-            title="RESTING HEART RATE (RHR)"
-            data={telemetry}
-            dataKey="rhr"
-            baseline={patient.baselineRHR}
-            threshold={78}
-            thresholdDirection="above"
-            unit="bpm"
-            color="#4CFF8A"
-          />
+          <div className="min-w-0 w-full">
+            <TelemetryChart
+              title="RESTING HEART RATE (RHR)"
+              data={telemetry}
+              dataKey="rhr"
+              baseline={patient.baselineRHR}
+              threshold={78}
+              thresholdDirection="above"
+              unit="bpm"
+              color="#4CFF8A"
+            />
+          </div>
 
           {/* Chart 4: Airway Inflammation State I(t) */}
-          <TelemetryChart
-            title="ESTIMATED AIRWAY INFLAMMATION I(t)"
-            data={telemetry}
-            dataKey="inflammationState"
-            baseline={0.30}
-            threshold={patient.inflammationThreshold}
-            thresholdDirection="above"
-            unit="I(t)"
-            color="#4CFF8A"
-            minVal={0.0}
-            maxVal={1.0}
-          />
+          <div className="min-w-0 w-full">
+            <TelemetryChart
+              title="ESTIMATED AIRWAY INFLAMMATION I(t)"
+              data={telemetry}
+              dataKey="inflammationState"
+              baseline={0.30}
+              threshold={patient.inflammationThreshold}
+              thresholdDirection="above"
+              unit="I(t)"
+              color="#4CFF8A"
+              minVal={0.0}
+              maxVal={1.0}
+            />
+          </div>
         </div>
       </div>
     </div>

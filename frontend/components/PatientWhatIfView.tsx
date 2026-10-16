@@ -6,7 +6,6 @@ import { PATIENTS, Patient } from '@/lib/data';
 import { simulateWhatIf, WhatIfResponse, getPatient } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
-import ScrambleText from '@/components/ScrambleText';
 
 export default function PatientWhatIfView({ patientId }: { patientId: string }) {
   const initialPatient = PATIENTS.find(p => p.id === patientId) || PATIENTS[0];
@@ -125,11 +124,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
       {/* Header Info */}
       <div className="border border-[#12612F] bg-[#04130A] p-4 text-xs flex flex-wrap items-center justify-between gap-3">
         <div>
-          <ScrambleText
-            text="COUNTERFACTUAL WHAT-IF INTERVENTION SANDBOX"
-            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-            className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-          />
+          <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// COUNTERFACTUAL WHAT-IF INTERVENTION SANDBOX`}</span>
           <div className="text-xs text-[#B6FFCC] font-mono mt-0.5">
             MECHANISM: LATENT STATE PERTURBATION &bull; SECTION 9 FORECAST RE-SCORING
           </div>
@@ -289,13 +284,7 @@ export default function PatientWhatIfView({ patientId }: { patientId: string }) 
         <div className="lg:col-span-5 space-y-5">
           {/* Comparison Cards */}
           <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-4">
-            <div className="border-b border-[#12612F]/40 pb-2">
-              <ScrambleText
-                text="FORECAST TRAJECTORY COMPARISON"
-                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-              />
-            </div>
+            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] border-b border-[#12612F]/40 pb-2">{`// FORECAST TRAJECTORY COMPARISON`}</div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               {/* Baseline Trajectory */}

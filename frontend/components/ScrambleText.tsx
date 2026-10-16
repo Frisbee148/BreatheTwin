@@ -37,7 +37,7 @@ export default function ScrambleText({
   const generateScramble = useCallback(
     (source: string) => {
       return source.split('').map((char) => {
-        if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']') {
+        if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']' || char === '/') {
           return char;
         }
         return getRandomGlyph();
@@ -105,7 +105,7 @@ export default function ScrambleText({
             if (i < currentRevealed) {
               return char;
             }
-            if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']') {
+            if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']' || char === '/') {
               return char;
             }
             return getRandomGlyph();
@@ -129,7 +129,7 @@ export default function ScrambleText({
     ambientIntervalRef.current = setInterval(() => {
       setScrambleChars((prev) => {
         return text.split('').map((char, i) => {
-          if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']') {
+          if (char === ' ' || char === '—' || char === '·' || char === '•' || char === '[' || char === ']' || char === '/') {
             return char;
           }
           // 40% chance of glyph change for subtle ambient cyber flicker

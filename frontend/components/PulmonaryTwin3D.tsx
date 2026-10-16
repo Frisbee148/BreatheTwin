@@ -135,6 +135,55 @@ export default function PulmonaryTwin3D({
     };
   }, []);
 
+  // Helper to ensure full studio lighting is always active on the scene
+  const applyLighting = (targetScene: THREE.Scene, darkMode: boolean) => {
+    // Remove existing lights to prevent stacking
+    const lights = targetScene.getObjectsByProperty('isLight', true);
+    lights.forEach((l) => targetScene.remove(l));
+
+    if (darkMode) {
+      // Clean, bright anatomical illumination for dark theme
+      const ambientLight = new THREE.AmbientLight(0xffffff, 2.4);
+      targetScene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
+      keyLight.position.set(1.2, 1.8, 1.8);
+      targetScene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xa7f3d0, 2.0);
+      fillLight.position.set(-1.4, 0.6, 1.2);
+      targetScene.add(fillLight);
+
+      const backLight = new THREE.DirectionalLight(0xffffff, 1.8);
+      backLight.position.set(0, 1.2, -1.8);
+      targetScene.add(backLight);
+
+      const rimLight = new THREE.DirectionalLight(0x4cff8a, 1.0);
+      rimLight.position.set(0, -0.8, -1.0);
+      targetScene.add(rimLight);
+    } else {
+      // Bright studio clinical lighting for light theme
+      const ambientLight = new THREE.AmbientLight(0xffffff, 2.6);
+      targetScene.add(ambientLight);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+      keyLight.position.set(1.2, 1.8, 1.8);
+      targetScene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0xe2e8f0, 2.2);
+      fillLight.position.set(-1.4, 0.6, 1.2);
+      targetScene.add(fillLight);
+
+      const backLight = new THREE.DirectionalLight(0xffffff, 1.8);
+      backLight.position.set(0, 1.2, -1.8);
+      targetScene.add(backLight);
+
+      const rimLight = new THREE.DirectionalLight(0x10b981, 0.9);
+      rimLight.position.set(0, -0.8, -1.0);
+      targetScene.add(rimLight);
+    }
+  };
+
   // Update Three.js lighting and scene background on theme change
   useEffect(() => {
     if (!sceneRef.current || !rendererRef.current) return;
@@ -150,44 +199,7 @@ export default function PulmonaryTwin3D({
       renderer.setClearColor(0xf4f8f5, 1.0);
     }
 
-    // Update lights to illuminate the original anatomical lung textures cleanly
-    const lights = scene.getObjectsByProperty('isLight', true);
-    lights.forEach((l) => scene.remove(l));
-
-    if (isDark) {
-      // Clean, high-fidelity anatomical lighting for dark theme
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-      scene.add(ambientLight);
-
-      const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
-      keyLight.position.set(1.0, 1.5, 1.5);
-      scene.add(keyLight);
-
-      const fillLight = new THREE.DirectionalLight(0x94a3b8, 1.4);
-      fillLight.position.set(-1.0, 0.5, 1.0);
-      scene.add(fillLight);
-
-      // Subtle emerald rim light on backdrop edge
-      const rimLight = new THREE.DirectionalLight(0x4cff8a, 0.9);
-      rimLight.position.set(0, -0.6, -1.0);
-      scene.add(rimLight);
-    } else {
-      // Bright studio clinical lighting for light theme
-      const ambientLight = new THREE.AmbientLight(0xffffff, 2.2);
-      scene.add(ambientLight);
-
-      const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
-      keyLight.position.set(1.0, 1.5, 1.5);
-      scene.add(keyLight);
-
-      const fillLight = new THREE.DirectionalLight(0xe2e8f0, 1.6);
-      fillLight.position.set(-1.0, 0.5, 1.0);
-      scene.add(fillLight);
-
-      const rimLight = new THREE.DirectionalLight(0x10b981, 0.7);
-      rimLight.position.set(0, -0.6, -1.0);
-      scene.add(rimLight);
-    }
+    applyLighting(scene, isDark);
   }, [isDark]);
 
   // Main Three.js Scene Setup & Animation Loop
@@ -204,6 +216,9 @@ export default function PulmonaryTwin3D({
     const initialBg = isDark ? 0x020a05 : 0xf4f8f5;
     scene.background = new THREE.Color(initialBg);
 
+    // Apply lighting immediately upon scene creation so model is never black
+    applyLighting(scene, isDark);
+
     // 2. Camera - locked in coronal viewing position
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.05, 10);
     camera.position.set(0, 0.02, 0.62);
@@ -218,7 +233,7 @@ export default function PulmonaryTwin3D({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.35;
     rendererRef.current = renderer;
 
     // Attach canvas
@@ -258,14 +273,22 @@ export default function PulmonaryTwin3D({
         // Center model directly at (0, 0, 0)
         clonedScene.position.sub(center);
 
-        // Preserve all original embedded textures and PBR materials
+        // Preserve all original embedded textures and PBR materials with proper light response
         clonedScene.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             if (mesh.material) {
-              const mat = mesh.material as THREE.MeshStandardMaterial;
-              mat.needsUpdate = true;
-              mat.side = THREE.DoubleSide;
+              const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+              materials.forEach((mat) => {
+                mat.side = THREE.DoubleSide;
+                mat.needsUpdate = true;
+                if ('roughness' in mat && typeof (mat as any).roughness === 'number') {
+                  (mat as any).roughness = Math.min((mat as any).roughness, 0.65);
+                }
+                if ('metalness' in mat && typeof (mat as any).metalness === 'number') {
+                  (mat as any).metalness = Math.min((mat as any).metalness, 0.15);
+                }
+              });
             }
           }
         });

@@ -10,7 +10,6 @@ import {
   SimulatorAssumption 
 } from '@/lib/data';
 import { getBenchmarks, getAssumptions } from '@/lib/api';
-import ScrambleText from '@/components/ScrambleText';
 
 function BenchmarksAndAssumptionsContent() {
   const searchParams = useSearchParams();
@@ -42,11 +41,9 @@ function BenchmarksAndAssumptionsContent() {
       {/* Page Title & Navigation Header */}
       <div className="border-b border-[#12612F] pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <ScrambleText
-            text="CLINICAL VALIDATION & MODEL AUDIT • PRD SECTIONS 8 & 12"
-            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-            className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-          />
+          <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
+            {`// CLINICAL VALIDATION & MODEL AUDIT • PRD SECTIONS 8 & 12`}
+          </div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[#B6FFCC] tracking-wide mt-1">
             Benchmarks &amp; Physiological Assumptions
           </h1>
@@ -94,11 +91,10 @@ function BenchmarksAndAssumptionsContent() {
       {(activeTab === 'all' || activeTab === 'benchmarks') && (
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b border-[#12612F]/50 pb-2">
-            <ScrambleText
-              text="PART 1 • MODEL ABLATION SUITE & DISCRIMINATION METRICS"
-              prefix={<span className="w-2 h-2 bg-[#4CFF8A] inline-block" />}
-              className="text-xs font-bold tracking-wider uppercase text-[#B6FFCC]"
-            />
+            <div className="text-xs font-bold tracking-wider uppercase text-[#B6FFCC] font-mono flex items-center space-x-2">
+              <span className="w-2 h-2 bg-[#4CFF8A] inline-block" />
+              <span>PART 1 &bull; MODEL ABLATION SUITE &amp; DISCRIMINATION METRICS</span>
+            </div>
             <div className="text-xs font-mono text-[#4CFF8A] border border-[#12612F] px-2 py-0.5 bg-[#04130A]">
               SPLIT: PATIENT-HELD-OUT + TEMPORAL
             </div>
@@ -208,12 +204,8 @@ function BenchmarksAndAssumptionsContent() {
           {/* Ablation Insights & Calibration Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-3 text-xs">
-              <div className="border-b border-[#12612F]/40 pb-2">
-                <ScrambleText
-                  text="KEY ABLATION INSIGHTS"
-                  prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                  className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider"
-                />
+              <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider border-b border-[#12612F]/40 pb-2 font-mono">
+                {`// KEY ABLATION INSIGHTS`}
               </div>
               <div className="space-y-3 pt-1">
                 <div className="border-l-2 border-[#FFE14A] pl-3 py-1 bg-[#061C0E]">
@@ -240,12 +232,8 @@ function BenchmarksAndAssumptionsContent() {
             </div>
 
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-3 text-xs">
-              <div className="border-b border-[#12612F]/40 pb-2">
-                <ScrambleText
-                  text="CONFORMAL CALIBRATION & RELIABILITY"
-                  prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                  className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider"
-                />
+              <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider border-b border-[#12612F]/40 pb-2 font-mono">
+                {`// CONFORMAL CALIBRATION & RELIABILITY`}
               </div>
               <p className="text-xs text-[#2FBF63] leading-relaxed">
                 BreathTwin applies split conformal prediction over held-out calibration cohorts to guarantee that 90% prediction intervals maintain empirical validity:
@@ -277,11 +265,10 @@ function BenchmarksAndAssumptionsContent() {
       {(activeTab === 'all' || activeTab === 'assumptions') && (
         <section className="space-y-6 pt-2">
           <div className="flex items-center justify-between border-b border-[#12612F]/50 pb-2">
-            <ScrambleText
-              text="PART 2 • SIMULATOR PHYSIOLOGY ASSUMPTIONS & CITATIONS"
-              prefix={<span className="w-2 h-2 bg-[#FFE14A] inline-block" />}
-              className="text-xs font-bold tracking-wider uppercase text-[#B6FFCC]"
-            />
+            <div className="text-xs font-bold tracking-wider uppercase text-[#B6FFCC] font-mono flex items-center space-x-2">
+              <span className="w-2 h-2 bg-[#FFE14A] inline-block" />
+              <span>PART 2 &bull; SIMULATOR PHYSIOLOGY ASSUMPTIONS &amp; CITATIONS</span>
+            </div>
             <div className="text-xs font-mono text-[#4CFF8A] border border-[#12612F] px-2 py-0.5 bg-[#04130A]">
               AUDIT STATUS: FULLY REFERENCED
             </div>
@@ -290,11 +277,9 @@ function BenchmarksAndAssumptionsContent() {
           {/* Differential Equation Card */}
           <div className="border border-[#12612F] bg-[#04130A] p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
-              <ScrambleText
-                text="LATENT AIRWAY INFLAMMATION DIFFERENTIAL SYSTEM"
-                prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-              />
+              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
+                {`// LATENT AIRWAY INFLAMMATION DIFFERENTIAL SYSTEM`}
+              </span>
               <span className="text-[10px] font-mono text-[#B6FFCC]">PRD SECTION 8</span>
             </div>
 
@@ -354,11 +339,9 @@ function BenchmarksAndAssumptionsContent() {
 
           {/* Indian Epidemiological Context Card */}
           <div className="border border-[#12612F] bg-[#061C0E] p-6 space-y-3">
-            <ScrambleText
-              text="EPIDEMIOLOGICAL CONTEXT • ASTHMA IN URBAN INDIA (PRD SECTION 2)"
-              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-              className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider"
-            />
+            <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider font-mono">
+              {`// EPIDEMIOLOGICAL CONTEXT &bull; ASTHMA IN URBAN INDIA (PRD SECTION 2)`}
+            </div>
             <p className="text-xs text-[#2FBF63] leading-relaxed">
               India accounts for approximately 37.9 million individuals living with bronchial asthma (~13% of the global burden) and over 42% of global asthma deaths (Lancet Global Burden of Disease). Severe winter temperature inversions in Indo-Gangetic plain cities trap PM2.5 at concentrations often exceeding 150–250 µg/m³, which directly triggers airway cytokine hyper-expression. BreathTwin models this specific Indian urban exposure profile.
             </p>

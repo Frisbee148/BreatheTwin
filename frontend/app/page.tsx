@@ -147,10 +147,7 @@ export default function HomePage() {
             {selectedHotspot && (
               <div className="border border-[#4CFF8A] bg-[#04130A] p-4 text-xs font-mono space-y-1.5 shadow-lg">
                 <div className="text-xs text-[#3DE07A] uppercase font-semibold">
-                  <ScrambleText
-                    text="SELECTED BIOMARKER"
-                    prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-                  />
+                  {`// SELECTED BIOMARKER`}
                 </div>
                 <div className="text-sm font-bold text-white">
                   {selectedHotspot.name}: <span className="text-[#FF2A1A]">{selectedHotspot.value}</span>

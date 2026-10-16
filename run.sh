@@ -6,7 +6,7 @@ if [ -f ".env" ]; then
 fi
 
 # Start backend
-nohup PYTHONPATH=. aasthma/.venv/bin/uvicorn aasthma.server:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+nohup env PYTHONPATH=. aasthma/.venv/bin/uvicorn aasthma.server:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > backend.pid
 echo "Backend started with PID $BACKEND_PID (log: backend.log)"

@@ -38,9 +38,9 @@ export default function TelemetryChart({
   const range = computedMax - computedMin || 1;
 
   const width = 600;
-  const height = 180;
+  const height = 190;
   const paddingX = 40;
-  const paddingY = 25;
+  const paddingY = 28;
 
   const getX = (idx: number) => paddingX + (idx / (data.length - 1)) * (width - 2 * paddingX);
   const getY = (val: number) => height - paddingY - ((val - computedMin) / range) * (height - 2 * paddingY);
@@ -67,21 +67,21 @@ export default function TelemetryChart({
   );
 
   return (
-    <div className="border border-[#12612F] bg-[#04130A] p-4 relative font-sans">
+    <div className="border border-[#12612F] bg-[#04130A] p-4 relative font-sans w-full min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 border-b border-[#12612F]/40 pb-2">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 border-b border-[#12612F]/40 pb-2.5">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63] flex items-center space-x-1.5">
             <span className="text-[#4CFF8A]">◈</span>
-            <span>{title}</span>
+            <span className="truncate">{title}</span>
           </span>
           {isAlert && (
-            <span className="text-[10px] tracking-widest text-[#FF2A1A] border border-[#FF2A1A] px-1.5 py-0.2 uppercase font-bold">
+            <span className="text-[10px] tracking-widest text-[#FF2A1A] border border-[#FF2A1A] px-1.5 py-0.5 uppercase font-bold shrink-0">
               THRESHOLD EXCEEDED
             </span>
           )}
         </div>
-        <div className="text-right">
+        <div className="text-right shrink-0 ml-auto">
           <span className={`text-sm md:text-base font-semibold tabular-nums ${isAlert ? 'text-[#FF2A1A]' : 'text-[#B6FFCC]'}`}>
             {latestVal.toFixed(1)}
           </span>
@@ -94,7 +94,7 @@ export default function TelemetryChart({
         <svg 
           viewBox={`0 0 ${width} ${height}`} 
           className="w-full h-auto select-none"
-          style={{ maxHeight: '200px' }}
+          style={{ maxHeight: '210px' }}
         >
           {/* Grid lines */}
           <line x1={paddingX} y1={paddingY} x2={width - paddingX} y2={paddingY} stroke="#12612F" strokeWidth="1" strokeDasharray="3 3" />
@@ -113,9 +113,18 @@ export default function TelemetryChart({
                 strokeWidth="1.2" 
                 strokeDasharray="4 2" 
               />
+              <rect
+                x={width - paddingX - 146}
+                y={baselineY <= paddingY + 14 ? baselineY + 2 : baselineY - 14}
+                width="144"
+                height="13"
+                fill="#04130A"
+                fillOpacity="0.85"
+                rx="2"
+              />
               <text 
                 x={width - paddingX - 4} 
-                y={baselineY - 4} 
+                y={baselineY <= paddingY + 14 ? baselineY + 12 : baselineY - 4} 
                 fill="#2FBF63" 
                 fontSize="9" 
                 textAnchor="end" 
@@ -138,9 +147,18 @@ export default function TelemetryChart({
                 strokeWidth="1.2" 
                 strokeDasharray="2 2" 
               />
+              <rect
+                x={paddingX + 2}
+                y={thresholdY <= paddingY + 14 ? thresholdY + 2 : thresholdY - 14}
+                width="158"
+                height="13"
+                fill="#04130A"
+                fillOpacity="0.85"
+                rx="2"
+              />
               <text 
                 x={paddingX + 4} 
-                y={thresholdY - 4} 
+                y={thresholdY <= paddingY + 14 ? thresholdY + 12 : thresholdY - 4} 
                 fill="#FF2A1A" 
                 fontSize="9" 
                 textAnchor="start" 

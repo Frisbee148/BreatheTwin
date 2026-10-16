@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import ScrambleText from './ScrambleText';
 
 export default function Footer() {
   return (
@@ -25,11 +24,7 @@ export default function Footer() {
 
           {/* Col 2 */}
           <div className="space-y-2.5">
-            <ScrambleText
-              text="FRONTEND ENDPOINTS"
-              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-              className="text-white font-bold tracking-wider uppercase text-xs sm:text-sm font-mono"
-            />
+            <div className="text-white font-bold tracking-wider uppercase text-xs sm:text-sm font-mono">{`// FRONTEND ENDPOINTS`}</div>
             <ul className="space-y-1.5 text-sm">
               <li>
                 <Link href="/" className="hover:text-white hover:underline">
@@ -61,11 +56,7 @@ export default function Footer() {
 
           {/* Col 3 */}
           <div className="space-y-2.5">
-            <ScrambleText
-              text="AUDIT & VALIDATION"
-              prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-              className="text-white font-bold tracking-wider uppercase text-xs sm:text-sm font-mono"
-            />
+            <div className="text-white font-bold tracking-wider uppercase text-xs sm:text-sm font-mono">{`// AUDIT & VALIDATION`}</div>
             <ul className="space-y-1.5 text-sm">
               <li>
                 <Link href="/benchmarks" className="hover:text-white hover:underline">
@@ -93,7 +84,7 @@ export default function Footer() {
             &copy; 2026 BREATHTWIN · ASTHMA DIGITAL TWIN PROJECT
           </div>
           <div className="font-mono text-white mt-2 sm:mt-0 font-medium">
-            NIGHT-VISION PHOSPHOR THEME &bull; 100% GREEN ON NEAR-BLACK
+            NIGHT-VISION PHOSPHOR THEME // 100% GREEN ON NEAR-BLACK
           </div>
         </div>
       </div>

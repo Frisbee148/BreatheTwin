@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import StatusChip from '@/components/StatusChip';
-import ScrambleText from '@/components/ScrambleText';
 import { Patient } from '@/lib/data';
 import { getPatients, getClock, stepClock, ClockInfo } from '@/lib/api';
 
@@ -88,11 +87,7 @@ const [searchTerm, setSearchTerm] = useState('');
       {/* Page Title Header */}
       <div className="border-b border-[#12612F] pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <ScrambleText
-            text="CLINICAL TRIAGE • COHORT LEVEL MONITOR"
-            prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
-            className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]"
-          />
+          <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// CLINICAL TRIAGE &bull; COHORT LEVEL MONITOR`}</div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[#B6FFCC] tracking-wide mt-1">
             Asthma Patient Cohort Roster
           </h1>
