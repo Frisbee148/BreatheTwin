@@ -6,12 +6,21 @@ import pandas as pd
 import torch
 
 from aasthma.models.digital_twin_model import DigitalTwinFusionModel
+from aasthma.training.ensemble import (
+    RespiTwinMLPMetaLearner,
+    build_boosting_features,
+    expand_severity_probabilities,
+    positive_class_probability,
+)
 
 # Resolve base paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 AASTHMA_DIR = os.path.dirname(CURRENT_DIR)
 DATA_DIR = os.path.join(AASTHMA_DIR, "dataset", "data")
 MODEL_DIR = os.path.join(AASTHMA_DIR, "training", "model1")
+GB_CONFIG_PATH = os.path.join(AASTHMA_DIR, "training", "model2", "gb_preprocessor_config.pkl")
+GB_MODEL_PATH = os.path.join(AASTHMA_DIR, "training", "model2", "gb_digital_twin_models.pkl")
+META_MODEL_PATH = os.path.join(AASTHMA_DIR, "training", "meta_ensemble_model.pt")
 
 PATIENTS_PATH = os.path.join(DATA_DIR, "static", "patients.csv")
 HISTORY_PATH = os.path.join(DATA_DIR, "static", "history_features.csv")
@@ -63,6 +72,22 @@ class InferenceEngine:
         self.model.to(self.device)
         self.model.eval()
 
+        with open(GB_CONFIG_PATH, "rb") as f:
+            self.gb_cfg = pickle.load(f)
+        with open(GB_MODEL_PATH, "rb") as f:
+            self.gb_models = pickle.load(f)
+        self.gb_static_feature_names = list(self.gb_cfg["static_mean"].index)
+        if self.gb_static_feature_names != self.static_feature_names:
+            raise ValueError("Gradient-boosting and TCN static feature schemas do not match.")
+        if list(self.gb_cfg["ts_mean"].index) != self.ts_feature_names:
+            raise ValueError("Gradient-boosting and TCN telemetry schemas do not match.")
+
+        self.meta_model = RespiTwinMLPMetaLearner(input_dim=12)
+        meta_state = torch.load(META_MODEL_PATH, map_location="cpu", weights_only=True)
+        self.meta_model.load_state_dict(meta_state, strict=True)
+        self.meta_model.to(self.device)
+        self.meta_model.eval()
+
     def _load_data(self):
         # Raw tabular records
         self.patients_df = pd.read_csv(PATIENTS_PATH)
@@ -73,6 +98,8 @@ class InferenceEngine:
         merged = pd.merge(self.patients_df, self.history_df, on="patient_id")
         encoded = pd.get_dummies(merged.drop(columns=["patient_id"]))
         encoded = encoded.reindex(columns=self.static_feature_names, fill_value=0)
+        self.encoded_static_df = encoded.copy()
+        self.encoded_static_df["patient_id"] = merged["patient_id"].values
         self.norm_static_df = (encoded - self.static_mean) / (self.static_std + 1e-8)
         self.norm_static_df["patient_id"] = merged["patient_id"].values
 
@@ -184,9 +211,50 @@ class InferenceEngine:
         dyn_tensor.requires_grad = True
 
         logit_24h, logit_48h, logits_sev = self.model(static_tensor, dyn_tensor)
-        risk_24h = float(torch.sigmoid(logit_24h).item() * 100)
-        risk_48h = float(torch.sigmoid(logit_48h).item() * 100)
-        sev_class = int(torch.argmax(logits_sev, dim=1).item())
+
+        static_row = self.encoded_static_df[
+            self.encoded_static_df["patient_id"] == self.resolve_patient_id(pid)
+        ].iloc[0]
+        gb_static = (
+            (static_row[self.gb_static_feature_names] - self.gb_cfg["static_mean"])
+            / self.gb_cfg["static_std"]
+        ).to_numpy(dtype=np.float32).reshape(1, -1)
+        gb_dynamic_names = list(self.gb_cfg["ts_mean"].index)
+        gb_features = build_boosting_features(
+            gb_static,
+            raw_window[gb_dynamic_names].to_numpy(dtype=np.float32)[None, :, :],
+            self.gb_cfg,
+        )
+        gb_24h = positive_class_probability(self.gb_models["model_24h"], gb_features)
+        gb_48h = positive_class_probability(self.gb_models["model_48h"], gb_features)
+        gb_severity = expand_severity_probabilities(
+            self.gb_models["model_sev"], gb_features
+        )
+        meta_features = np.column_stack(
+            [
+                torch.sigmoid(logit_24h).detach().cpu().numpy(),
+                gb_24h,
+                torch.sigmoid(logit_48h).detach().cpu().numpy(),
+                gb_48h,
+                torch.softmax(logits_sev, dim=1).detach().cpu().numpy(),
+                gb_severity,
+            ]
+        ).astype(np.float32)
+        with torch.no_grad():
+            meta_24h, meta_48h, meta_severity = self.meta_model(
+                torch.as_tensor(meta_features, dtype=torch.float32, device=self.device)
+            )
+        risk_24h = float(torch.sigmoid(meta_24h).item() * 100)
+        risk_48h = float(torch.sigmoid(meta_48h).item() * 100)
+        sev_class = int(torch.argmax(meta_severity, dim=1).item())
+        base_predictions = {
+            "tcnRisk24h": round(float(torch.sigmoid(logit_24h).item() * 100), 1),
+            "gradientBoostingRisk24h": round(float(gb_24h[0] * 100), 1),
+            "tcnRisk48h": round(float(torch.sigmoid(logit_48h).item() * 100), 1),
+            "gradientBoostingRisk48h": round(float(gb_48h[0] * 100), 1),
+            "metaRisk24h": round(risk_24h, 1),
+            "metaRisk48h": round(risk_48h, 1),
+        }
 
         # Sensitivity feature attribution
         logit_48h.backward(retain_graph=False)
@@ -285,6 +353,12 @@ class InferenceEngine:
             "risk24hInterval": ci_24,
             "risk48h": round(risk_48h, 1),
             "risk48hInterval": ci_48,
+            "basePredictions": base_predictions,
+            "ensemble": {
+                "tcn": True,
+                "gradient_boosting": True,
+                "meta_learner": True,
+            },
             "riskLevel": risk_level,
             "severityClass": sev_class,
             "estimatedInflammationState": round(estimated_inflammation, 2),

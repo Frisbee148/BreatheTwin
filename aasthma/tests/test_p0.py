@@ -1,13 +1,20 @@
 import json
 from types import SimpleNamespace
 
+import numpy as np
+import pandas as pd
 import pytest
+import torch
 from fastapi.testclient import TestClient
 
 from aasthma.server import app
 from aasthma import server as server_module
 from aasthma.inference.inference_engine import InferenceEngine
 from aasthma.llm.llm import build_patient_copilot_payload, generate_copilot_report
+from aasthma.training.ensemble import (
+    RespiTwinMLPMetaLearner,
+    build_boosting_features,
+)
 from aasthma.simulation.clock import SimulationClock, global_clock
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 
@@ -74,6 +81,43 @@ def test_fr5_neural_forecast(engine):
     assert len(ci_24) == 2 and ci_24[0] <= ci_24[1]
     assert len(ci_48) == 2 and ci_48[0] <= ci_48[1]
     assert pred["riskLevel"] in ["NORMAL", "CAUTION", "ELEVATED", "HIGH RISK"]
+    assert pred["ensemble"] == {
+        "tcn": True,
+        "gradient_boosting": True,
+        "meta_learner": True,
+    }
+
+
+def test_ensemble_feature_builder_and_meta_model_shapes():
+    static_names = ["age", "bmi"]
+    dynamic_name = "spo2"
+    feature_cols = static_names + [
+        f"{dynamic_name}_mean",
+        f"{dynamic_name}_std",
+        f"{dynamic_name}_min",
+        f"{dynamic_name}_max",
+        f"{dynamic_name}_delta",
+        *(f"{dynamic_name}_t_shift_{shift:+d}" for shift in range(-2, 3)),
+    ]
+    config = {
+        "static_mean": pd.Series([0.0, 0.0], index=static_names),
+        "ts_mean": pd.Series([0.0], index=[dynamic_name]),
+        "ts_std": pd.Series([1.0], index=[dynamic_name]),
+        "feature_cols": feature_cols,
+    }
+    features = build_boosting_features(
+        np.asarray([[1.0, 2.0]], dtype=np.float32),
+        np.arange(12, dtype=np.float32).reshape(1, 12, 1),
+        config,
+    )
+    assert features.shape == (1, 12)
+    assert np.array_equal(features[0, :2], [1.0, 2.0])
+
+    model = RespiTwinMLPMetaLearner()
+    risk_24h, risk_48h, severity = model(torch.zeros((2, 12)))
+    assert risk_24h.shape == (2,)
+    assert risk_48h.shape == (2,)
+    assert severity.shape == (2, 4)
 
 
 # FR-6: Ranked Alert Reasons (SHAP Feature Attributions)
