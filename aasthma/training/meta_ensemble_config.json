@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "seed": 42,
+  "window_size_hours": 12,
+  "train_patient_count": 800,
+  "validation_patient_count": 100,
+  "test_patient_count": 100,
+  "meta_input_features": [
+    "tcn_risk_24h",
+    "xgboost_risk_24h",
+    "tcn_risk_48h",
+    "xgboost_risk_48h",
+    "tcn_severity_0",
+    "tcn_severity_1",
+    "tcn_severity_2",
+    "tcn_severity_3",
+    "xgboost_severity_0",
+    "xgboost_severity_1",
+    "xgboost_severity_2",
+    "xgboost_severity_3"
+  ],
+  "held_out_test_metrics": {
+    "roc_auc_24h": 0.9403702279542482,
+    "precision_24h_at_0_5": 0.8637326073805203,
+    "recall_24h_at_0_5": 0.72428662016487,
+    "roc_auc_48h": 0.942731639694564,
+    "weighted_f1_severity": 0.8462872311353459
+  },
+  "base_models": {
+    "tcn_checkpoint": "training\\model1\\digital_twin_model.pt",
+    "gradient_boosting_checkpoint": "training\\model2\\gb_digital_twin_models.pkl"
+  }
+}
