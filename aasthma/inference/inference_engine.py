@@ -128,8 +128,12 @@ class InferenceEngine:
             "bmi": float(p["bmi"]),
             "severity": str(p["asthma_severity"]).replace("_", " ") if pd.notna(p.get("asthma_severity")) else "Moderate Persistent",
             "copd_status": bool(p["copd_status"]) if pd.notna(p.get("copd_status")) else False,
+            "allergic_rhinitis": bool(p["allergic_rhinitis"]) if pd.notna(p.get("allergic_rhinitis")) else False,
+            "smoking_status": str(p["smoking_status"]) if pd.notna(p.get("smoking_status")) else "Unknown",
+            "pack_years": float(p["pack_years"]) if pd.notna(p.get("pack_years")) else 0.0,
             "controller_medication": str(p["controller_medication"]).replace("_", " ") if pd.notna(p.get("controller_medication")) else "Budesonide/Formoterol 200/6 µg",
             "controller_adherence": int(float(p["medication_adherence"]) * 100) if pd.notna(p.get("medication_adherence")) else 75,
+            "baseline_rescue_use_weekly": int(p["baseline_rescue_use_weekly"]) if pd.notna(p.get("baseline_rescue_use_weekly")) else 0,
             "baseline_fev1_pct": float(p["baseline_fev1_pct"]) if pd.notna(p.get("baseline_fev1_pct")) else 75.0,
             "baseline_fev1_fvc": float(p["baseline_fev1_fvc"]) if pd.notna(p.get("baseline_fev1_fvc")) else 0.72,
             "baseline_pef_lmin": float(p["baseline_pef_lmin"]) if pd.notna(p.get("baseline_pef_lmin")) else 380.0,
@@ -600,4 +604,3 @@ class InferenceEngine:
 
         # 5. Return live formatted patient twin state
         return self.get_formatted_patient(demo_id, end_hour=168)
-

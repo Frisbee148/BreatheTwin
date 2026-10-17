@@ -1,8 +1,13 @@
+import json
+from types import SimpleNamespace
+
 import pytest
 from fastapi.testclient import TestClient
 
 from aasthma.server import app
+from aasthma import server as server_module
 from aasthma.inference.inference_engine import InferenceEngine
+from aasthma.llm.llm import build_patient_copilot_payload, generate_copilot_report
 from aasthma.simulation.clock import SimulationClock, global_clock
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 
@@ -81,6 +86,100 @@ def test_fr6_shap_feature_attributions(engine):
         assert "feature" in r
         assert "impactPercent" in r
         assert r["targetStream"] in ["AIR_QUALITY", "WEARABLE", "EHR", "MEDICATION"]
+
+
+def test_copilot_payload_uses_patient_model_and_hourly_telemetry(engine):
+    payload = build_patient_copilot_payload(engine, "PT-8821", end_hour=168)
+
+    assert payload["patient_baseline_profile"]["patient_id"] == "PT-8821"
+    assert payload["patient_baseline_profile"]["smoking_status"]
+    assert 0.0 <= payload["model_predictions"]["risk_24h_pct"] <= 100.0
+    assert 0.0 <= payload["model_predictions"]["risk_48h_pct"] <= 100.0
+    assert payload["model_predictions"]["severity_class"] in range(4)
+    assert payload["recent_telemetry_summary"]["duration_hours"] == 12
+    metrics = payload["recent_telemetry_summary"]["hourly_metrics"]
+    assert "mean" in metrics["cough_severity"]
+    assert "mean" in metrics["wheezing_score"]
+
+
+def test_copilot_report_endpoint_returns_patient_report(client, monkeypatch):
+    expected_report = {
+        "patient_id": "PT-8821",
+        "clinical_status": "Warning",
+        "risk_level": "Medium",
+        "summary_reason": "Report grounded in the backend forecast.",
+        "precautions": [],
+        "triggers_to_avoid": [],
+        "breathing_exercise": None,
+        "medication_guidance": {
+            "action": "No medication changes recommended.",
+            "note": "Follow the clinician-approved plan.",
+        },
+        "emergency_warning": "Seek urgent assessment for severe symptoms.",
+    }
+    captured_payload = {}
+
+    def fake_generate_report(payload):
+        captured_payload.update(payload)
+        return expected_report
+
+    monkeypatch.setattr(server_module, "generate_copilot_report", fake_generate_report)
+    response = client.post("/api/patients/PT-8821/copilot-report?hour=168")
+
+    assert response.status_code == 200
+    assert response.json() == expected_report
+    assert captured_payload["patient_baseline_profile"]["patient_id"] == "PT-8821"
+    assert captured_payload["evaluation_hour"] == 168
+
+
+def test_copilot_report_validates_model_category_and_removes_treatment_advice(monkeypatch):
+    provider_report = {
+        "patient_id": "PT-8821",
+        "clinical_status": "High Risk",
+        "risk_level": "High",
+        "summary_reason": "The model returned a high-risk forecast.",
+        "precautions": [],
+        "triggers_to_avoid": [],
+        "breathing_exercise": {
+            "name": "Example",
+            "purpose": "Example",
+            "how_to_do_it": ["Example"],
+            "duration": "Example",
+        },
+        "medication_guidance": {
+            "action": "Increase medication dose.",
+            "note": "Example dose.",
+        },
+        "emergency_warning": "Seek urgent assessment for severe symptoms.",
+    }
+    completion = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                message=SimpleNamespace(content=json.dumps(provider_report))
+            )
+        ]
+    )
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(create=lambda **_: completion)
+        )
+    )
+    import openai
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(openai, "OpenAI", lambda **_: fake_client)
+
+    report = generate_copilot_report(
+        {
+            "patient_baseline_profile": {"patient_id": "PT-8821"},
+            "model_predictions": {"risk_level": "HIGH RISK"},
+        }
+    )
+
+    assert report["breathing_exercise"] is None
+    assert report["medication_guidance"]["action"] == (
+        "No medication change is recommended by this AI-generated report."
+    )
 
 
 # FR-7: Mechanistic Counterfactual What-If Sandbox
