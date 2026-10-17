@@ -54,6 +54,26 @@ export interface WhatIfResponse {
   };
 }
 
+export interface CopilotReport {
+  patient_id: string;
+  clinical_status: 'Stable' | 'Warning' | 'High Risk';
+  risk_level: 'Low' | 'Medium' | 'High';
+  summary_reason: string;
+  precautions: string[];
+  triggers_to_avoid: string[];
+  breathing_exercise: {
+    name: string;
+    purpose: string;
+    how_to_do_it: string[];
+    duration: string;
+  } | null;
+  medication_guidance: {
+    action: string;
+    note: string;
+  };
+  emergency_warning: string;
+}
+
 /** Check backend health */
 export async function getHealth(): Promise<{ status: string; service: string } | null> {
   try {
@@ -332,6 +352,26 @@ export async function getPatient(patientId: string, hour?: number): Promise<Pati
   return PATIENTS.find((p) => p.id === patientId) || PATIENTS[0];
 }
 
+/** Request a patient-specific report from the backend model and LLM. */
+export async function getPatientCopilotReport(
+  patientId: string,
+  hour?: number
+): Promise<CopilotReport> {
+  const url = new URL(`${API_BASE}/patients/${encodeURIComponent(patientId)}/copilot-report`);
+  if (hour !== undefined) {
+    url.searchParams.set('hour', hour.toString());
+  }
+
+  const res = await fetch(url.toString(), { method: 'POST', cache: 'no-store' });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const detail = body && typeof body.detail === 'string' ? body.detail : 'Report generation failed.';
+    throw new Error(detail);
+  }
+
+  return res.json();
+}
+
 /** Get patient telemetry stream replayed through simulation clock */
 export async function getPatientTelemetry(
   patientId: string,
@@ -511,4 +551,3 @@ export async function getPatientCheckIns(patientId: string) {
   } catch {}
   return { patient_id: patientId, count: 0, logs: [] };
 }
-

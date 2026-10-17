@@ -3,13 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
-import { getPatient, getStoredCustomPatients } from '@/lib/api';
+import { CopilotReport, getPatient, getPatientCopilotReport, getStoredCustomPatients } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
 
 export default function PatientForecastView({ patientId, initialPatient: propPatient }: { patientId: string; initialPatient?: Patient }) {
   const defaultPatient = propPatient || PATIENTS.find(p => p.id === patientId) || getStoredCustomPatients().find(p => p.id === patientId) || PATIENTS[0];
   const [patient, setPatient] = useState<Patient>(defaultPatient);
+  const [copilotReport, setCopilotReport] = useState<CopilotReport | null>(null);
+  const [copilotError, setCopilotError] = useState<string | null>(null);
+  const [copilotErrorPatientId, setCopilotErrorPatientId] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -26,6 +30,20 @@ export default function PatientForecastView({ patientId, initialPatient: propPat
   }, [patientId]);
 
   const isHighRisk = patient.riskLevel === 'HIGH RISK';
+  const handleGenerateReport = async () => {
+    setIsGeneratingReport(true);
+    setCopilotError(null);
+    try {
+      const report = await getPatientCopilotReport(patientId);
+      setCopilotReport(report);
+    } catch (error) {
+      setCopilotError(error instanceof Error ? error.message : 'Report generation failed.');
+      setCopilotErrorPatientId(patientId);
+      setCopilotReport(null);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -217,6 +235,86 @@ export default function PatientForecastView({ patientId, initialPatient: propPat
           })}
         </div>
       </div>
+
+      {/* Patient-specific report generated from backend inference */}
+      <section className="border border-[#12612F] bg-[#04130A] p-5 space-y-4" aria-live="polite">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#12612F]/40 pb-3">
+          <div>
+            <h2 className="text-lg font-semibold text-[#B6FFCC] tracking-wide">
+              {'// Patient Copilot Report'}
+            </h2>
+            <p className="text-xs text-[#2FBF63] mt-1">
+              Draft generated from this patient&apos;s backend model forecast and recent telemetry.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerateReport}
+            disabled={isGeneratingReport}
+            className="h-10 px-4 text-xs uppercase tracking-wider font-semibold border border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05] disabled:opacity-50 disabled:cursor-wait transition-colors"
+          >
+            {isGeneratingReport ? 'GENERATING REPORT...' : 'GENERATE REPORT'}
+          </button>
+        </div>
+
+        {copilotError && copilotErrorPatientId === patientId && (
+          <p role="alert" className="border border-[#FF2A1A]/60 bg-[#1B0806] p-3 text-sm text-[#FF9A8F]">
+            {copilotError}
+          </p>
+        )}
+
+        {copilotReport && copilotReport.patient_id === patientId && (
+          <div className="space-y-4 text-sm text-[#B6FFCC]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="border border-[#12612F] px-2 py-1 text-xs uppercase">
+                {copilotReport.clinical_status}
+              </span>
+              <span className="text-xs text-[#2FBF63] uppercase">
+                Model risk: {copilotReport.risk_level}
+              </span>
+              <span className="text-xs text-[#2FBF63]">Patient: {copilotReport.patient_id}</span>
+            </div>
+            <p>{copilotReport.summary_reason}</p>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-xs font-semibold uppercase text-[#4CFF8A]">Precautions</h3>
+                {copilotReport.precautions.length > 0 ? (
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    {copilotReport.precautions.map((item, index) => <li key={index}>{item}</li>)}
+                  </ul>
+                ) : <p className="mt-2 text-xs text-[#2FBF63]">No precautions were returned.</p>}
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase text-[#4CFF8A]">Recorded triggers</h3>
+                {copilotReport.triggers_to_avoid.length > 0 ? (
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    {copilotReport.triggers_to_avoid.map((item, index) => <li key={index}>{item}</li>)}
+                  </ul>
+                ) : <p className="mt-2 text-xs text-[#2FBF63]">No patient-specific triggers are recorded.</p>}
+              </div>
+            </div>
+
+            <div className="border-t border-[#12612F]/40 pt-3 space-y-2 text-xs">
+              <p><span className="font-semibold text-[#4CFF8A]">Medication:</span> {copilotReport.medication_guidance.action} {copilotReport.medication_guidance.note}</p>
+              {copilotReport.breathing_exercise && (
+                <div>
+                  <span className="font-semibold text-[#4CFF8A]">Breathing exercise:</span>{' '}
+                  {copilotReport.breathing_exercise.name} — {copilotReport.breathing_exercise.purpose}
+                  <ul className="list-disc pl-5 mt-1">
+                    {copilotReport.breathing_exercise.how_to_do_it.map((step, index) => <li key={index}>{step}</li>)}
+                  </ul>
+                  <p>{copilotReport.breathing_exercise.duration}</p>
+                </div>
+              )}
+              <p><span className="font-semibold text-[#4CFF8A]">Emergency warning:</span> {copilotReport.emergency_warning}</p>
+            </div>
+            <p className="border-l-2 border-[#FFE14A] pl-3 text-xs text-[#FFE14A]">
+              AI-generated investigational draft for clinician review; not a diagnosis or treatment instruction.
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* Action to What-If Sandbox */}
       <div className="border border-[#12612F] bg-[#061C0E] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

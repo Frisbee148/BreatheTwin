@@ -1,0 +1,188 @@
+[
+  {
+    "patient_id": "PT-8821",
+    "clinical_status": "Warning",
+    "risk_level": "High",
+    "summary_reason": "High 48-hour exacerbation risk (81.9%) and 24-hour risk (44.9%) driven by reduced baseline lung function (FEV1/FVC 0.61), moderate controller adherence (65%), elevated outdoor pollution (AQI 122), and active nocturnal breathlessness.",
+    "precautions": [
+      "Stay indoors and minimize outdoor exposure while AQI remains above 100.",
+      "Ensure strict compliance with your prescribed controller inhaler regimen.",
+      "Keep your rescue inhaler within reach at all times."
+    ],
+    "triggers_to_avoid": [
+      "High AQI and particulate matter (PM2.5 / PM10)",
+      "Cold air exposure",
+      "Physical overexertion"
+    ],
+    "breathing_exercise": {
+      "name": "Pursed-Lip Breathing",
+      "purpose": "Keeps airways open longer during expiration and reduces air trapping during early bronchospasm.",
+      "how_to_do_it": [
+        "Inhale slowly through your nose for 2 seconds.",
+        "Pucker your lips as if preparing to blow out a candle.",
+        "Exhale gently through puckered lips for 4 seconds."
+      ],
+      "duration": "Practice for 5 minutes every 3-4 hours or whenever chest tightness increases."
+    },
+    "medication_guidance": {
+      "action": "Take your Triple Therapy controller as prescribed. Use your rescue inhaler if acute breathlessness occurs.",
+      "note": "If rescue inhaler usage exceeds 4 puffs in 12 hours, contact your pulmonologist immediately."
+    },
+    "emergency_warning": "Seek emergency medical care if you experience severe shortness of breath, inability to speak full sentences, or if your rescue inhaler provides no relief within 20 minutes."
+  },
+  {
+    "patient_id": "PT-4409",
+    "clinical_status": "Stable",
+    "risk_level": "Low",
+    "summary_reason": "RespiTwin model predicts 0.0% 24h and 48h attack risk. Excellent controller adherence (88%) and stable telemetry parameters keep acute exacerbation risk at baseline despite underlying COPD comorbidity.",
+    "precautions": [
+      "Maintain daily controller inhaler schedule without skipping doses.",
+      "Continue routine peak flow and symptom monitoring.",
+      "Stay well-hydrated to assist mucosal clearance."
+    ],
+    "triggers_to_avoid": [
+      "Secondary tobacco smoke",
+      "Humid environmental shifts",
+      "Known respiratory allergens"
+    ],
+    "breathing_exercise": {
+      "name": "Diaphragmatic Breathing (Belly Breathing)",
+      "purpose": "Strengthens the diaphragm muscle and improves baseline oxygen exchange efficiency.",
+      "how_to_do_it": [
+        "Sit comfortably with one hand on your chest and the other on your abdomen.",
+        "Breathe in deeply through your nose, letting your abdomen rise while keeping your chest still.",
+        "Exhale slowly through pursed lips as your abdomen falls inward."
+      ],
+      "duration": "Perform 5 to 10 minutes twice daily during normal baseline monitoring."
+    },
+    "medication_guidance": {
+      "action": "Continue ICS Medium controller maintenance daily as prescribed.",
+      "note": "Keep rescue medication accessible for occasional symptom breakthrough."
+    },
+    "emergency_warning": "Contact your care team if you notice a sudden drop in SpO2 below 92% or a persistent increase in cough frequency."
+  },
+  {
+    "patient_id": "PT-1923",
+    "clinical_status": "Stable",
+    "risk_level": "Low",
+    "summary_reason": "Low 24-hour attack risk (7.2%) with mild 48-hour elevation (21.6%). Patient exhibits reduced HRV RMSSD (36.6 ms) and active current smoking history, requiring ongoing monitoring.",
+    "precautions": [
+      "Strongly consider smoking cessation support to reduce underlying bronchial inflammation.",
+      "Monitor sputum production and breathlessness changes twice daily.",
+      "Maintain regular daily fluid intake."
+    ],
+    "triggers_to_avoid": [
+      "Active and passive cigarette smoke",
+      "Abrupt temperature drops",
+      "Airborne dust"
+    ],
+    "breathing_exercise": {
+      "name": "Pursed-Lip Breathing",
+      "purpose": "Helps control respiratory rate and relieves mild airway resistance.",
+      "how_to_do_it": [
+        "Inhale quietly through your nose for a count of 2.",
+        "Purse your lips as if about to whistle.",
+        "Exhale slowly through your pursed lips for a count of 4."
+      ],
+      "duration": "5 minutes when experiencing mild shortness of breath or sputum clearance effort."
+    },
+    "medication_guidance": {
+      "action": "Maintain ICS Medium controller regimen daily.",
+      "note": "Report any increase in rescue inhaler reliance to your physician."
+    },
+    "emergency_warning": "Seek urgent medical attention if breathlessness worsens rapidly or if chest tightness prevents walking short distances."
+  },
+  {
+    "patient_id": "PT-6031",
+    "clinical_status": "Stable",
+    "risk_level": "Low",
+    "summary_reason": "0.0% predicted short-term attack risk. High controller adherence (91%) protects lung stability despite severe outdoor pollution exposure (AQI 224, PM2.5 149.4).",
+    "precautions": [
+      "Use an N95 mask if outdoor travel is unavoidable during high AQI spikes.",
+      "Keep indoor air purifiers running in living spaces.",
+      "Continue strict compliance with controller inhaler doses."
+    ],
+    "triggers_to_avoid": [
+      "Severe vehicular exhaust and industrial smog (AQI > 200)",
+      "Active smoking exposure",
+      "Pollen and outdoor dust"
+    ],
+    "breathing_exercise": {
+      "name": "Diaphragmatic Breathing",
+      "purpose": "Enhances respiratory muscle efficiency and aids deep lung ventilation.",
+      "how_to_do_it": [
+        "Lie or sit comfortably with relaxed shoulders.",
+        "Inhale slowly through your nose, expanding your stomach.",
+        "Exhale gently through puckered lips while feeling your stomach contract."
+      ],
+      "duration": "10 minutes once or twice daily during stable monitoring."
+    },
+    "medication_guidance": {
+      "action": "Continue regular ICS Medium controller doses daily.",
+      "note": "Use rescue inhaler prior to necessary outdoor exposure if pre-exercise tightness develops."
+    },
+    "emergency_warning": "Seek emergency medical intervention if heavy chest tightness or wheezing develops suddenly following pollution exposure."
+  },
+  {
+    "patient_id": "PT-3118",
+    "clinical_status": "Stable",
+    "risk_level": "Low",
+    "summary_reason": "Low 24h attack risk (7.1%) with moderate 48h trajectory (25.5%). Patient has baseline airflow limitation (FEV1 48.6%), poor controller adherence (56%), and elevated chest tightness score.",
+    "precautions": [
+      "Improve controller inhaler adherence to protect against 48-hour risk progression.",
+      "Avoid outdoor activities during peak pollution hours (AQI 176).",
+      "Track daily morning and evening peak flow readings."
+    ],
+    "triggers_to_avoid": [
+      "Poor indoor air quality and combustion fumes",
+      "Cold environmental drafts",
+      "High pollen or dust exposure"
+    ],
+    "breathing_exercise": {
+      "name": "Pursed-Lip Breathing",
+      "purpose": "Reduces breathing frequency and assists expiration in patients with baseline lung function impairment.",
+      "how_to_do_it": [
+        "Breathe in gently through your nose for 2 seconds.",
+        "Purse your lips comfortably.",
+        "Breathe out smoothly through your lips for 4 seconds."
+      ],
+      "duration": "5 minutes, 3 times a day or when chest tightness is noticed."
+    },
+    "medication_guidance": {
+      "action": "Ensure all doses of Triple Therapy controller medication are taken as prescribed.",
+      "note": "Do not skip controller doses; inconsistent use increases exacerbation risk."
+    },
+    "emergency_warning": "Go to the nearest emergency department if you experience severe shortness of breath, confusion, or lack of response to rescue medication."
+  },
+  {
+    "patient_id": "PT-5290",
+    "clinical_status": "Stable",
+    "risk_level": "Low",
+    "summary_reason": "Low 24-hour (1.0%) and 48-hour (7.5%) attack risk. Good controller adherence (76%) keeps physiological risk parameters well controlled despite active smoking status and moderate pollution (AQI 184).",
+    "precautions": [
+      "Maintain consistent daily use of your ICS/LABA combination inhaler.",
+      "Avoid outdoor physical activity when local air quality is degraded.",
+      "Enroll in a structured smoking cessation counseling program."
+    ],
+    "triggers_to_avoid": [
+      "Tobacco smoke (primary and environmental)",
+      "High particulate air pollution (PM10 / PM2.5)",
+      "Chemical fumes or strong irritants"
+    ],
+    "breathing_exercise": {
+      "name": "Diaphragmatic Breathing",
+      "purpose": "Promotes relaxation of accessory respiratory muscles and maintains stable breathing mechanics.",
+      "how_to_do_it": [
+        "Place one hand on your chest and one on your belly.",
+        "Inhale slowly through your nose, letting your belly push your hand out.",
+        "Exhale through pursed lips, letting your belly collapse inward."
+      ],
+      "duration": "5 to 10 minutes daily during regular routine."
+    },
+    "medication_guidance": {
+      "action": "Continue taking your ICS/LABA controller daily.",
+      "note": "Keep your rescue inhaler accessible for acute symptom relief."
+    },
+    "emergency_warning": "Seek emergency medical assistance if you develop unmanageable shortness of breath, rapid heart rate, or chest pain."
+  }
+]

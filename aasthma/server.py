@@ -1,10 +1,18 @@
 import os
+import logging
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from aasthma.inference.inference_engine import InferenceEngine, DEMO_PERSONAS
+from aasthma.llm.llm import (
+    CopilotConfigurationError,
+    CopilotProviderError,
+    CopilotResponseError,
+    build_patient_copilot_payload,
+    generate_copilot_report,
+)
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 from aasthma.simulation.clock import global_clock
 from aasthma.simulation.clinical_data import SIMULATOR_ASSUMPTIONS, BENCHMARKS
@@ -21,6 +29,7 @@ from contextlib import asynccontextmanager
 # Singleton instances initialized on server startup
 engine: Optional[InferenceEngine] = None
 simulator = MechanisticSimulator()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -208,6 +217,32 @@ def get_patient_detail(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
+
+@app.post("/api/patients/{patient_id}/copilot-report")
+def create_patient_copilot_report(
+    patient_id: str,
+    hour: Optional[int] = Query(default=None, ge=12, le=239),
+):
+    """Generate a clinician-review draft from this patient's model output and telemetry."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    try:
+        payload = build_patient_copilot_payload(engine, patient_id, eval_hour)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Failed to build patient copilot payload for %s", patient_id)
+        raise HTTPException(status_code=500, detail="Failed to prepare patient report data.") from exc
+
+    try:
+        return generate_copilot_report(payload)
+    except CopilotConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except (CopilotProviderError, CopilotResponseError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @app.get("/api/patients/{patient_id}/telemetry")
