@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
 import {
@@ -9,25 +9,14 @@ import {
   simulateWhatIf,
   submitPatientCheckIn,
   getPatientCheckIns,
-  askPatientForecastChat,
+  getPatientCopilotReport,
+  CopilotReport,
   mapRiskToPlainWord,
-  PatientChatResponse,
   PatientDailyLogEntry,
 } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 type PlainRiskBand = 'Low' | 'Watch' | 'High';
-
-interface ChatMessageItem {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  keyTakeaways?: string[];
-  ragSources?: string[];
-  medicationGuardrailTriggered?: boolean;
-  plainRiskLevel?: PlainRiskBand;
-  timestamp: string;
-}
 
 export default function PatientPortalPage() {
   const { session, switchRoleQuick } = useAuth();
@@ -65,10 +54,24 @@ export default function PatientPortalPage() {
   const [logSuccessMessage, setLogSuccessMessage] = useState<string | null>(null);
   const [recentLogs, setRecentLogs] = useState<PatientDailyLogEntry[]>([]);
 
-  // LLM RAG Forecast Chat State
-  const [chatInput, setChatInput] = useState<string>('');
-  const [isAskingChat, setIsAskingChat] = useState<boolean>(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessageItem[]>([]);
+  // Copilot Report State (Personalized AI Report for Patient)
+  const [copilotReport, setCopilotReport] = useState<CopilotReport | null>(null);
+  const [isCopilotReportLoading, setIsCopilotReportLoading] = useState<boolean>(false);
+  const [copilotReportError, setCopilotReportError] = useState<string | null>(null);
+  const [isCopilotReportExpanded, setIsCopilotReportExpanded] = useState<boolean>(true);
+
+  const handleRefreshCopilotReport = useCallback(async () => {
+    setIsCopilotReportLoading(true);
+    setCopilotReportError(null);
+    try {
+      const rep = await getPatientCopilotReport(activePatientId);
+      setCopilotReport(rep);
+    } catch (err) {
+      setCopilotReportError(err instanceof Error ? err.message : 'Failed to update copilot report');
+    } finally {
+      setIsCopilotReportLoading(false);
+    }
+  }, [activePatientId]);
 
   // Sync patients list for doctor preview switcher
   useEffect(() => {
@@ -83,19 +86,18 @@ export default function PatientPortalPage() {
     };
   }, []);
 
-  // Load active patient data, initial logs, and initial RAG copilot greeting
+  // Load active patient data, initial logs, and copilot report
   useEffect(() => {
     let isMounted = true;
     setLogSuccessMessage(null);
+    setIsCopilotReportLoading(true);
+    setCopilotReportError(null);
 
     Promise.all([
       getPatient(activePatientId),
       getPatientCheckIns(activePatientId),
-      askPatientForecastChat(
-        activePatientId,
-        'Why is my status at this level today and what should I watch for over the next 48 hours?'
-      ),
-    ]).then(([livePatient, checkInsData, initialRagReport]) => {
+      getPatientCopilotReport(activePatientId),
+    ]).then(([livePatient, checkInsData, reportData]) => {
       if (!isMounted) return;
       if (livePatient) {
         setPatient(livePatient);
@@ -103,19 +105,16 @@ export default function PatientPortalPage() {
       if (checkInsData && Array.isArray(checkInsData.logs)) {
         setRecentLogs(checkInsData.logs);
       }
-      if (initialRagReport) {
-        setChatMessages([
-          {
-            id: `rag-init-${activePatientId}`,
-            role: 'assistant',
-            content: initialRagReport.answer,
-            keyTakeaways: initialRagReport.key_takeaways,
-            ragSources: initialRagReport.rag_sources,
-            medicationGuardrailTriggered: initialRagReport.medication_guardrail_triggered,
-            plainRiskLevel: initialRagReport.plain_risk_level,
-            timestamp: 'Just now • Copilot RAG Brief',
-          },
-        ]);
+      if (reportData) {
+        setCopilotReport(reportData);
+      }
+    }).catch((err) => {
+      if (isMounted) {
+        setCopilotReportError(err instanceof Error ? err.message : 'Failed to load copilot report');
+      }
+    }).finally(() => {
+      if (isMounted) {
+        setIsCopilotReportLoading(false);
       }
     });
 
@@ -375,49 +374,6 @@ export default function PatientPortalPage() {
       );
     } finally {
       setIsSubmittingLog(false);
-    }
-  };
-
-  // Handle RAG Forecast Chat Submission
-  const handleSendChatQuestion = async (questionText: string) => {
-    const trimmed = questionText.trim();
-    if (!trimmed || isAskingChat) return;
-
-    const userMsg: ChatMessageItem = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: trimmed,
-      timestamp: 'Just now',
-    };
-
-    const nextHistory = [...chatMessages, userMsg].map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-
-    setChatMessages((prev) => [...prev, userMsg]);
-    setChatInput('');
-    setIsAskingChat(true);
-
-    try {
-      const ragRes: PatientChatResponse = await askPatientForecastChat(
-        patient.id,
-        trimmed,
-        nextHistory
-      );
-      const assistantMsg: ChatMessageItem = {
-        id: `assistant-${Date.now()}`,
-        role: 'assistant',
-        content: ragRes.answer,
-        keyTakeaways: ragRes.key_takeaways,
-        ragSources: ragRes.rag_sources,
-        medicationGuardrailTriggered: ragRes.medication_guardrail_triggered,
-        plainRiskLevel: ragRes.plain_risk_level,
-        timestamp: 'Just now • Copilot RAG Response',
-      };
-      setChatMessages((prev) => [...prev, assistantMsg]);
-    } finally {
-      setIsAskingChat(false);
     }
   };
 
@@ -1166,168 +1122,151 @@ export default function PatientPortalPage() {
       </div>
 
       {/* =========================================================================
-          MODULE 9: CHAT — QUESTIONS ABOUT YOUR OWN FORECAST (LLM RAG SYSTEM)
+          MODULE 8: PATIENT COPILOT REPORT (PERSONALIZED AI CLINICAL SUMMARY)
       ========================================================================= */}
       <section
-        aria-labelledby="rag-chat-heading"
-        className="border border-[#4CFF8A] bg-[#04130A] p-6 space-y-5"
+        aria-labelledby="copilot-report-heading"
+        className="border border-[#12612F] bg-[#04130A] p-6 space-y-4"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#12612F]/60 pb-3">
           <div>
             <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 08 • FORECAST CHAT (POWERED BY BREATHTWIN LLM RAG COPILOT)'}
+              {'// 08 • PATIENT COPILOT REPORT'}
             </div>
-            <h2 id="rag-chat-heading" className="text-xl sm:text-2xl font-bold text-[#B6FFCC] mt-0.5">
-              Ask Questions About Your Personal Forecast
+            <h2 id="copilot-report-heading" className="text-xl sm:text-2xl font-bold text-[#B6FFCC] mt-0.5">
+              Personalized Copilot Health Summary
             </h2>
             <p className="text-xs text-[#75FFA5] mt-0.5">
-              Grounded in your personal digital twin state, recent wearable signals, and the RespiTwin Clinical Knowledge Base — structured like an interactive Copilot Report under strict patient safety guardrails.
+              AI-assisted clinical draft grounded in your digital twin telemetry, air quality forecast, and personal baseline.
             </p>
           </div>
-          <div className="flex flex-col items-end text-[10px] font-mono">
-            <span className="px-2.5 py-1 border border-[#4CFF8A] bg-[#061C0E] text-[#4CFF8A] font-bold uppercase">
-              RAG ENGINE: ACTIVE • GUARDRAILS ENFORCED
-            </span>
-            <span className="text-[#2FBF63] mt-1">
-              Plain language only • No treatment/dose advice
-            </span>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRefreshCopilotReport}
+              disabled={isCopilotReportLoading}
+              className="px-3.5 py-1.5 text-xs font-mono uppercase tracking-wider font-semibold border border-[#12612F] bg-[#020A05] text-[#4CFF8A] hover:border-[#4CFF8A] hover:bg-[#061C0E] transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isCopilotReportLoading ? 'Updating Report...' : 'Refresh Copilot Report'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCopilotReportExpanded(!isCopilotReportExpanded)}
+              className="text-xs font-mono text-[#2FBF63] hover:text-[#B6FFCC] cursor-pointer"
+            >
+              {isCopilotReportExpanded ? '[Collapse −]' : '[Expand +]'}
+            </button>
           </div>
         </div>
 
-        {/* One-Click Suggested Questions (including Guardrail Test) */}
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-mono uppercase text-[#2FBF63]">
-            QUICK QUESTIONS TO ASK YOUR TWIN COPILOT:
+        {isCopilotReportLoading && !copilotReport && (
+          <div className="py-6 font-mono text-sm text-[#4CFF8A] flex items-center space-x-2">
+            <span className="inline-block w-2.5 h-2.5 bg-[#4CFF8A] animate-pulse" />
+            <span>Generating personalized copilot report from your twin signals...</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              'Why is my status at this level today?',
-              'What is the best time of day for me to be outdoors?',
-              'How are my breathing and sleep signals compared to my usual?',
-              'What happens to my 48-hour outlook if I stay indoors this evening?',
-              'Should I double my steroid inhaler dose tonight?',
-            ].map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => handleSendChatQuestion(q)}
-                disabled={isAskingChat}
-                className="px-3 py-1.5 text-xs font-mono border border-[#12612F] bg-[#020A05] text-[#4CFF8A] hover:border-[#4CFF8A] hover:bg-[#061C0E] transition-colors cursor-pointer"
-              >
-                &ldquo;{q}&rdquo;
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
-        {/* Conversation / Copilot Report Cards Feed */}
-        <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
-          {chatMessages.map((msg) => {
-            if (msg.role === 'user') {
-              return (
-                <div
-                  key={msg.id}
-                  className="ml-auto max-w-2xl border border-[#4CFF8A] bg-[#061C0E] p-3.5 text-sm text-[#B6FFCC]"
-                >
-                  <div className="flex items-center justify-between text-[10px] font-mono text-[#2FBF63] uppercase mb-1">
-                    <span>YOU ({patient.name})</span>
-                    <span>{msg.timestamp}</span>
-                  </div>
-                  <p>{msg.content}</p>
-                </div>
-              );
-            }
+        {copilotReportError && (
+          <p role="alert" className="border border-[#FF2A1A]/60 bg-[#1B0806] p-3.5 text-xs text-[#FF9A8F]">
+            {copilotReportError}
+          </p>
+        )}
 
-            return (
-              <div
-                key={msg.id}
-                className={`border p-4 sm:p-5 space-y-3 bg-[#020A05] ${
-                  msg.medicationGuardrailTriggered
-                    ? 'border-[#FFE14A]'
-                    : 'border-[#12612F]'
+        {copilotReport && isCopilotReportExpanded && (
+          <div className="space-y-4 text-xs text-[#B6FFCC]">
+            {/* Status & Risk Badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2.5 py-1 border border-[#12612F] bg-[#020A05] text-[11px] font-mono text-[#2FBF63] uppercase">
+                CLINICAL STATUS: <strong className="text-[#4CFF8A]">{copilotReport.clinical_status}</strong>
+              </span>
+              <span
+                className={`px-2.5 py-1 border text-[11px] font-mono font-bold uppercase ${
+                  copilotReport.risk_level === 'High'
+                    ? 'border-[#FF2A1A] bg-[#1B0806] text-[#FF9A8F]'
+                    : copilotReport.risk_level === 'Medium'
+                    ? 'border-[#FFE14A] bg-[#1F1B05] text-[#FFE14A]'
+                    : 'border-[#4CFF8A] bg-[#04130A] text-[#4CFF8A]'
                 }`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/40 pb-2 text-xs font-mono">
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 bg-[#04130A] border border-[#4CFF8A] text-[#4CFF8A] font-bold uppercase">
-                      BREATHTWIN RAG COPILOT
-                    </span>
-                    {msg.plainRiskLevel && (
-                      <span className={`px-2 py-0.5 border font-bold uppercase ${getBandBadgeClasses(msg.plainRiskLevel)}`}>
-                        OUTLOOK: {msg.plainRiskLevel}
-                      </span>
-                    )}
-                    {msg.medicationGuardrailTriggered && (
-                      <span className="px-2 py-0.5 border border-[#FFE14A] text-[#FFE14A] font-bold uppercase">
-                        ⚠ MEDICATION GUARDRAIL ACTIVE
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[11px] text-[#2FBF63]">{msg.timestamp}</span>
-                </div>
+                RISK LEVEL: {copilotReport.risk_level}
+              </span>
+            </div>
 
-                <p className="text-sm sm:text-base text-[#B6FFCC] leading-relaxed">
-                  {msg.content}
-                </p>
-
-                {msg.keyTakeaways && msg.keyTakeaways.length > 0 && (
-                  <div className="border border-[#12612F]/50 bg-[#04130A] p-3 space-y-1.5 text-xs">
-                    <div className="font-mono text-[10px] uppercase text-[#4CFF8A] font-bold">
-                      KEY COPILOT TAKEAWAYS FOR YOU:
-                    </div>
-                    <ul className="list-disc pl-5 space-y-1 text-[#75FFA5]">
-                      {msg.keyTakeaways.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {msg.ragSources && msg.ragSources.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono text-[#2FBF63]">
-                    <span>RAG GROUNDING SOURCES:</span>
-                    {msg.ragSources.map((src, i) => (
-                      <span
-                        key={i}
-                        className="px-2 py-0.5 border border-[#12612F] bg-[#04130A] text-[#B6FFCC]"
-                      >
-                        {src}
-                      </span>
-                    ))}
-                  </div>
-                )}
+            {/* Summary Reason */}
+            <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-1.5">
+              <div className="text-[11px] font-mono uppercase text-[#2FBF63] font-semibold">
+                Summary Reason &amp; Clinical Driver Breakdown
               </div>
-            );
-          })}
-        </div>
+              <p className="text-sm leading-relaxed text-[#B6FFCC]">
+                {copilotReport.summary_reason}
+              </p>
+            </div>
 
-        {/* Chat Input Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendChatQuestion(chatInput);
-          }}
-          className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-[#12612F]/50"
-        >
-          <input
-            type="text"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Ask about your 48-hour forecast, outdoor air timing, or your personal signals..."
-            className="flex-1 bg-[#061C0E] border border-[#12612F] text-[#B6FFCC] px-4 py-3 text-xs sm:text-sm font-mono focus:outline-none focus:border-[#4CFF8A]"
-          />
-          <button
-            type="submit"
-            disabled={isAskingChat || !chatInput.trim()}
-            className="px-6 py-3 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-mono font-bold text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer shrink-0"
-          >
-            {isAskingChat ? 'ANALYZING TWIN...' : 'ASK FORECAST COPILOT &rarr;'}
-          </button>
-        </form>
+            {/* Precautions and Recorded Triggers in responsive 2 cols */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
+                <div className="font-mono uppercase text-[#4CFF8A] font-semibold text-xs flex items-center gap-2">
+                  <span>🛡️</span> Key Precautions
+                </div>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#75FFA5]">
+                  {copilotReport.precautions.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
+                <div className="font-mono uppercase text-[#FFE14A] font-semibold text-xs flex items-center gap-2">
+                  <span>⚠️</span> Recorded Triggers To Avoid
+                </div>
+                <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#75FFA5]">
+                  {copilotReport.triggers_to_avoid.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Breathing Exercise if available */}
+            {copilotReport.breathing_exercise && (
+              <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
+                <div className="font-mono uppercase text-[#4CFF8A] font-semibold text-xs">
+                  Recommended Breathing Exercise: {copilotReport.breathing_exercise.name}
+                </div>
+                <p className="text-xs text-[#75FFA5]">{copilotReport.breathing_exercise.purpose}</p>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-[#B6FFCC]">
+                  {copilotReport.breathing_exercise.how_to_do_it.map((step, idx) => (
+                    <li key={idx}>{step}</li>
+                  ))}
+                </ul>
+                <div className="text-[11px] font-mono text-[#2FBF63]">
+                  Duration: {copilotReport.breathing_exercise.duration}
+                </div>
+              </div>
+            )}
+
+            {/* Medication guidance note */}
+            <div className="border-t border-[#12612F]/60 pt-3 text-xs text-[#2FBF63]">
+              <strong className="text-[#4CFF8A] uppercase font-mono">Medication Note:</strong>{' '}
+              <span className="text-[#B6FFCC]">
+                {copilotReport.medication_guidance.action} {copilotReport.medication_guidance.note}
+              </span>
+            </div>
+
+            {/* Emergency warning note */}
+            {copilotReport.emergency_warning && (
+              <div className="border border-[#FF2A1A]/40 bg-[#160605] p-3 text-xs text-[#FFA49C]">
+                <strong className="text-[#FF2A1A] font-mono uppercase">Emergency Warning:</strong>{' '}
+                {copilotReport.emergency_warning}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* =========================================================================
-          MODULE 8: THEIR CARE PLAN AND CONTACT
+          MODULE 9: THEIR CARE PLAN AND CONTACT
       ========================================================================= */}
       <section
         id="care-plan-section"

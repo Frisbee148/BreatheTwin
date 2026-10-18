@@ -374,10 +374,9 @@ async def stream_patient_forecast(
     if engine is None:
         raise HTTPException(status_code=503, detail="Inference engine not ready")
 
-    try:
-        engine.resolve_patient_id(patient_id)
-    except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    resolved_pid = engine.resolve_patient_id(patient_id)
+    if resolved_pid not in engine.patient_ids:
+        raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found")
 
     async def event_generator():
         last_hour = None
@@ -385,7 +384,10 @@ async def stream_patient_forecast(
             curr_hour = global_clock.current_hour
             if last_hour != curr_hour:
                 last_hour = curr_hour
-                payload = engine.get_patient_forecast(patient_id, end_hour=curr_hour)
+                try:
+                    payload = engine.get_patient_forecast(patient_id, end_hour=curr_hour)
+                except KeyError:
+                    break
                 yield f"event: forecast.updated\ndata: {_json.dumps(payload)}\n\n"
                 if once:
                     break

@@ -447,6 +447,8 @@ class InferenceEngine:
         if static_row.empty:
             self._rebuild_static_tables()
             static_row = self.norm_static_df[self.norm_static_df["patient_id"] == resolved_pid]
+        if static_row.empty:
+            raise KeyError(f"Patient {pid} not found")
         static_vec = static_row[self.static_feature_names].values[0]
 
         # Dynamic window

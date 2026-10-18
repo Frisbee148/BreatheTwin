@@ -4,14 +4,12 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
 import {
-  CopilotReport,
   ForecastPayload,
   ForecastDriverItem,
   ActiveWhatIfScenario,
   getPatient,
   getPatientForecast,
   simulatePatientForecastWhatIf,
-  getPatientCopilotReport,
   getStoredCustomPatients,
   buildFallbackForecastPayload,
   getActiveWhatIfScenario,
@@ -87,12 +85,6 @@ export default function PatientForecastView({
   // V5 What-if overlay state (active scenario from sandbox or quick test)
   const [activeScenario, setActiveScenario] = useState<ActiveWhatIfScenario | null>(null);
   const [whatIfForecast, setWhatIfForecast] = useState<ForecastPayload | null>(null);
-
-  // Action row secondary action: Patient Copilot Report (collapsed by default)
-  const [isReportExpanded, setIsReportExpanded] = useState<boolean>(false);
-  const [copilotReport, setCopilotReport] = useState<CopilotReport | null>(null);
-  const [copilotError, setCopilotError] = useState<string | null>(null);
-  const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
 
   // Fetch unified forecast payload & patient state tied to simulation clock
   useEffect(() => {
@@ -194,26 +186,6 @@ export default function PatientForecastView({
     },
     [patient.controllerAdherence, patientId]
   );
-
-  const handleToggleAndGenerateReport = async () => {
-    if (!isReportExpanded) {
-      setIsReportExpanded(true);
-      if (!copilotReport && !isGeneratingReport) {
-        setIsGeneratingReport(true);
-        setCopilotError(null);
-        try {
-          const report = await getPatientCopilotReport(patientId, forecast.simulationHour);
-          setCopilotReport(report);
-        } catch (error) {
-          setCopilotError(error instanceof Error ? error.message : 'Report generation failed.');
-        } finally {
-          setIsGeneratingReport(false);
-        }
-      }
-    } else {
-      setIsReportExpanded(false);
-    }
-  };
 
   // =========================================================================
   // V1 DATA EXTRACTION & SVG GEOMETRY (Fixed Y-axis 0% to 100%, ~320px tall)
@@ -1625,7 +1597,7 @@ export default function PatientForecastView({
         </div>
       </section>
 
-      {/* 6. Action Row: Open What-If Sandbox (Primary Button); Generate Patient Report (Secondary, Collapsed by Default) */}
+      {/* 6. Action Row: Open What-If Sandbox (Primary Action) */}
       <section aria-label="Next clinical actions" className="space-y-3">
         <div className="border border-[#12612F] bg-[#061C0E] p-4 flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-0.5">
@@ -1638,15 +1610,6 @@ export default function PatientForecastView({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleToggleAndGenerateReport}
-              aria-expanded={isReportExpanded}
-              className="h-10 px-4 text-xs font-mono uppercase tracking-wider font-semibold border border-[#12612F] bg-[#04130A] text-[#B6FFCC] hover:border-[#4CFF8A] hover:text-[#4CFF8A] transition-colors cursor-pointer"
-            >
-              {isReportExpanded ? 'Hide Patient Report' : 'Generate Patient Report'}
-            </button>
-
             <Link
               href={`/patients/${patient.id}/what-if`}
               className="h-10 px-5 text-xs font-mono uppercase tracking-wider font-bold border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] hover:opacity-90 transition-opacity flex items-center justify-center"
@@ -1655,76 +1618,6 @@ export default function PatientForecastView({
             </Link>
           </div>
         </div>
-
-        {/* Collapsible Secondary Patient Copilot Report */}
-        {isReportExpanded && (
-          <div
-            aria-live="polite"
-            className="border border-[#12612F] bg-[#04130A] p-4 sm:p-5 space-y-4 text-xs"
-          >
-            <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2.5">
-              <div>
-                <h3 className="text-sm font-semibold text-[#B6FFCC] uppercase tracking-wider">
-                  Patient Copilot Draft Report
-                </h3>
-                <p className="text-[11px] text-[#2FBF63]">
-                  Secondary AI-assisted summary grounded in the forecast payload for clinician review.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleToggleAndGenerateReport}
-                className="text-[11px] font-mono text-[#2FBF63] hover:text-[#B6FFCC] cursor-pointer"
-              >
-                [Collapse &times;]
-              </button>
-            </div>
-
-            {isGeneratingReport && (
-              <div className="py-4 font-mono text-[#4CFF8A]">
-                Generating patient report from forecast payload...
-              </div>
-            )}
-
-            {copilotError && (
-              <p role="alert" className="border border-[#FF2A1A]/60 bg-[#1B0806] p-3 text-[#FF9A8F]">
-                {copilotError}
-              </p>
-            )}
-
-            {copilotReport && (
-              <div className="space-y-3 text-[#B6FFCC]">
-                <p className="text-sm leading-relaxed">{copilotReport.summary_reason}</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <div className="font-mono uppercase text-[#4CFF8A] font-semibold mb-1">
-                      Precautions
-                    </div>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {copilotReport.precautions.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <div className="font-mono uppercase text-[#4CFF8A] font-semibold mb-1">
-                      Recorded Triggers
-                    </div>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {copilotReport.triggers_to_avoid.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="border-t border-[#12612F]/40 pt-2 text-[11px] text-[#2FBF63]">
-                  <strong className="text-[#4CFF8A]">Medication note:</strong>{' '}
-                  {copilotReport.medication_guidance.action} {copilotReport.medication_guidance.note}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </section>
     </div>
   );
