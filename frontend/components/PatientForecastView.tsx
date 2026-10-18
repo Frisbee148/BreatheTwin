@@ -977,16 +977,17 @@ export default function PatientForecastView({
 
           {/* Starting Cohort Baseline Bar */}
           <div className="space-y-2.5 text-xs">
-            <div className="grid grid-cols-12 items-center gap-2 py-1 px-2 bg-[#061C0E] border border-[#12612F]/50 font-mono">
+            <div className="grid grid-cols-12 items-center gap-2 py-1.5 px-2.5 bg-[#061C0E] border border-[#12612F] font-mono">
               <div className="col-span-5 text-[#B6FFCC] font-semibold truncate">
                 Cohort baseline risk
               </div>
-              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]/40">
+              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]">
                 <div
-                  className="absolute top-0 bottom-0 bg-[#2FBF63]/50"
+                  className="absolute top-0 bottom-0"
                   style={{
                     left: '0%',
                     width: `${Math.min(100, Math.max(2, baselinePct))}%`,
+                    backgroundColor: '#16A34A',
                   }}
                 />
               </div>
@@ -997,9 +998,9 @@ export default function PatientForecastView({
 
             {/* Grouped Stream Waterfall Rows */}
             {waterfallGroups.groups.map((grp) => (
-              <div key={grp.group} className="border border-[#12612F]/50 bg-[#061C0E]/50">
+              <div key={grp.group} className="border border-[#12612F] bg-[#04130A]">
                 {/* Stream Group Header with Group Total */}
-                <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#061C0E] border-b border-[#12612F]/40 font-mono text-[11px]">
+                <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#061C0E] border-b border-[#12612F] font-mono text-[11px]">
                   <span className="uppercase font-bold tracking-wider text-[#2FBF63]">
                     {grp.title} Stream
                   </span>
@@ -1012,7 +1013,7 @@ export default function PatientForecastView({
                   </span>
                 </div>
 
-                <div className="divide-y divide-[#12612F]/30">
+                <div className="divide-y divide-[#12612F]/40">
                   {grp.rows.map((row) => {
                     const isRaising = row.deltaPp > 0;
                     const spanScale = Math.max(100, waterfallGroups.maxScale - waterfallGroups.minScale);
@@ -1037,7 +1038,7 @@ export default function PatientForecastView({
                         onMouseEnter={() => setActiveDriverId(row.id)}
                         onFocus={() => setActiveDriverId(row.id)}
                         title={row.text}
-                        className="p-2.5 hover:bg-[#04130A] transition-colors space-y-1.5 focus:outline-none focus:bg-[#04130A]"
+                        className="p-2.5 bg-[#04130A] hover:bg-[#061C0E] transition-colors space-y-1.5 focus:outline-none focus:bg-[#061C0E]"
                       >
                         <div className="grid grid-cols-12 items-center gap-2">
                           {/* Driver Label & 24h delta */}
@@ -1073,10 +1074,10 @@ export default function PatientForecastView({
                           </div>
 
                           {/* Horizontal Waterfall Bar */}
-                          <div className="col-span-9 sm:col-span-5 relative h-5 bg-[#04130A] border border-[#12612F]/40">
+                          <div className="col-span-9 sm:col-span-5 relative h-5 bg-[#061C0E] border border-[#12612F]">
                             {/* Connector tick at startPct */}
                             <div
-                              className="absolute top-0 bottom-0 w-px bg-[#2FBF63]/50"
+                              className="absolute top-0 bottom-0 w-px bg-[#2FBF63]"
                               style={{ left: `${leftPct}%` }}
                             />
                             {/* Signed Bar: Red raises risk, Blue lowers risk */}
@@ -1107,11 +1108,11 @@ export default function PatientForecastView({
             ))}
 
             {/* Rolled-up Other Row */}
-            <div className="grid grid-cols-12 items-center gap-2 py-1.5 px-2.5 bg-[#061C0E]/60 border border-[#12612F]/40 font-mono">
-              <div className="col-span-5 text-[#2FBF63] truncate">
+            <div className="grid grid-cols-12 items-center gap-2 py-1.5 px-2.5 bg-[#061C0E] border border-[#12612F] font-mono">
+              <div className="col-span-5 text-[#2FBF63] font-medium truncate">
                 Other minor drivers (rolled up)
               </div>
-              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]/30">
+              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]">
                 {Math.abs(waterfallGroups.otherRow.deltaPp) > 0 && (
                   <div
                     className="absolute top-0.5 bottom-0.5"
@@ -1134,7 +1135,7 @@ export default function PatientForecastView({
               <div className="col-span-5 text-[#B6FFCC] font-bold truncate">
                 Patient 48-hour forecast risk
               </div>
-              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]/40">
+              <div className="col-span-5 relative h-4 bg-[#04130A] border border-[#12612F]">
                 <div
                   className="absolute top-0 bottom-0"
                   style={{

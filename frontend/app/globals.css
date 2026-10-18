@@ -267,14 +267,32 @@ html[data-theme="light"] .bg-\[\#020A05\]\/95 {
 
 html:not(.dark) .bg-\[\#04130A\],
 html.light .bg-\[\#04130A\],
-html[data-theme="light"] .bg-\[\#04130A\] {
+html[data-theme="light"] .bg-\[\#04130A\],
+html:not(.dark) .hover\:bg-\[\#04130A\]:hover,
+html.light .hover\:bg-\[\#04130A\]:hover,
+html[data-theme="light"] .hover\:bg-\[\#04130A\]:hover,
+html:not(.dark) .focus\:bg-\[\#04130A\]:focus,
+html.light .focus\:bg-\[\#04130A\]:focus,
+html[data-theme="light"] .focus\:bg-\[\#04130A\]:focus {
   background-color: #FFFFFF !important;
   box-shadow: 0 1px 3px rgba(14, 46, 27, 0.05);
 }
 
 html:not(.dark) .bg-\[\#061C0E\],
 html.light .bg-\[\#061C0E\],
-html[data-theme="light"] .bg-\[\#061C0E\] {
+html[data-theme="light"] .bg-\[\#061C0E\],
+html:not(.dark) .bg-\[\#061C0E\]\/50,
+html.light .bg-\[\#061C0E\]\/50,
+html[data-theme="light"] .bg-\[\#061C0E\]\/50,
+html:not(.dark) .bg-\[\#061C0E\]\/60,
+html.light .bg-\[\#061C0E\]\/60,
+html[data-theme="light"] .bg-\[\#061C0E\]\/60,
+html:not(.dark) .hover\:bg-\[\#061C0E\]:hover,
+html.light .hover\:bg-\[\#061C0E\]:hover,
+html[data-theme="light"] .hover\:bg-\[\#061C0E\]:hover,
+html:not(.dark) .focus\:bg-\[\#061C0E\]:focus,
+html.light .focus\:bg-\[\#061C0E\]:focus,
+html[data-theme="light"] .focus\:bg-\[\#061C0E\]:focus {
   background-color: #EAF3EC !important;
 }
 
@@ -363,16 +381,19 @@ html[data-theme="light"] .border-\[\#12612F\] {
   border-color: #C8E2CF !important;
 }
 
+html:not(.dark) .border-\[\#12612F\]\/30,
+html.light .border-\[\#12612F\]\/30,
 html:not(.dark) .border-\[\#12612F\]\/40,
 html.light .border-\[\#12612F\]\/40,
 html:not(.dark) .border-\[\#12612F\]\/50,
 html.light .border-\[\#12612F\]\/50,
 html:not(.dark) .border-\[\#12612F\]\/60,
 html.light .border-\[\#12612F\]\/60,
+html[data-theme="light"] .border-\[\#12612F\]\/30,
 html[data-theme="light"] .border-\[\#12612F\]\/40,
 html[data-theme="light"] .border-\[\#12612F\]\/50,
 html[data-theme="light"] .border-\[\#12612F\]\/60 {
-  border-color: #DCEFE2 !important;
+  border-color: #C8E2CF !important;
 }
 
 html:not(.dark) .border-\[\#166E34\]\/50,
@@ -399,10 +420,13 @@ html[data-theme="light"] .border-\[\#B6FFCC\] {
   border-color: #0E793C !important;
 }
 
+html:not(.dark) .divide-\[\#12612F\]\/30 > *,
+html.light .divide-\[\#12612F\]\/30 > *,
+html[data-theme="light"] .divide-\[\#12612F\]\/30 > *,
 html:not(.dark) .divide-\[\#12612F\]\/40 > *,
 html.light .divide-\[\#12612F\]\/40 > *,
 html[data-theme="light"] .divide-\[\#12612F\]\/40 > * {
-  border-color: #DCEFE2 !important;
+  border-color: #C8E2CF !important;
 }
 
 /* Typography in Light Mode */
@@ -609,7 +633,7 @@ html.light .highlight-flare-transition span {
 /* SVG Chart lines in Light Mode */
 html:not(.dark) svg line[stroke="#12612F"],
 html.light svg line[stroke="#12612F"] {
-  stroke: #D2E8D7 !important;
+  stroke: #B8D9C2 !important;
 }
 
 html:not(.dark) svg path[stroke="#4CFF8A"],
@@ -618,8 +642,33 @@ html.light svg path[stroke="#4CFF8A"] {
   stroke-width: 2.2 !important;
 }
 
+html:not(.dark) svg path[stroke="#FFA61F"],
+html.light svg path[stroke="#FFA61F"] {
+  stroke: #D97706 !important;
+}
+
+html:not(.dark) svg path[stroke="#38BDF8"],
+html.light svg path[stroke="#38BDF8"] {
+  stroke: #0284C7 !important;
+}
+
 html:not(.dark) svg circle[fill="#4CFF8A"],
 html.light svg circle[fill="#4CFF8A"] {
+  fill: #0E793C !important;
+}
+
+html:not(.dark) svg circle[fill="#04130A"],
+html.light svg circle[fill="#04130A"] {
+  fill: #FFFFFF !important;
+}
+
+html:not(.dark) svg circle[stroke="#04130A"],
+html.light svg circle[stroke="#04130A"] {
+  stroke: #FFFFFF !important;
+}
+
+html:not(.dark) svg circle[fill="#B6FFCC"],
+html.light svg circle[fill="#B6FFCC"] {
   fill: #0E793C !important;
 }
 
@@ -628,9 +677,55 @@ html.light svg line[stroke="#4CFF8A"] {
   stroke: #0E793C !important;
 }
 
+html:not(.dark) svg line[stroke="#B6FFCC"],
+html.light svg line[stroke="#B6FFCC"] {
+  stroke: #0E793C !important;
+}
+
+html:not(.dark) svg polygon[fill="#4CFF8A"],
+html.light svg polygon[fill="#4CFF8A"],
+html:not(.dark) svg rect[fill="#4CFF8A"],
+html.light svg rect[fill="#4CFF8A"] {
+  fill: #0E793C !important;
+  fill-opacity: 0.16 !important;
+}
+
+html:not(.dark) svg polygon[fill="#FF2A1A"],
+html.light svg polygon[fill="#FF2A1A"] {
+  fill: #DC2626 !important;
+  fill-opacity: 0.14 !important;
+}
+
 html:not(.dark) svg text,
 html.light svg text {
-  fill: #24693D !important;
+  fill: #185830 !important;
+}
+
+html:not(.dark) svg text.fill-\[\#B6FFCC\],
+html.light svg text.fill-\[\#B6FFCC\] {
+  fill: #072713 !important;
+}
+
+html:not(.dark) svg text[fill="#FF2A1A"],
+html.light svg text[fill="#FF2A1A"] {
+  fill: #DC2626 !important;
+}
+
+html:not(.dark) svg text[fill="#FFA61F"],
+html.light svg text[fill="#FFA61F"] {
+  fill: #C2410C !important;
+}
+
+html:not(.dark) svg text[fill="#38BDF8"],
+html.light svg text[fill="#38BDF8"],
+html:not(.dark) svg text[fill="#0284C7"],
+html.light svg text[fill="#0284C7"] {
+  fill: #0369A1 !important;
+}
+
+html:not(.dark) svg text.chart-tooltip-text,
+html.light svg text.chart-tooltip-text {
+  fill: #0E2E1B !important;
 }
 
 /* Disable harsh text-shadows in Light Mode */

@@ -67,12 +67,37 @@ DEMO_PERSONAS = {
 # Reverse mapping
 DATASET_TO_DEMO = {v["dataset_id"]: k for k, v in DEMO_PERSONAS.items()}
 
+STATION_COORDINATES: Dict[str, Tuple[float, float]] = {
+    "Anand Vihar CPCB": (28.6469, 77.3164),
+    "Anand Vihar, Delhi DPCC": (28.6469, 77.3164),
+    "RK Puram DPCC": (28.5633, 77.1869),
+    "New Delhi": (28.6139, 77.2090),
+    "Chembur MPCB": (19.0522, 72.9005),
+    "Bandra MPCB": (19.0650, 72.8640),
+    "Bandra Kurla Complex, Mumbai": (19.0650, 72.8640),
+    "Mumbai": (19.0760, 72.8777),
+    "Silk Board KSPCB": (12.9177, 77.6238),
+    "BTM Layout KSPCB": (12.9166, 77.6101),
+    "Bengaluru Central CPCB": (12.9716, 77.5946),
+    "Bengaluru": (12.9716, 77.5946),
+    "Victoria Memorial WBPCB": (22.5448, 88.3426),
+    "Victoria Memorial CPCB": (22.5448, 88.3426),
+    "Kolkata": (22.5726, 88.3639),
+    "Maninagar GPCB": (22.9962, 72.6025),
+    "Ahmedabad": (23.0225, 72.5714),
+    "Alandur, Chennai CPCB": (12.9975, 80.1973),
+    "Chennai": (13.0827, 80.2707),
+    "Sanathnagar, Hyderabad PCB": (17.4563, 78.4439),
+    "Hyderabad": (17.3850, 78.4867),
+}
+
 
 class InferenceEngine:
     """Production Inference Engine for BreathTwin Multimodal Stacked Ensemble (Dilated TCN + XGBoost -> MLP)."""
 
     def __init__(self, device: Optional[str] = None):
         self._inference_lock = threading.RLock()
+        self._live_aq_cache: Dict[str, Tuple[float, Dict[str, Any]]] = {}
         self.device = torch.device(device if device else ("cuda" if torch.cuda.is_available() else "cpu"))
         self.registered_demo_ids: List[str] = ["PT-8821", "PT-4409", "PT-1923", "PT-6031", "PT-3118", "PT-5290"]
         self.simulator = MechanisticSimulator()
@@ -1086,6 +1111,122 @@ class InferenceEngine:
                 return {"value": aqi_val, "category": b["category"]}
         return {"value": 500, "category": "Severe"}
 
+    def _fetch_live_station_air_quality(
+        self, city: str, station: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetches real-time station PM2.5, PM10, temperature, relative humidity, and
+        the 72-hour hourly PM2.5 timeline (past 24h observed + next 48h forecast)
+        for the patient's CPCB/state monitor coordinates via Open-Meteo CAMS & Weather APIs.
+        Caches responses for 10 minutes per station and falls back to None if offline.
+        """
+        import json
+        import time
+        import urllib.request
+
+        cache_key = f"{city}::{station}"
+        now_ts = time.time()
+        cached = self._live_aq_cache.get(cache_key)
+        if cached and (now_ts - cached[0]) < 600.0:
+            return cached[1]
+
+        coords = (
+            STATION_COORDINATES.get(station)
+            or STATION_COORDINATES.get(city)
+            or (28.6469, 77.3164)
+        )
+        lat, lon = coords
+
+        aq_url = (
+            f"https://air-quality-api.open-meteo.com/v1/air-quality"
+            f"?latitude={lat}&longitude={lon}"
+            f"&current=pm2_5,pm10"
+            f"&hourly=pm2_5,pm10"
+            f"&past_hours=24&forecast_hours=49"
+            f"&timezone=Asia%2FKolkata"
+        )
+        wx_url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,relative_humidity_2m"
+            f"&timezone=Asia%2FKolkata"
+        )
+
+        try:
+            req_aq = urllib.request.Request(aq_url, headers={"User-Agent": "BreathTwin-Clinical/0.3.1"})
+            with urllib.request.urlopen(req_aq, timeout=3.5) as resp_aq:
+                aq_data = json.loads(resp_aq.read().decode("utf-8"))
+
+            req_wx = urllib.request.Request(wx_url, headers={"User-Agent": "BreathTwin-Clinical/0.3.1"})
+            with urllib.request.urlopen(req_wx, timeout=3.5) as resp_wx:
+                wx_data = json.loads(resp_wx.read().decode("utf-8"))
+
+            hourly = aq_data.get("hourly") or {}
+            times = hourly.get("time") or []
+            pm25_list = hourly.get("pm2_5") or []
+            if len(times) < 48 or len(pm25_list) < 48:
+                return None
+
+            aq_curr = aq_data.get("current") or {}
+            wx_curr = wx_data.get("current") or {}
+
+            valid_pm25 = [float(x) for x in pm25_list if x is not None]
+            fallback_pm25 = valid_pm25[-1] if valid_pm25 else 65.0
+
+            curr_pm25 = float(
+                aq_curr.get("pm2_5") if aq_curr.get("pm2_5") is not None else fallback_pm25
+            )
+            curr_pm10 = float(
+                aq_curr.get("pm10") if aq_curr.get("pm10") is not None else curr_pm25 * 1.65
+            )
+            curr_temp = float(
+                wx_curr.get("temperature_2m") if wx_curr.get("temperature_2m") is not None else 28.0
+            )
+            curr_hum = float(
+                wx_curr.get("relative_humidity_2m")
+                if wx_curr.get("relative_humidity_2m") is not None
+                else 65.0
+            )
+
+            # Split into 25 observed points (h = -24 .. 0) and 48 forecast points (h = +1 .. +48)
+            now_idx = min(24, len(times) - 1)
+            points: List[Dict[str, Any]] = []
+            obs_vals: List[float] = []
+
+            for idx in range(0, min(len(times), now_idx + 49)):
+                rel_h = idx - now_idx
+                raw_t = str(times[idx])
+                t_iso = f"{raw_t}:00+05:30" if len(raw_t) == 16 else raw_t
+                raw_pm = pm25_list[idx]
+                pm_val = round(float(raw_pm if raw_pm is not None else curr_pm25), 0)
+                if rel_h == 0:
+                    pm_val = round(curr_pm25, 0)
+                kind = "observed" if rel_h <= 0 else "forecast"
+                if kind == "observed":
+                    obs_vals.append(pm_val)
+                points.append({
+                    "t": t_iso,
+                    "h": rel_h,
+                    "pm25": pm_val,
+                    "kind": kind,
+                })
+
+            prev_24h_mean = float(np.mean(obs_vals[:-1])) if len(obs_vals) > 1 else curr_pm25
+
+            result = {
+                "curr_pm25": round(curr_pm25, 0),
+                "curr_pm10": round(curr_pm10, 0),
+                "curr_temp": round(curr_temp, 1),
+                "curr_hum": int(round(curr_hum)),
+                "prev_pm25": round(prev_24h_mean, 1),
+                "points": points,
+                "is_live": True,
+            }
+            self._live_aq_cache[cache_key] = (now_ts, result)
+            return result
+        except Exception:
+            return None
+
     def get_patient_forecast(
         self,
         pid: str,
@@ -1179,7 +1320,7 @@ class InferenceEngine:
                 "hi": round(hi_h, 4),
             })
 
-        # Slice patient time series for signals, air quality, and 24h driver changes
+        # Slice patient time series for signals, air quality fallback, and 24h driver changes
         p_ts_all = self.ts_df[self.ts_df["patient_id"] == resolved_pid].sort_values("timestamp_hour")
         p_ts_obs = p_ts_all[p_ts_all["timestamp_hour"] <= end_hour]
         if p_ts_obs.empty:
@@ -1188,6 +1329,64 @@ class InferenceEngine:
         # 7-day trailing window (up to 168 hours)
         window_7d = p_ts_obs.iloc[-168:].copy()
         prev_24_slice = p_ts_obs.iloc[-48:-24] if len(p_ts_obs) >= 48 else p_ts_obs.iloc[:max(1, len(p_ts_obs) // 2)]
+
+        # Fetch live station air quality (Open-Meteo CAMS + Weather for patient's CPCB station) with fallback
+        city_name = str(formatted.get("city", "New Delhi"))
+        station_full = str(formatted.get("station", "Central Monitor"))
+        live_aq = self._fetch_live_station_air_quality(city_name, station_full)
+
+        if live_aq is not None:
+            curr_pm25 = float(live_aq["curr_pm25"])
+            curr_pm10 = float(live_aq["curr_pm10"])
+            curr_temp = float(live_aq["curr_temp"])
+            curr_hum = float(live_aq["curr_hum"])
+            prev_pm25 = float(live_aq["prev_pm25"])
+            aq_points = live_aq["points"]
+        else:
+            curr_pm25 = float(formatted["currentAirQuality"]["pm25"])
+            curr_pm10 = float(formatted["currentAirQuality"]["pm10"])
+            curr_temp = float(formatted["currentAirQuality"]["temp"])
+            curr_hum = float(formatted["currentAirQuality"]["humidity"])
+            prev_pm25 = (
+                float(prev_24_slice["pm25_concentration"].mean())
+                if "pm25_concentration" in prev_24_slice and not prev_24_slice.empty
+                else curr_pm25
+            )
+            aq_points = []
+            obs_24 = p_ts_obs.iloc[-25:] if len(p_ts_obs) >= 25 else p_ts_obs
+            for _, r in obs_24.iterrows():
+                h_val = int(r["timestamp_hour"])
+                pm_val = round(float(r.get("pm25_concentration", curr_pm25)), 0)
+                if h_val == end_hour:
+                    pm_val = curr_pm25
+                aq_points.append({
+                    "t": (base_dt + timedelta(hours=h_val)).isoformat(),
+                    "h": h_val - end_hour,
+                    "pm25": pm_val,
+                    "kind": "observed",
+                })
+
+            future_slice = p_ts_all[
+                (p_ts_all["timestamp_hour"] > end_hour) &
+                (p_ts_all["timestamp_hour"] <= end_hour + 48)
+            ]
+            future_map = {int(r["timestamp_hour"]): float(r["pm25_concentration"]) for _, r in future_slice.iterrows()}
+
+            for f_step in range(1, 49):
+                f_hour = end_hour + f_step
+                if f_hour in future_map:
+                    f_pm = round(future_map[f_hour], 0)
+                else:
+                    hod = f_hour % 24
+                    rush = 1.22 if hod in (8, 9, 19, 20, 21) else (0.86 if hod in (13, 14, 15) else 1.0)
+                    wave = np.sin(f_step / 6.0) * (curr_pm25 * 0.08)
+                    f_pm = round(max(12.0, curr_pm25 * rush + wave), 0)
+                aq_points.append({
+                    "t": (base_dt + timedelta(hours=f_hour)).isoformat(),
+                    "h": f_step,
+                    "pm25": f_pm,
+                    "kind": "forecast",
+                })
 
         # Compute hourly latent inflammation I(t) across 7-day window so it ends at formatted["estimatedInflammationState"]
         adherence_pct = float(formatted.get("controllerAdherence", 75))
@@ -1266,17 +1465,18 @@ class InferenceEngine:
                     pts.append({"t": t_iso, "v": round(float(v_val), decimals)})
             return pts
 
-        # Expected next 48 hours for I(t)
+        # Expected next 48 hours for I(t), driven by the station's forecast PM2.5 curve
         expected_inf: List[Dict[str, Any]] = []
         sim_i = target_inf_now
-        curr_pm25 = float(formatted["currentAirQuality"]["pm25"])
+        fc_pm_by_h = {int(pt["h"]): float(pt["pm25"]) for pt in aq_points if pt.get("h") is not None and int(pt["h"]) > 0}
         for h_ahead in range(0, 49):
             t_iso = (current_dt + timedelta(hours=h_ahead)).isoformat()
             if h_ahead > 0:
+                pm_step = fc_pm_by_h.get(h_ahead, curr_pm25)
                 diurnal = 1.15 if (h_ahead % 24) in range(7, 11) or (h_ahead % 24) in range(18, 22) else 0.92
                 d_i = (
                     -self.simulator.k * sim_i
-                    + self.simulator.a * (curr_pm25 * 0.68 * diurnal)
+                    + self.simulator.a * (pm_step * 0.68 * diurnal)
                     - self.simulator.c * adherence_ratio
                 )
                 sim_i = float(np.clip(sim_i + d_i, 0.12, 0.96))
@@ -1318,61 +1518,19 @@ class InferenceEngine:
             },
         ]
 
-        # 4. V4 Air-Quality Timeline (past 24h observed + next 48h forecast) & CPCB strip
-        curr_pm10 = float(formatted["currentAirQuality"]["pm10"])
-        curr_temp = float(formatted["currentAirQuality"]["temp"])
-        curr_hum = float(formatted["currentAirQuality"]["humidity"])
+        # 4. V4 Air-Quality Timeline & CPCB strip metadata
         cpcb_aqi = self.compute_cpcb_aqi_and_category(curr_pm25)
-
-        aq_points: List[Dict[str, Any]] = []
-        obs_24 = p_ts_obs.iloc[-25:] if len(p_ts_obs) >= 25 else p_ts_obs
-        for _, r in obs_24.iterrows():
-            h_val = int(r["timestamp_hour"])
-            pm_val = round(float(r.get("pm25_concentration", curr_pm25)), 0)
-            if h_val == end_hour:
-                pm_val = curr_pm25
-            aq_points.append({
-                "t": (base_dt + timedelta(hours=h_val)).isoformat(),
-                "h": h_val - end_hour,
-                "pm25": pm_val,
-                "kind": "observed",
-            })
-
-        # Next 48 hours forecast
-        future_slice = p_ts_all[
-            (p_ts_all["timestamp_hour"] > end_hour) &
-            (p_ts_all["timestamp_hour"] <= end_hour + 48)
-        ]
-        future_map = {int(r["timestamp_hour"]): float(r["pm25_concentration"]) for _, r in future_slice.iterrows()}
-
-        for f_step in range(1, 49):
-            f_hour = end_hour + f_step
-            if f_hour in future_map:
-                f_pm = round(future_map[f_hour], 0)
-            else:
-                hod = f_hour % 24
-                rush = 1.22 if hod in (8, 9, 19, 20, 21) else (0.86 if hod in (13, 14, 15) else 1.0)
-                wave = np.sin(f_step / 6.0) * (curr_pm25 * 0.08)
-                f_pm = round(max(12.0, curr_pm25 * rush + wave), 0)
-            aq_points.append({
-                "t": (base_dt + timedelta(hours=f_hour)).isoformat(),
-                "h": f_step,
-                "pm25": f_pm,
-                "kind": "forecast",
-            })
-
-        station_full = str(formatted.get("station", "Central Monitor"))
-        source_name = "CPCB"
+        base_tag = "CPCB"
         for tag in ("CPCB", "DPCC", "MPCB", "KSPCB", "WBPCB", "GPCB"):
             if tag in station_full:
-                source_name = tag
+                base_tag = tag
                 break
+        source_name = f"{base_tag} • LIVE" if live_aq is not None else base_tag
 
         # 5. V2 Driver Waterfall (Cohort baseline 0.30 -> patient 48h risk, within 0.5 pts)
         cohort_baseline = 0.30
         target_diff_pp = round((p48 - cohort_baseline) * 100.0, 1)
 
-        prev_pm25 = float(prev_24_slice["pm25_concentration"].mean()) if "pm25_concentration" in prev_24_slice and not prev_24_slice.empty else curr_pm25
         prev_rr = float(prev_24_slice["respiratory_rate"].mean()) if "respiratory_rate" in prev_24_slice and not prev_24_slice.empty else curr_rr
         prev_spo2 = float(prev_24_slice["spo2"].mean()) if "spo2" in prev_24_slice and not prev_24_slice.empty else curr_spo2
         rescue_puffs_24h = int(formatted["currentTelemetry"]["rescuePuffs24h"])
