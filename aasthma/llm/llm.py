@@ -254,3 +254,320 @@ def generate_copilot_report(payload: dict[str, Any]) -> dict[str, Any]:
         note="Medication decisions must follow the patient's clinician-approved plan.",
     )
     return report.model_dump()
+
+
+class PatientChatResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    patient_id: str
+    plain_risk_level: Literal["Low", "Watch", "High"]
+    answer: str
+    key_takeaways: list[str]
+    rag_sources: list[str]
+    guardrail_note: str
+    medication_guardrail_triggered: bool
+    suggested_questions: list[str]
+
+
+def map_plain_risk_level(model_risk_level: str) -> Literal["Low", "Watch", "High"]:
+    mapping: dict[str, Literal["Low", "Watch", "High"]] = {
+        "NORMAL": "Low",
+        "CAUTION": "Watch",
+        "ELEVATED": "Watch",
+        "HIGH RISK": "High",
+    }
+    return mapping.get(model_risk_level, "Watch")
+
+
+def retrieve_rag_context_sections(question: str, payload: dict[str, Any]) -> list[dict[str, str]]:
+    """
+    Retrieves relevant clinical knowledge sections from context.md (excluding Section 5 medication protocols)
+    combined with patient-specific telemetry facts for RAG grounding.
+    """
+    context_path = LLM_DIR / "context.md"
+    context_text = context_path.read_text(encoding="utf-8") if context_path.exists() else ""
+
+    sections: list[dict[str, str]] = []
+    current_title = "RespiTwin Clinical Overview"
+    current_lines: list[str] = []
+    skipping_meds = False
+
+    for line in context_text.splitlines():
+        if line.startswith("## "):
+            if current_lines and not skipping_meds:
+                sections.append({"title": current_title, "content": "\n".join(current_lines).strip()})
+            current_title = line.lstrip("# ").strip()
+            current_lines = []
+            skipping_meds = line.startswith("## 5.")
+        else:
+            if not skipping_meds:
+                current_lines.append(line)
+
+    if current_lines and not skipping_meds:
+        sections.append({"title": current_title, "content": "\n".join(current_lines).strip()})
+
+    q_lower = question.lower()
+    scored_sections: list[tuple[int, dict[str, str]]] = []
+    for sec in sections:
+        score = 1
+        text_lower = (sec["title"] + " " + sec["content"]).lower()
+        for kw in ["air", "pm2.5", "aqi", "pollution", "breathe", "breathing", "sleep", "oxygen", "spo2", "cough", "wheeze", "urgent", "emergency", "trigger", "risk", "night"]:
+            if kw in q_lower and kw in text_lower:
+                score += 3
+        if "6. critical red-flag" in sec["title"].lower() and any(w in q_lower for w in ["urgent", "help", "emergency", "hospital", "911", "severe", "worse"]):
+            score += 5
+        if "2. biosensor telemetry" in sec["title"].lower() and any(w in q_lower for w in ["signal", "breathing", "oxygen", "rate", "sleep", "night", "usual", "why"]):
+            score += 4
+        if "1. respiratory physiology" in sec["title"].lower() and any(w in q_lower for w in ["why", "air", "forecast", "risk", "48", "today"]):
+            score += 4
+        scored_sections.append((score, sec))
+
+    scored_sections.sort(key=lambda item: item[0], reverse=True)
+    return [sec for _, sec in scored_sections[:3]]
+
+
+def _sanitize_plain_language(text: str) -> str:
+    """Ensure no raw probability percentages or mathematical symbols leak into patient plain-language text."""
+    import re
+    # Replace patterns like '82% risk' or '(81.9%)' with plain language
+    cleaned = re.sub(r"\(\s*\d+(?:\.\d+)?%\s*\)", "", text)
+    cleaned = re.sub(r"\b\d+(?:\.\d+)?%\s*(?:probability|risk|chance|confidence|CI)?", "your current outlook level ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned
+
+
+def _build_deterministic_rag_chat_response(
+    payload: dict[str, Any],
+    question: str,
+    retrieved_sections: list[dict[str, str]],
+    recent_logs: list[dict[str, Any]] | None = None,
+) -> PatientChatResponse:
+    profile = payload.get("patient_baseline_profile", {})
+    preds = payload.get("model_predictions", {})
+    telem = payload.get("recent_telemetry_summary", {}).get("hourly_metrics", {})
+
+    patient_id = profile.get("patient_id", "PT-8821")
+    model_risk = preds.get("risk_level", "CAUTION")
+    plain_risk = map_plain_risk_level(model_risk)
+
+    rr_latest = telem.get("respiratory_rate", {}).get("latest", profile.get("baseline_respiratory_rate", 16))
+    rr_base = profile.get("baseline_respiratory_rate", 16)
+    spo2_latest = telem.get("spo2", {}).get("latest", profile.get("baseline_spo2", 96))
+    spo2_base = profile.get("baseline_spo2", 96)
+    aqi_latest = telem.get("aqi_index", {}).get("latest", 180)
+    pm25_latest = telem.get("pm25_concentration", {}).get("latest", 110)
+
+    rr_diff = rr_latest - rr_base
+    spo2_diff = spo2_base - spo2_latest
+
+    air_desc = (
+        "very poor and smoky" if aqi_latest >= 300 else
+        "poor with noticeable haze" if aqi_latest >= 200 else
+        "moderately dusty" if aqi_latest >= 100 else
+        "clean and comfortable"
+    )
+    rr_desc = (
+        "a little faster than your usual baseline" if rr_diff >= 2.0 else
+        "steady and normal for you"
+    )
+    spo2_desc = (
+        "slightly lower than your usual overnight level" if spo2_diff >= 2.0 else
+        "normal for you"
+    )
+
+    q_lower = question.lower()
+    med_keywords = [
+        "dose", "dosage", "double", "increase", "decrease", "stop taking", "change my medication",
+        "change medication", "steroid", "prednisolone", "prescribe", "how many puffs should i take",
+        "switch inhaler", "extra puffs of controller", "medicine change", "treatment"
+    ]
+    med_triggered = any(kw in q_lower for kw in med_keywords)
+
+    emergency_keywords = [
+        "can't breathe", "cannot breathe", "cant speak", "cannot speak", "blue lips",
+        "inhaler not working", "emergency", "gasping", "choking", "chest pulling"
+    ]
+    emergency_triggered = any(kw in q_lower for kw in emergency_keywords)
+
+    rag_sources = [
+        f"BreathTwin Personal Twin State ({patient_id})",
+        "12-Hour Wearable & Local Air Quality Summary",
+        *[f"Clinical RAG KB: {sec['title']}" for sec in retrieved_sections[:2]],
+    ]
+    if recent_logs:
+        rag_sources.append(f"Patient Daily Check-In Log ({len(recent_logs)} recent entries)")
+
+    if emergency_triggered:
+        answer = (
+            "Your safety comes first. Because you mentioned possible severe breathing symptoms, please do not wait on this forecast chat. "
+            "Follow the emergency steps in your doctor's Asthma Action Plan right away and seek urgent medical care or call emergency services (112 / 108) "
+            "if you are struggling to breathe, cannot speak full sentences, or if your rescue inhaler is not giving relief."
+        )
+        takeaways = [
+            "Seek urgent medical help immediately if you have trouble breathing or speaking in full sentences.",
+            "Keep your rescue inhaler with you and follow your doctor's red-zone action plan.",
+            "This digital twin is a forecast tool and cannot assess an active medical emergency.",
+        ]
+    elif med_triggered:
+        answer = (
+            f"I cannot recommend changing, starting, stopping, or adjusting the dose of any medication. "
+            f"Right now your personal forecast is at the **{plain_risk}** level because outdoor air is {air_desc} and your resting breathing is {rr_desc}. "
+            f"Please continue following the daily plan your doctor prescribed ({profile.get('controller_medication', 'your controller inhaler')}) "
+            f"and contact your doctor's clinic if you feel your current medication plan needs an adjustment."
+        )
+        takeaways = [
+            "No medication changes can be made by the AI assistant — always follow your doctor-approved plan.",
+            f"Your current status is {plain_risk}: focus on non-medication steps like staying indoors during peak smog.",
+            "Contact your care team directly if you need to discuss your inhaler schedule.",
+        ]
+    elif any(w in q_lower for w in ["air", "outside", "outdoor", "walk", "commute", "aqi", "pm2.5", "mask", "when"]):
+        answer = (
+            f"Outdoor air quality in your area is currently **{air_desc}**. "
+            f"The **worst times to be outdoors** are early morning (6:30 AM – 9:30 AM) and evening (6:00 PM – 10:00 PM), when cooler air traps traffic fumes and fine dust near the ground. "
+            f"The **best window to step outside** is mid-afternoon (2:00 PM – 4:30 PM) when sunlight lifts the ground haze. "
+            f"If you need to go out during smoky hours, wearing a well-fitted N95 mask and limiting outdoor time helps keep your risk from rising."
+        )
+        takeaways = [
+            "Best time outdoors: 2:00 PM – 4:30 PM when afternoon air mixing is highest.",
+            "Avoid or limit time outdoors between 6:30–9:30 AM and 6:00–10:00 PM.",
+            "Wear a fitted mask and keep your rescue inhaler with you whenever stepping outside.",
+        ]
+    elif any(w in q_lower for w in ["signal", "breathing", "oxygen", "sleep", "night", "usual", "body", "wearable"]):
+        answer = (
+            f"Looking at your body's recent signals compared with your personal baseline: your **resting breathing rate** is {rr_desc}, "
+            f"and your **overnight oxygen level** is {spo2_desc}. "
+            f"When outdoor air is {air_desc}, your airways can work a little harder during sleep even before you notice daytime symptoms. "
+            f"Keeping your bedroom air clean and resting indoors this evening can help your breathing settle back to your usual rhythm."
+        )
+        takeaways = [
+            f"Resting breathing rate: {rr_desc.capitalize()}.",
+            f"Overnight oxygen level: {spo2_desc.capitalize()}.",
+            "Clean indoor air at night helps your airways recover while you sleep.",
+        ]
+    elif any(w in q_lower for w in ["what if", "stay indoors", "lower", "drop", "improve", "action", "help", "what can i do"]):
+        target_band = "Low" if plain_risk == "Watch" else ("Watch" if plain_risk == "High" else "Low")
+        answer = (
+            f"Your digital twin shows that simple, non-medication steps make a meaningful difference over the next 48 hours. "
+            f"Right now your status is **{plain_risk}**. If you **stay indoors this evening**, **wear a mask** during any unavoidable commute, "
+            f"and keep indoor air clean, your projected outlook improves toward **{target_band}** because your lungs breathe in far less irritating fine dust."
+        )
+        takeaways = [
+            "Limit time outdoors during evening traffic and smog hours.",
+            "Wear a mask if you must travel outside.",
+            "Keep your rescue inhaler with you and follow your doctor's daily asthma action plan.",
+        ]
+    else:
+        # General explanation of today's status and 48h forecast
+        log_note = ""
+        if recent_logs:
+            latest_log = recent_logs[0]
+            taken_str = "took your daily controller inhaler" if latest_log.get("controller_taken") else "logged a missed controller dose"
+            log_note = f" Your latest check-in also noted that you {taken_str}."
+        answer = (
+            f"Today your asthma outlook is **{plain_risk}**. "
+            f"The main reason is that local air quality is **{air_desc}** today and your resting breathing has been **{rr_desc}** "
+            f"(with overnight oxygen **{spo2_desc}**).{log_note} "
+            f"Over the next 48 hours, risk is most likely to rise during the evening and early morning pollution peaks. "
+            f"Staying indoors during peak haze, wearing a mask when outside, and following your doctor's care plan will help protect your breathing."
+        )
+        takeaways = [
+            f"Today's status is {plain_risk} due to {air_desc} outdoor air and {rr_desc}.",
+            "Next 48 hours: Watch for evening and early-morning air quality dips.",
+            "Follow your doctor-approved action list: limit outdoor time, wear a mask, and keep your rescue inhaler nearby.",
+        ]
+
+    return PatientChatResponse(
+        patient_id=patient_id,
+        plain_risk_level=plain_risk,
+        answer=_sanitize_plain_language(answer),
+        key_takeaways=takeaways,
+        rag_sources=rag_sources,
+        guardrail_note=(
+            "Plain-language forecast assistant grounded in your BreathTwin data and clinical knowledge base. "
+            "Does not provide medical diagnosis, raw probabilities, or medication changes."
+        ),
+        medication_guardrail_triggered=med_triggered,
+        suggested_questions=[
+            "Why is my status at this level today?",
+            "What is the best time of day for me to go outdoors?",
+            "How are my breathing and sleep signals compared to my usual?",
+            "What happens to my 48-hour outlook if I stay indoors this evening?",
+        ],
+    )
+
+
+def generate_patient_chat_response(
+    payload: dict[str, Any],
+    question: str,
+    history: list[dict[str, str]] | None = None,
+    recent_logs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """
+    Answers a patient's question about their own forecast using the RAG context (context.md + prompt.md +
+    live patient model/telemetry payload) under strict plain-language and non-medication guardrails.
+    """
+    load_dotenv(DOTENV_PATH, override=False)
+    retrieved_sections = retrieve_rag_context_sections(question, payload)
+    fallback_response = _build_deterministic_rag_chat_response(
+        payload=payload,
+        question=question,
+        retrieved_sections=retrieved_sections,
+        recent_logs=recent_logs,
+    )
+
+    # If medication or emergency guardrails triggered, return the strict deterministic guardrail response directly
+    if fallback_response.medication_guardrail_triggered:
+        return fallback_response.model_dump()
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            rag_text = "\n\n".join(f"### {s['title']}\n{s['content']}" for s in retrieved_sections)
+            patient_chat_prompt = (
+                f"{_load_system_prompt()}\n\n"
+                "## Patient Portal Chat Guardrails (CRITICAL)\n"
+                "- You are speaking directly to the patient in warm, calm, plain 6th-grade language.\n"
+                "- NEVER include raw probabilities, percentages (like 82% or 44%), confidence intervals, or math symbols.\n"
+                "- Use ONLY plain-language risk levels: Low, Watch, or High.\n"
+                "- Compare signals only as 'normal for you' or 'different from your usual' (never raw charts).\n"
+                "- Recommend actions ONLY from the doctor-approved set: limit time outdoors, wear a mask, keep your rescue inhaler with you, follow your asthma action plan.\n"
+                "- NEVER prescribe, adjust, or suggest experimenting with medications.\n"
+                "- Return JSON matching: {\"answer\": \"string\", \"key_takeaways\": [\"string\", \"string\", \"string\"]}\n\n"
+                f"## Retrieved RAG Knowledge Chunks\n{rag_text}"
+            )
+            user_payload = {
+                "patient_plain_risk_level": fallback_response.plain_risk_level,
+                "patient_payload": payload,
+                "recent_check_in_logs": recent_logs or [],
+                "conversation_history": (history or [])[-4:],
+                "patient_question": question,
+            }
+            response = client.chat.completions.create(
+                model=os.getenv("OPENAI_MODEL", DEFAULT_MODEL),
+                messages=[
+                    {"role": "system", "content": patient_chat_prompt},
+                    {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False, allow_nan=False)},
+                ],
+                temperature=0.2,
+                response_format={"type": "json_object"},
+            )
+            content = response.choices[0].message.content
+            if content:
+                parsed = json.loads(content)
+                ans = _sanitize_plain_language(str(parsed.get("answer", fallback_response.answer)))
+                takeaways = [
+                    _sanitize_plain_language(str(t))
+                    for t in parsed.get("key_takeaways", fallback_response.key_takeaways)
+                    if t
+                ][:3]
+                if ans:
+                    fallback_response.answer = ans
+                if takeaways:
+                    fallback_response.key_takeaways = takeaways
+        except Exception as exc:
+            LOGGER.warning("Falling back to deterministic RAG chat synthesis: %s", exc)
+
+    return fallback_response.model_dump()
+

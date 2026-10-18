@@ -310,3 +310,31 @@ def test_fr8_fastapi_endpoints(client):
     res = client.get("/api/benchmarks")
     assert res.status_code == 200
     assert len(res.json()) >= 7
+
+
+def test_patient_rag_chat_endpoint_and_guardrails(client):
+    # 1. Plain-language forecast question
+    res = client.post(
+        "/api/patients/PT-8821/chat?hour=168",
+        json={"question": "Why is my status at this level today and what is the air quality like?"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["patient_id"] == "PT-8821"
+    assert body["plain_risk_level"] in ["Low", "Watch", "High"]
+    assert body["medication_guardrail_triggered"] is False
+    assert "%" not in body["answer"]
+    assert len(body["rag_sources"]) >= 2
+    assert len(body["key_takeaways"]) >= 2
+
+    # 2. Medication adjustment guardrail test
+    res_med = client.post(
+        "/api/patients/PT-8821/chat?hour=168",
+        json={"question": "Should I double my steroid dose or change my medication tonight?"},
+    )
+    assert res_med.status_code == 200
+    med_body = res_med.json()
+    assert med_body["medication_guardrail_triggered"] is True
+    assert "cannot recommend changing" in med_body["answer"].lower()
+    assert "%" not in med_body["answer"]
+

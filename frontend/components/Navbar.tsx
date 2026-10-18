@@ -1,24 +1,33 @@
 'use client';
 
-import React, { useRef, useState, useEffect, useTransition } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '@/lib/auth';
 
 interface NavLinkItem {
   label: string;
   href: string;
 }
 
-const NAV_LINKS: NavLinkItem[] = [
+const DOCTOR_NAV_LINKS: NavLinkItem[] = [
   { label: 'Home', href: '/' },
   { label: 'Patients', href: '/patients' },
+  { label: 'Patient Portal', href: '/patient-portal' },
   { label: 'Benchmarks & Assumptions', href: '/benchmarks' },
+];
+
+const PATIENT_NAV_LINKS: NavLinkItem[] = [
+  { label: 'Home', href: '/' },
+  { label: 'My Health Today', href: '/patient-portal' },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
-  const [, startTransition] = useTransition();
+  const { session, switchRoleQuick } = useAuth();
+
+  const navLinks = session.role === 'patient' ? PATIENT_NAV_LINKS : DOCTOR_NAV_LINKS;
 
   const listRef = useRef<HTMLUListElement>(null);
   const [activeRect, setActiveRect] = useState<{ left: number; width: number; opacity: number }>({
@@ -37,13 +46,14 @@ export default function Navbar() {
   const getActiveHref = (currentPath: string) => {
     if (currentPath === '/') return '/';
     if (currentPath.startsWith('/assumptions')) return '/benchmarks';
-    const match = NAV_LINKS.slice(1).find((link) => currentPath.startsWith(link.href));
+    if (currentPath.startsWith('/patient-preview')) return '/patient-portal';
+    const match = navLinks.slice(1).find((link) => currentPath.startsWith(link.href));
     return match ? match.href : '/';
   };
 
   const activeHref = getActiveHref(pathname);
 
-  // Recalculate active underline position immediately on mount or route change
+  // Recalculate active underline position immediately on mount or route/role change
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
@@ -55,8 +65,10 @@ export default function Navbar() {
         width: activeEl.offsetWidth,
         opacity: 1,
       });
+    } else {
+      setActiveRect((prev) => ({ ...prev, opacity: 0 }));
     }
-  }, [pathname, activeHref]);
+  }, [pathname, activeHref, session.role]);
 
   // Recalculate on window resize
   useEffect(() => {
@@ -77,7 +89,6 @@ export default function Navbar() {
     return () => window.removeEventListener('resize', handleResize);
   }, [activeHref]);
 
-  // Instant hover tracking with zero delay
   const handleLinkMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const target = e.currentTarget;
     setHoverRect({
@@ -94,8 +105,7 @@ export default function Navbar() {
     }));
   };
 
-  // Instant click feedback: immediately slide active underline without waiting for route navigation
-  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     const target = e.currentTarget;
     setActiveRect({
       left: target.offsetLeft,
@@ -110,7 +120,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#12612F] bg-[#020A05]/95 backdrop-blur-md">
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Left: Logo & Wordmark */}
         <Link
           href="/"
@@ -120,19 +130,23 @@ export default function Navbar() {
           <span className="w-8 h-8 border border-[#4CFF8A] bg-[#04130A] flex items-center justify-center font-mono font-bold text-sm text-white group-hover:bg-[#4CFF8A] group-hover:text-[#020A05] transition-colors duration-150 shadow-[0_0_8px_rgba(76,255,138,0.25)]">
             BT
           </span>
-          <span className="hidden sm:block font-bold tracking-wide text-white text-base">
-            BreathTwin
-          </span>
+          <div className="hidden sm:flex flex-col">
+            <span className="font-bold tracking-wide text-white text-base leading-none">
+              BreathTwin
+            </span>
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#2FBF63] mt-0.5">
+              {session.role === 'doctor' ? 'CLINICIAN MODE' : `PATIENT • ${session.patientId || 'PT-8821'}`}
+            </span>
+          </div>
         </Link>
 
-        {/* Center: Vercel-style Tab Navigation */}
+        {/* Center: Tab Navigation */}
         <nav className="hidden md:block h-full" aria-label="Main Navigation">
           <ul
             ref={listRef}
             onMouseLeave={handleListMouseLeave}
             className="relative flex items-center h-full space-x-1"
           >
-            {/* 1. Cursor Following Hover Box: Soft, Rounded, Snappy Tracking */}
             <div
               aria-hidden="true"
               className="absolute h-9 rounded-md bg-[#0B3519]/75 border border-[#166E34]/50 pointer-events-none transition-[left,width,opacity] duration-150 ease-out"
@@ -145,7 +159,6 @@ export default function Navbar() {
               }}
             />
 
-            {/* 2. Active Tab Underline: Sits Flush on Bottom Border Line */}
             <div
               aria-hidden="true"
               className="absolute bottom-0 h-[2px] bg-white pointer-events-none transition-[left,width,opacity] duration-150 ease-out shadow-[0_0_8px_rgba(255,255,255,0.7)]"
@@ -156,8 +169,7 @@ export default function Navbar() {
               }}
             />
 
-            {/* Nav Tabs */}
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const isActive = activeHref === link.href;
 
               return (
@@ -166,8 +178,8 @@ export default function Navbar() {
                     href={link.href}
                     data-nav-href={link.href}
                     onMouseEnter={handleLinkMouseEnter}
-                    onClick={(e) => handleLinkClick(e, link.href)}
-                    className={`relative z-10 px-4 py-2 text-sm font-medium transition-colors duration-100 cursor-pointer ${
+                    onClick={handleLinkClick}
+                    className={`relative z-10 px-3.5 py-2 text-sm font-medium transition-colors duration-100 cursor-pointer ${
                       isActive ? 'text-white font-semibold' : 'text-[#75FFA5] hover:text-white'
                     }`}
                   >
@@ -179,15 +191,55 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        {/* Right: Theme Toggle, CTA Button & Mobile Toggle */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Right: Dual-Interface Role Switcher, Login Link, Theme Toggle & CTA */}
+        <div className="flex items-center space-x-2 sm:space-x-2.5">
+          {/* Quick Dual-Role Toggle Pill */}
+          <div
+            className="hidden lg:flex items-center border border-[#12612F] bg-[#04130A] p-0.5 text-[11px] font-mono"
+            role="group"
+            aria-label="Interface role selector"
+          >
+            <button
+              type="button"
+              onClick={() => switchRoleQuick('doctor')}
+              className={`px-2.5 py-1 uppercase font-bold transition-colors cursor-pointer ${
+                session.role === 'doctor'
+                  ? 'bg-[#4CFF8A] text-[#020A05]'
+                  : 'text-[#2FBF63] hover:text-white'
+              }`}
+              title="Switch to Treating Doctor Interface (Full Cohort & Clinical Detail)"
+            >
+              Doctor
+            </button>
+            <button
+              type="button"
+              onClick={() => switchRoleQuick('patient')}
+              className={`px-2.5 py-1 uppercase font-bold transition-colors cursor-pointer ${
+                session.role === 'patient'
+                  ? 'bg-[#4CFF8A] text-[#020A05]'
+                  : 'text-[#2FBF63] hover:text-white'
+              }`}
+              title="Switch to Patient Personal Interface (Plain-Language Status & Care Plan)"
+            >
+              Patient
+            </button>
+          </div>
+
+          <Link
+            href="/login"
+            className="hidden sm:flex h-9 px-3 text-xs font-mono uppercase tracking-wider font-semibold border border-[#12612F] bg-[#04130A] text-[#4CFF8A] hover:border-[#4CFF8A] hover:text-white transition-colors items-center justify-center"
+            title={`Logged in as ${session.name} (${session.role.toUpperCase()}). Click to switch account.`}
+          >
+            {session.role === 'doctor' ? 'DR. LOGIN' : `${session.patientId} LOGIN`}
+          </Link>
+
           <ThemeToggle />
 
           <Link
-            href="/patients"
+            href={session.role === 'patient' ? '/patient-portal' : '/patients'}
             className="hidden sm:flex h-9 px-4 text-xs sm:text-sm font-semibold border border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05] hover:bg-transparent hover:text-white transition-all duration-150 items-center justify-center shadow-[0_0_10px_rgba(76,255,138,0.25)]"
           >
-            Open dashboard
+            {session.role === 'patient' ? 'My Health Today' : 'Open dashboard'}
           </Link>
 
           <button
@@ -213,11 +265,45 @@ export default function Navbar() {
           className="md:hidden border-t border-[#12612F] bg-[#020A05] px-4 py-3 space-y-3"
         >
           <div className="pb-2 border-b border-[#12612F]/40 flex items-center justify-between">
-            <span className="text-xs uppercase font-mono text-[#2FBF63]">MODE:</span>
+            <span className="text-xs uppercase font-mono text-[#2FBF63]">
+              ROLE: {session.role.toUpperCase()} ({session.name})
+            </span>
             <ThemeToggle />
           </div>
+
+          <div className="grid grid-cols-2 gap-2 pb-2 border-b border-[#12612F]/40 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                switchRoleQuick('doctor');
+                setMenuOpen(false);
+              }}
+              className={`py-2 border uppercase font-bold ${
+                session.role === 'doctor'
+                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
+                  : 'border-[#12612F] text-[#2FBF63]'
+              }`}
+            >
+              Doctor View
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                switchRoleQuick('patient');
+                setMenuOpen(false);
+              }}
+              className={`py-2 border uppercase font-bold ${
+                session.role === 'patient'
+                  ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
+                  : 'border-[#12612F] text-[#2FBF63]'
+              }`}
+            >
+              Patient View
+            </button>
+          </div>
+
           <ul className="space-y-1">
-            {NAV_LINKS.map((link) => {
+            {navLinks.map((link) => {
               const isActive = activeHref === link.href;
 
               return (
@@ -236,15 +322,24 @@ export default function Navbar() {
                 </li>
               );
             })}
+            <li>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="block py-2.5 px-3 rounded-md text-sm font-mono font-medium text-[#4CFF8A] hover:text-white"
+              >
+                Switch Account / Login &rarr;
+              </Link>
+            </li>
           </ul>
 
           <div className="pt-2 border-t border-[#12612F]/40">
             <Link
-              href="/patients"
+              href={session.role === 'patient' ? '/patient-portal' : '/patients'}
               onClick={() => setMenuOpen(false)}
               className="flex h-10 items-center justify-center border border-[#4CFF8A] bg-[#4CFF8A] text-white dark:text-[#020A05] font-bold text-xs uppercase tracking-wider"
             >
-              Open dashboard
+              {session.role === 'patient' ? 'Open My Health Portal' : 'Open Doctor Dashboard'}
             </Link>
           </div>
         </nav>

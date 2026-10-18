@@ -1,8 +1,46 @@
-INFO:     Started server process [140764]
+INFO:     Started server process [22870]
 INFO:     Waiting for application startup.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [18:32:24] WARNING: /__w/xgboost/xgboost/src/gbm/gbtree.cc:439: Changing updater from `grow_gpu_hist` to `grow_quantile_histmaker`.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [18:32:24] WARNING: /__w/xgboost/xgboost/src/context.cc:55: No visible GPU is found, setting device to CPU.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [18:32:24] WARNING: /__w/xgboost/xgboost/src/context.cc:218: Device is changed from GPU to CPU as we couldn't find any available GPU on the system.
+  self.gb_models = pickle.load(f)
 INFO:     Application startup complete.
-ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 [BreathTwin API] Initializing neural digital twin model and preprocessors...
 [BreathTwin API] Model loaded successfully. Service ready on port 8000.
+INFO:     127.0.0.1:40414 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40406 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40414 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40406 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40416 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40406 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40414 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40416 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55252 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55252 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55250 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55250 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55274 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55250 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55252 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55244 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55274 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55252 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55244 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55268 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55232 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37102 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37092 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36324 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36332 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36326 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36320 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46122 - "GET /api/patients/PATIENT_0009 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46150 - "GET /api/patients/PATIENT_0009/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46176 - "GET /api/patients/PATIENT_0009/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46134 - "GET /api/patients/PATIENT_0009 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46166 - "GET /api/patients/PATIENT_0009 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46130 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46158 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK

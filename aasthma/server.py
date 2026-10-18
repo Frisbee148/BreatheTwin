@@ -12,6 +12,7 @@ from aasthma.llm.llm import (
     CopilotResponseError,
     build_patient_copilot_payload,
     generate_copilot_report,
+    generate_patient_chat_response,
 )
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 from aasthma.simulation.clock import global_clock
@@ -88,6 +89,12 @@ class PatientDailyLogRequest(BaseModel):
     chest_tightness_score: int = Field(default=0, ge=0, le=3, description="Chest tightness score (0-3)")
     breathlessness_score: int = Field(default=0, ge=0, le=3, description="Breathlessness score (0-3)")
     notes: Optional[str] = Field(default=None, description="Clinical or self-reported notes")
+
+
+class PatientChatRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=1000, description="Patient question about their forecast")
+    history: Optional[List[Dict[str, str]]] = Field(default=None, description="Prior conversation messages")
+
 
 
 class CreatePatientRequest(BaseModel):
@@ -243,6 +250,45 @@ def create_patient_copilot_report(
         raise HTTPException(status_code=503, detail=str(exc))
     except (CopilotProviderError, CopilotResponseError) as exc:
         raise HTTPException(status_code=502, detail=str(exc))
+
+
+@app.post("/api/patients/{patient_id}/chat")
+def create_patient_forecast_chat(
+    patient_id: str,
+    req: PatientChatRequest,
+    hour: Optional[int] = Query(default=None, ge=12, le=239),
+):
+    """
+    Guardrailed LLM RAG Forecast Chat for the Patient Portal.
+    Uses build_patient_copilot_payload + clinical RAG knowledge base (context.md / prompt.md)
+    to answer patient questions about their own forecast in plain language without raw probabilities
+    or medication prescribing.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    try:
+        payload = build_patient_copilot_payload(engine, patient_id, eval_hour)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Failed to build patient RAG payload for %s", patient_id)
+        raise HTTPException(status_code=500, detail="Failed to prepare patient forecast context.") from exc
+
+    resolved_pid = engine.resolve_patient_id(patient_id)
+    try:
+        recent_logs = get_patient_daily_logs(resolved_pid, limit=5)
+    except Exception:
+        recent_logs = []
+
+    return generate_patient_chat_response(
+        payload=payload,
+        question=req.question,
+        history=req.history,
+        recent_logs=recent_logs,
+    )
+
 
 
 @app.get("/api/patients/{patient_id}/telemetry")

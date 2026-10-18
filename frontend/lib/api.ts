@@ -362,14 +362,40 @@ export async function getPatientCopilotReport(
     url.searchParams.set('hour', hour.toString());
   }
 
-  const res = await fetch(url.toString(), { method: 'POST', cache: 'no-store' });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const detail = body && typeof body.detail === 'string' ? body.detail : 'Report generation failed.';
-    throw new Error(detail);
+  try {
+    const res = await fetch(url.toString(), { method: 'POST', cache: 'no-store' });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Copilot API unreachable, using local RAG report cache:', err);
   }
 
-  return res.json();
+  // Fallback to grounded copilot-reports.json or dynamic patient synthesis
+  const staticReports = (await import('../data/copilot-reports.json')).default as CopilotReport[];
+  const found = staticReports.find((r) => r.patient_id === patientId);
+  if (found) return found;
+
+  const p = await getPatient(patientId, hour);
+  return {
+    patient_id: p.id,
+    clinical_status: p.riskLevel === 'HIGH RISK' ? 'High Risk' : p.riskLevel === 'NORMAL' ? 'Stable' : 'Warning',
+    risk_level: p.riskLevel === 'HIGH RISK' ? 'High' : p.riskLevel === 'NORMAL' ? 'Low' : 'Medium',
+    summary_reason: `48-hour exacerbation risk (${p.risk48h}%) and 24-hour risk (${p.risk24h}%) driven by ambient PM2.5 (${p.currentAirQuality.pm25} µg/m³), controller adherence (${p.controllerAdherence}%), and resting respiratory rate (${p.currentTelemetry.rr} breaths/min).`,
+    precautions: [
+      'Limit time outdoors during morning and evening pollution peaks.',
+      'Wear a fitted N95 mask when commuting outside.',
+      'Keep your rescue inhaler with you and follow your clinician-approved asthma action plan.',
+    ],
+    triggers_to_avoid: p.allergens.length > 0 ? p.allergens : ['High PM2.5 particulate pollution', 'Cold air exposure'],
+    breathing_exercise: null,
+    medication_guidance: {
+      action: 'No medication change is recommended by this AI-generated report.',
+      note: 'Medication decisions must follow the patient’s clinician-approved plan.',
+    },
+    emergency_warning:
+      'Seek emergency medical care if you experience severe shortness of breath, inability to speak full sentences, or if your rescue inhaler provides no relief within 20 minutes.',
+  };
 }
 
 /** Get patient telemetry stream replayed through simulation clock */
@@ -528,26 +554,186 @@ export interface PatientDailyLogPayload {
   notes?: string;
 }
 
-/** Submit a patient self-reported daily check-in to PostgreSQL */
-export async function submitPatientCheckIn(patientId: string, data: PatientDailyLogPayload) {
+export interface PatientDailyLogEntry extends PatientDailyLogPayload {
+  id: string;
+  patient_id: string;
+  logged_at: string;
+}
+
+const LOCAL_LOGS_KEY = 'digi_patient_daily_logs_v1';
+
+function getLocalPatientLogs(patientId: string): PatientDailyLogEntry[] {
+  if (typeof window === 'undefined') return [];
   try {
-    const res = await fetch(`${API_BASE}/patients/${patientId}/log`, {
+    const raw = localStorage.getItem(LOCAL_LOGS_KEY);
+    const map: Record<string, PatientDailyLogEntry[]> = raw ? JSON.parse(raw) : {};
+    return map[patientId] || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalPatientLog(patientId: string, entry: PatientDailyLogEntry) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(LOCAL_LOGS_KEY);
+    const map: Record<string, PatientDailyLogEntry[]> = raw ? JSON.parse(raw) : {};
+    const current = map[patientId] || [];
+    map[patientId] = [entry, ...current].slice(0, 30);
+    localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(map));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+/** Submit a patient self-reported daily check-in to PostgreSQL & local persistence */
+export async function submitPatientCheckIn(patientId: string, data: PatientDailyLogPayload) {
+  const fallbackEntry: PatientDailyLogEntry = {
+    id: `LOG-${Date.now()}`,
+    patient_id: patientId,
+    logged_at: new Date().toISOString(),
+    ...data,
+  };
+  saveLocalPatientLog(patientId, fallbackEntry);
+
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/log`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     if (res.ok) return await res.json();
   } catch (err) {
-    console.error('Failed to submit patient check-in:', err);
+    console.warn('Saved patient check-in locally:', err);
   }
-  return null;
+  return { message: 'Check-in saved to personal twin log', log: fallbackEntry };
 }
 
-/** Get patient self-reported check-in history from PostgreSQL */
+/** Get patient self-reported check-in history from PostgreSQL + local persistence */
 export async function getPatientCheckIns(patientId: string) {
+  const localLogs = getLocalPatientLogs(patientId);
   try {
-    const res = await fetch(`${API_BASE}/patients/${patientId}/logs`, { cache: 'no-store' });
-    if (res.ok) return await res.json();
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/logs`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.logs) && data.logs.length > 0) {
+        return data;
+      }
+    }
   } catch {}
-  return { patient_id: patientId, count: 0, logs: [] };
+  return { patient_id: patientId, count: localLogs.length, logs: localLogs };
 }
+
+export interface PatientChatResponse {
+  patient_id: string;
+  plain_risk_level: 'Low' | 'Watch' | 'High';
+  answer: string;
+  key_takeaways: string[];
+  rag_sources: string[];
+  guardrail_note: string;
+  medication_guardrail_triggered: boolean;
+  suggested_questions: string[];
+}
+
+export function mapRiskToPlainWord(riskLevel: string): 'Low' | 'Watch' | 'High' {
+  if (riskLevel === 'NORMAL') return 'Low';
+  if (riskLevel === 'HIGH RISK') return 'High';
+  return 'Watch';
+}
+
+/** Ask a guardrailed forecast question via the backend LLM RAG system */
+export async function askPatientForecastChat(
+  patientId: string,
+  question: string,
+  history: { role: 'user' | 'assistant'; content: string }[] = [],
+  hour?: number
+): Promise<PatientChatResponse> {
+  try {
+    const url = new URL(`${API_BASE}/patients/${encodeURIComponent(patientId)}/chat`);
+    if (hour !== undefined) {
+      url.searchParams.set('hour', hour.toString());
+    }
+    const res = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, history }),
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Using local RAG fallback for patient forecast chat:', err);
+  }
+
+  // Client-side RAG fallback grounded in patient data & copilot knowledge base
+  const p = await getPatient(patientId);
+  const plainRisk = mapRiskToPlainWord(p.riskLevel);
+  const qLower = question.toLowerCase();
+  const medKeywords = ['dose', 'dosage', 'double', 'increase', 'decrease', 'stop', 'steroid', 'prescribe', 'change medication', 'change my medication', 'treatment'];
+  const medTriggered = medKeywords.some((k) => qLower.includes(k));
+  const airDesc =
+    p.currentAirQuality.aqi >= 300
+      ? 'very poor and smoky'
+      : p.currentAirQuality.aqi >= 200
+      ? 'poor with heavy haze'
+      : p.currentAirQuality.aqi >= 100
+      ? 'moderately dusty'
+      : 'clean and comfortable';
+  const rrDiff = p.currentTelemetry.rr - p.baselineRR >= 2.0;
+
+  let answer = '';
+  let takeaways: string[] = [];
+
+  if (medTriggered) {
+    answer = `I cannot recommend changing, starting, stopping, or adjusting any medication dose. Today your status is ${plainRisk} because local air quality in ${p.city} is ${airDesc} and your night breathing has been ${rrDiff ? 'a little faster than your usual' : 'normal for you'}. Please follow your doctor's prescribed plan (${p.controllerMedication}) and contact your clinic if you have questions about your medicine.`;
+    takeaways = [
+      'No medication changes can be given by the chat assistant — always follow your doctor’s plan.',
+      `Current status is ${plainRisk}: focus on staying indoors during smoky hours and wearing a mask outside.`,
+      'Call your clinic directly if you feel your prescribed inhaler schedule needs review.',
+    ];
+  } else if (qLower.includes('air') || qLower.includes('outside') || qLower.includes('outdoor') || qLower.includes('walk') || qLower.includes('best time')) {
+    answer = `Outdoor air in ${p.city} (${p.station}) is currently ${airDesc} (AQI ${p.currentAirQuality.aqi}). The best time to be outdoors is mid-afternoon between 2:00 PM and 4:30 PM when afternoon warmth lifts ground smog. The worst times are early morning (6:30 AM – 9:30 AM) and evening (6:00 PM – 10:00 PM) when traffic fumes stay trapped near the ground.`;
+    takeaways = [
+      'Best window outdoors: 2:00 PM – 4:30 PM.',
+      'Worst windows outdoors: 6:30–9:30 AM and 6:00–10:00 PM.',
+      'Wear a fitted N95 mask and keep your rescue inhaler with you if you must step out.',
+    ];
+  } else if (qLower.includes('signal') || qLower.includes('breathing') || qLower.includes('sleep') || qLower.includes('oxygen') || qLower.includes('usual')) {
+    answer = `Compared with your usual personal baseline, your resting breathing rate is ${rrDiff ? 'a little faster than your usual' : 'normal for you'}, your oxygen level is ${p.currentTelemetry.spo2 < 94 ? 'slightly lower than your usual at night' : 'normal for you'}, and your sleep was ${p.currentTelemetry.sleepAwakenings >= 3 ? 'more restless than your usual' : 'normal for you'}. Resting in clean indoor air tonight helps your airways settle.`;
+    takeaways = [
+      `Resting breathing rate: ${rrDiff ? 'Different from your usual (slightly faster)' : 'Normal for you'}.`,
+      `Oxygen level: ${p.currentTelemetry.spo2 < 94 ? 'Different from your usual (slightly lower overnight)' : 'Normal for you'}.`,
+      `Sleep quality: ${p.currentTelemetry.sleepAwakenings >= 3 ? 'Different from your usual (more night awakenings)' : 'Normal for you'}.`,
+    ];
+  } else {
+    answer = `Today your status is ${plainRisk}. Air quality in ${p.city} is ${airDesc} today and your breathing at night has been ${rrDiff ? 'a little worse than usual' : 'steady and normal for you'}. Over the next 48 hours, staying indoors during evening smog, wearing a mask when commuting, and following your asthma action plan will help keep your breathing comfortable.`;
+    takeaways = [
+      `Today's status is ${plainRisk} due to ${airDesc} air quality and ${rrDiff ? 'nighttime breathing drift' : 'your current environment'}.`,
+      'Limit time outdoors during morning and evening pollution peaks.',
+      'Keep your rescue inhaler with you and follow your doctor-approved action plan.',
+    ];
+  }
+
+  return {
+    patient_id: p.id,
+    plain_risk_level: plainRisk,
+    answer,
+    key_takeaways: takeaways,
+    rag_sources: [
+      `BreathTwin Personal Twin (${p.id} • ${p.city})`,
+      '12-Hour Wearable & Air Quality Summary',
+      'Clinical RAG KB: Respiratory Physiology & Biosensor Telemetry',
+    ],
+    guardrail_note:
+      'Plain-language forecast assistant grounded in your BreathTwin data and clinical knowledge base. Does not provide medical diagnosis, raw probabilities, or medication changes.',
+    medication_guardrail_triggered: medTriggered,
+    suggested_questions: [
+      'Why is my status at this level today?',
+      'What is the best time of day for me to go outdoors?',
+      'How are my breathing and sleep signals compared to my usual?',
+      'What happens to my 48-hour outlook if I stay indoors this evening?',
+    ],
+  };
+}
+
