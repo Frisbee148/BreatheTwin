@@ -11,13 +11,81 @@ interface NewPatientModalProps {
   onPatientCreated: (patient: Patient) => void;
 }
 
-const CITY_STATION_MAP: Record<string, string> = {
+export const CITY_STATION_MAP: Record<string, string> = {
+  // Delhi NCR & North India
   'New Delhi': 'Anand Vihar, Delhi DPCC',
+  'Gurugram': 'Vikas Sadan, Gurugram HSPCB',
+  'Noida': 'Sector 62, Noida UPPCB',
+  'Ghaziabad': 'Vasundhara, Ghaziabad UPPCB',
+  'Faridabad': 'Sector 16A, Faridabad HSPCB',
+  'Chandigarh': 'Sector 25, Chandigarh CPCC',
+  'Amritsar': 'Golden Temple, Amritsar PPCB',
+  'Ludhiana': 'PAU Campus, Ludhiana PPCB',
+  'Jaipur': 'Adarsh Nagar, Jaipur RSPCB',
+  'Jodhpur': 'Collectorate, Jodhpur RSPCB',
+  'Kota': 'Shrinath Puram, Kota RSPCB',
+  'Udaipur': 'Ashok Nagar, Udaipur RSPCB',
+  'Dehradun': 'Doon University, Dehradun UKPCB',
+  'Srinagar': 'Rajbagh, Srinagar JKPCB',
+  'Shimla': 'Ridge Station, Shimla HPPCB',
+  'Lucknow': 'Talkatora District, Lucknow CPCB',
+  'Kanpur': 'Nehru Nagar, Kanpur UPPCB',
+  'Varanasi': 'Ardhali Bazar, Varanasi UPPCB',
+  'Agra': 'Sanjay Palace, Agra UPPCB',
+  'Prayagraj': 'Nagar Nigam, Prayagraj UPPCB',
+  'Meerut': 'Ganga Nagar, Meerut UPPCB',
+  // West & Central India
+  'Mumbai': 'Bandra Kurla Complex, Mumbai MPCB',
+  'Navi Mumbai': 'Nerul Sector 19, Navi Mumbai MPCB',
+  'Thane': 'Pimpleshwar Mandir, Thane MPCB',
+  'Pune': 'Shivajinagar, Pune MPCB',
+  'Nagpur': 'Opp GPO Civil Lines, Nagpur MPCB',
+  'Nashik': 'Gangapur Road, Nashik MPCB',
+  'Chhatrapati Sambhajinagar': 'More Chowk Waluj, MPCB',
+  'Ahmedabad': 'Maninagar, Ahmedabad GPCB',
+  'Surat': 'Science Centre City Light, Surat GPCB',
+  'Vadodara': 'Dandia Bazar, Vadodara GPCB',
+  'Rajkot': 'Race Course, Rajkot GPCB',
+  'Gandhinagar': 'Sector 10, Gandhinagar GPCB',
+  'Panaji': 'Patto Plaza, Panaji GSPCB',
+  'Bhopal': 'T.T. Nagar, Bhopal MPPCB',
+  'Indore': 'Chhoti Gwaltoli, Indore MPPCB',
+  'Gwalior': 'Phoolbagh, Gwalior MPPCB',
+  'Jabalpur': 'Marhatal, Jabalpur MPPCB',
+  'Raipur': 'AIIMS Tatibandh, Raipur CECB',
+  // South India
   'Bengaluru': 'Bengaluru Central CPCB',
-  'Mumbai': 'Bandra Kurla Complex, Mumbai',
-  'Kolkata': 'Victoria Memorial CPCB',
-  'Chennai': 'Alandur, Chennai CPCB',
-  'Hyderabad': 'Sanathnagar, Hyderabad PCB',
+  'Mysuru': 'Hebbal 1st Stage, Mysuru KSPCB',
+  'Mangaluru': 'Kadri, Mangaluru KSPCB',
+  'Hubballi': 'Deshpande Nagar, Hubballi KSPCB',
+  'Chennai': 'Alandur Bus Depot, Chennai CPCB',
+  'Coimbatore': 'SIDCO Kurichi, Coimbatore TNPCB',
+  'Madurai': 'Tallakulam, Madurai TNPCB',
+  'Tiruchirappalli': 'Bishop Heber, Trichy TNPCB',
+  'Puducherry': 'Jawahar Nagar, Puducherry PPCC',
+  'Hyderabad': 'Sanathnagar, Hyderabad TSPCB',
+  'Warangal': 'Hanamkonda, Warangal TSPCB',
+  'Visakhapatnam': 'GVM Corporation, Vizag APPCB',
+  'Vijayawada': 'PWD Grounds, Vijayawada APPCB',
+  'Tirupati': 'Tirumala, Tirupati APPCB',
+  'Kochi': 'Vyttila Mobility Hub, Kochi KSPCB',
+  'Thiruvananthapuram': 'Plamoodu, Trivandrum KSPCB',
+  'Kozhikode': 'Palayam, Kozhikode KSPCB',
+  // East & Northeast India
+  'Kolkata': 'Victoria Memorial, Kolkata WBPCB',
+  'Howrah': 'Ghusuri, Howrah WBPCB',
+  'Asansol': 'Asansol Court Area, WBPCB',
+  'Siliguri': 'Ward 32 Bapupara, Siliguri WBPCB',
+  'Patna': 'IGSC Planetarium, Patna BSPCB',
+  'Gaya': 'Collectorate, Gaya BSPCB',
+  'Ranchi': 'Albert Ekka Chowk, Ranchi JSPCB',
+  'Jamshedpur': 'Bistupur, Jamshedpur JSPCB',
+  'Bhubaneswar': 'Lingaraj Mandir, Bhubaneswar OSPCB',
+  'Cuttack': 'CDA Area, Cuttack OSPCB',
+  'Guwahati': 'Railway Colony, Guwahati PCBA',
+  'Shillong': 'Lumpyngngad, Shillong MSPCB',
+  'Agartala': 'Kunjaban, Agartala TSPCB',
+  'Imphal': 'Kangla Park, Imphal MPCB',
 };
 
 const ALLERGEN_TAGS = [
@@ -469,12 +537,84 @@ export default function NewPatientModal({ isOpen, onClose, onPatientCreated }: N
                         }}
                         className="w-full px-3 py-2 text-xs font-mono border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#061C0E] text-[#0E2E1B] dark:text-[#4CFF8A] focus:outline-none focus:border-[#0E793C] dark:focus:border-[#4CFF8A]"
                       >
-                        <option value="New Delhi">New Delhi (High Winter PM2.5)</option>
-                        <option value="Bengaluru">Bengaluru (Moderate AQI, Pollen)</option>
-                        <option value="Mumbai">Mumbai (Coastal Humidity, Traffic)</option>
-                        <option value="Kolkata">Kolkata (Industrial &amp; Biomass)</option>
-                        <option value="Chennai">Chennai (Coastal Humid)</option>
-                        <option value="Hyderabad">Hyderabad (Dust &amp; Urban Traffic)</option>
+                        <optgroup label="Delhi NCR &amp; North India">
+                          <option value="New Delhi">New Delhi — Anand Vihar DPCC</option>
+                          <option value="Gurugram">Gurugram — Vikas Sadan HSPCB</option>
+                          <option value="Noida">Noida — Sector 62 UPPCB</option>
+                          <option value="Ghaziabad">Ghaziabad — Vasundhara UPPCB</option>
+                          <option value="Faridabad">Faridabad — Sector 16A HSPCB</option>
+                          <option value="Chandigarh">Chandigarh — Sector 25 CPCC</option>
+                          <option value="Amritsar">Amritsar — Golden Temple PPCB</option>
+                          <option value="Ludhiana">Ludhiana — PAU Campus PPCB</option>
+                          <option value="Jaipur">Jaipur — Adarsh Nagar RSPCB</option>
+                          <option value="Jodhpur">Jodhpur — Collectorate RSPCB</option>
+                          <option value="Kota">Kota — Shrinath Puram RSPCB</option>
+                          <option value="Udaipur">Udaipur — Ashok Nagar RSPCB</option>
+                          <option value="Dehradun">Dehradun — Doon University UKPCB</option>
+                          <option value="Srinagar">Srinagar — Rajbagh JKPCB</option>
+                          <option value="Shimla">Shimla — Ridge Station HPPCB</option>
+                          <option value="Lucknow">Lucknow — Talkatora CPCB</option>
+                          <option value="Kanpur">Kanpur — Nehru Nagar UPPCB</option>
+                          <option value="Varanasi">Varanasi — Ardhali Bazar UPPCB</option>
+                          <option value="Agra">Agra — Sanjay Palace UPPCB</option>
+                          <option value="Prayagraj">Prayagraj — Nagar Nigam UPPCB</option>
+                          <option value="Meerut">Meerut — Ganga Nagar UPPCB</option>
+                        </optgroup>
+                        <optgroup label="West &amp; Central India">
+                          <option value="Mumbai">Mumbai — Bandra Kurla Complex MPCB</option>
+                          <option value="Navi Mumbai">Navi Mumbai — Nerul Sector 19 MPCB</option>
+                          <option value="Thane">Thane — Pimpleshwar Mandir MPCB</option>
+                          <option value="Pune">Pune — Shivajinagar MPCB</option>
+                          <option value="Nagpur">Nagpur — Civil Lines MPCB</option>
+                          <option value="Nashik">Nashik — Gangapur Road MPCB</option>
+                          <option value="Chhatrapati Sambhajinagar">Chhatrapati Sambhajinagar — Waluj MPCB</option>
+                          <option value="Ahmedabad">Ahmedabad — Maninagar GPCB</option>
+                          <option value="Surat">Surat — City Light GPCB</option>
+                          <option value="Vadodara">Vadodara — Dandia Bazar GPCB</option>
+                          <option value="Rajkot">Rajkot — Race Course GPCB</option>
+                          <option value="Gandhinagar">Gandhinagar — Sector 10 GPCB</option>
+                          <option value="Panaji">Panaji — Patto Plaza GSPCB</option>
+                          <option value="Bhopal">Bhopal — T.T. Nagar MPPCB</option>
+                          <option value="Indore">Indore — Chhoti Gwaltoli MPPCB</option>
+                          <option value="Gwalior">Gwalior — Phoolbagh MPPCB</option>
+                          <option value="Jabalpur">Jabalpur — Marhatal MPPCB</option>
+                          <option value="Raipur">Raipur — AIIMS Tatibandh CECB</option>
+                        </optgroup>
+                        <optgroup label="South India">
+                          <option value="Bengaluru">Bengaluru — Central CPCB</option>
+                          <option value="Mysuru">Mysuru — Hebbal 1st Stage KSPCB</option>
+                          <option value="Mangaluru">Mangaluru — Kadri KSPCB</option>
+                          <option value="Hubballi">Hubballi — Deshpande Nagar KSPCB</option>
+                          <option value="Chennai">Chennai — Alandur Bus Depot CPCB</option>
+                          <option value="Coimbatore">Coimbatore — SIDCO Kurichi TNPCB</option>
+                          <option value="Madurai">Madurai — Tallakulam TNPCB</option>
+                          <option value="Tiruchirappalli">Tiruchirappalli — Bishop Heber TNPCB</option>
+                          <option value="Puducherry">Puducherry — Jawahar Nagar PPCC</option>
+                          <option value="Hyderabad">Hyderabad — Sanathnagar TSPCB</option>
+                          <option value="Warangal">Warangal — Hanamkonda TSPCB</option>
+                          <option value="Visakhapatnam">Visakhapatnam — GVM Corp APPCB</option>
+                          <option value="Vijayawada">Vijayawada — PWD Grounds APPCB</option>
+                          <option value="Tirupati">Tirupati — Tirumala APPCB</option>
+                          <option value="Kochi">Kochi — Vyttila Mobility Hub KSPCB</option>
+                          <option value="Thiruvananthapuram">Thiruvananthapuram — Plamoodu KSPCB</option>
+                          <option value="Kozhikode">Kozhikode — Palayam KSPCB</option>
+                        </optgroup>
+                        <optgroup label="East &amp; Northeast India">
+                          <option value="Kolkata">Kolkata — Victoria Memorial WBPCB</option>
+                          <option value="Howrah">Howrah — Ghusuri WBPCB</option>
+                          <option value="Asansol">Asansol — Court Area WBPCB</option>
+                          <option value="Siliguri">Siliguri — Bapupara WBPCB</option>
+                          <option value="Patna">Patna — IGSC Planetarium BSPCB</option>
+                          <option value="Gaya">Gaya — Collectorate BSPCB</option>
+                          <option value="Ranchi">Ranchi — Albert Ekka Chowk JSPCB</option>
+                          <option value="Jamshedpur">Jamshedpur — Bistupur JSPCB</option>
+                          <option value="Bhubaneswar">Bhubaneswar — Lingaraj Mandir OSPCB</option>
+                          <option value="Cuttack">Cuttack — CDA Area OSPCB</option>
+                          <option value="Guwahati">Guwahati — Railway Colony PCBA</option>
+                          <option value="Shillong">Shillong — Lumpyngngad MSPCB</option>
+                          <option value="Agartala">Agartala — Kunjaban TSPCB</option>
+                          <option value="Imphal">Imphal — Kangla Park MPCB</option>
+                        </optgroup>
                       </select>
                     </div>
 

@@ -219,11 +219,31 @@ export default function PatientsTriagePage() {
             style={{ borderRadius: 0 }}
           >
             <option value="ALL">ALL CITIES</option>
-            <option value="New Delhi">New Delhi</option>
-            <option value="Mumbai">Mumbai</option>
-            <option value="Bengaluru">Bengaluru</option>
-            <option value="Kolkata">Kolkata</option>
-            <option value="Ahmedabad">Ahmedabad</option>
+            {Array.from(
+              new Set([
+                ...patients.map((p) => p.city),
+                'New Delhi',
+                'Mumbai',
+                'Bengaluru',
+                'Kolkata',
+                'Chennai',
+                'Hyderabad',
+                'Pune',
+                'Ahmedabad',
+                'Jaipur',
+                'Lucknow',
+                'Chandigarh',
+                'Kochi',
+                'Bhopal',
+                'Indore',
+                'Patna',
+                'Guwahati',
+              ])
+            ).map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
           </select>
         </div>
 

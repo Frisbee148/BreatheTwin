@@ -33,12 +33,75 @@ WEIGHTS_PATH = os.path.join(MODEL_DIR, "digital_twin_model.pt")
 
 DEFAULT_CITY_STATIONS: Dict[str, str] = {
     "New Delhi": "Anand Vihar, Delhi DPCC",
+    "Gurugram": "Vikas Sadan, Gurugram HSPCB",
+    "Noida": "Sector 62, Noida UPPCB",
+    "Ghaziabad": "Vasundhara, Ghaziabad UPPCB",
+    "Faridabad": "Sector 16A, Faridabad HSPCB",
+    "Chandigarh": "Sector 25, Chandigarh CPCC",
+    "Amritsar": "Golden Temple, Amritsar PPCB",
+    "Ludhiana": "PAU Campus, Ludhiana PPCB",
+    "Jaipur": "Adarsh Nagar, Jaipur RSPCB",
+    "Jodhpur": "Collectorate, Jodhpur RSPCB",
+    "Kota": "Shrinath Puram, Kota RSPCB",
+    "Udaipur": "Ashok Nagar, Udaipur RSPCB",
+    "Dehradun": "Doon University, Dehradun UKPCB",
+    "Srinagar": "Rajbagh, Srinagar JKPCB",
+    "Shimla": "Ridge Station, Shimla HPPCB",
+    "Lucknow": "Talkatora District, Lucknow CPCB",
+    "Kanpur": "Nehru Nagar, Kanpur UPPCB",
+    "Varanasi": "Ardhali Bazar, Varanasi UPPCB",
+    "Agra": "Sanjay Palace, Agra UPPCB",
+    "Prayagraj": "Nagar Nigam, Prayagraj UPPCB",
+    "Meerut": "Ganga Nagar, Meerut UPPCB",
+    "Patna": "IGSC Planetarium, Patna BSPCB",
+    "Gaya": "Collectorate, Gaya BSPCB",
+    "Ranchi": "Albert Ekka Chowk, Ranchi JSPCB",
+    "Jamshedpur": "Bistupur, Jamshedpur JSPCB",
+    "Raipur": "AIIMS Tatibandh, Raipur CECB",
+    "Bhopal": "T.T. Nagar, Bhopal MPPCB",
+    "Indore": "Chhoti Gwaltoli, Indore MPPCB",
+    "Gwalior": "Phoolbagh, Gwalior MPPCB",
+    "Jabalpur": "Marhatal, Jabalpur MPPCB",
+    "Mumbai": "Bandra Kurla Complex, Mumbai MPCB",
+    "Navi Mumbai": "Nerul Sector 19, Navi Mumbai MPCB",
+    "Thane": "Pimpleshwar Mandir, Thane MPCB",
+    "Pune": "Shivajinagar, Pune MPCB",
+    "Nagpur": "Opp GPO Civil Lines, Nagpur MPCB",
+    "Nashik": "Gangapur Road, Nashik MPCB",
+    "Chhatrapati Sambhajinagar": "More Chowk Waluj, MPCB",
+    "Ahmedabad": "Maninagar, Ahmedabad GPCB",
+    "Surat": "Science Centre City Light, Surat GPCB",
+    "Vadodara": "Dandia Bazar, Vadodara GPCB",
+    "Rajkot": "Race Course, Rajkot GPCB",
+    "Gandhinagar": "Sector 10, Gandhinagar GPCB",
+    "Panaji": "Patto Plaza, Panaji GSPCB",
     "Bengaluru": "Bengaluru Central CPCB",
-    "Mumbai": "Bandra Kurla Complex, Mumbai",
-    "Kolkata": "Victoria Memorial CPCB",
-    "Chennai": "Alandur, Chennai CPCB",
-    "Hyderabad": "Sanathnagar, Hyderabad PCB",
-    "Ahmedabad": "Maninagar GPCB",
+    "Mysuru": "Hebbal 1st Stage, Mysuru KSPCB",
+    "Mangaluru": "Kadri, Mangaluru KSPCB",
+    "Hubballi": "Deshpande Nagar, Hubballi KSPCB",
+    "Chennai": "Alandur Bus Depot, Chennai CPCB",
+    "Coimbatore": "SIDCO Kurichi, Coimbatore TNPCB",
+    "Madurai": "Tallakulam, Madurai TNPCB",
+    "Tiruchirappalli": "Bishop Heber, Trichy TNPCB",
+    "Puducherry": "Jawahar Nagar, Puducherry PPCC",
+    "Hyderabad": "Sanathnagar, Hyderabad TSPCB",
+    "Warangal": "Hanamkonda, Warangal TSPCB",
+    "Visakhapatnam": "GVM Corporation, Vizag APPCB",
+    "Vijayawada": "PWD Grounds, Vijayawada APPCB",
+    "Tirupati": "Tirumala, Tirupati APPCB",
+    "Kochi": "Vyttila Mobility Hub, Kochi KSPCB",
+    "Thiruvananthapuram": "Plamoodu, Trivandrum KSPCB",
+    "Kozhikode": "Palayam, Kozhikode KSPCB",
+    "Kolkata": "Victoria Memorial, Kolkata WBPCB",
+    "Howrah": "Ghusuri, Howrah WBPCB",
+    "Asansol": "Asansol Court Area, WBPCB",
+    "Siliguri": "Ward 32 Bapupara, Siliguri WBPCB",
+    "Bhubaneswar": "Lingaraj Mandir, Bhubaneswar OSPCB",
+    "Cuttack": "CDA Area, Cuttack OSPCB",
+    "Guwahati": "Railway Colony, Guwahati PCBA",
+    "Shillong": "Lumpyngngad, Shillong MSPCB",
+    "Agartala": "Kunjaban, Agartala TSPCB",
+    "Imphal": "Kangla Park, Imphal MPCB",
 }
 
 FICTIONAL_SYNTHETIC_ALIASES: List[str] = [
@@ -68,27 +131,162 @@ DEMO_PERSONAS = {
 DATASET_TO_DEMO = {v["dataset_id"]: k for k, v in DEMO_PERSONAS.items()}
 
 STATION_COORDINATES: Dict[str, Tuple[float, float]] = {
+    # Delhi NCR & North India
     "Anand Vihar CPCB": (28.6469, 77.3164),
     "Anand Vihar, Delhi DPCC": (28.6469, 77.3164),
     "RK Puram DPCC": (28.5633, 77.1869),
     "New Delhi": (28.6139, 77.2090),
+    "Gurugram": (28.4595, 77.0266),
+    "Vikas Sadan, Gurugram HSPCB": (28.4595, 77.0266),
+    "Noida": (28.5355, 77.3910),
+    "Sector 62, Noida UPPCB": (28.6208, 77.3639),
+    "Ghaziabad": (28.6692, 77.4538),
+    "Vasundhara, Ghaziabad UPPCB": (28.6604, 77.3753),
+    "Faridabad": (28.4089, 77.3178),
+    "Sector 16A, Faridabad HSPCB": (28.4089, 77.3178),
+    "Chandigarh": (30.7333, 76.7794),
+    "Sector 25, Chandigarh CPCC": (30.7489, 76.7567),
+    "Amritsar": (31.6340, 74.8723),
+    "Golden Temple, Amritsar PPCB": (31.6200, 74.8765),
+    "Ludhiana": (30.9010, 75.8573),
+    "PAU Campus, Ludhiana PPCB": (30.9010, 75.8071),
+    "Jaipur": (26.9124, 75.7873),
+    "Adarsh Nagar, Jaipur RSPCB": (26.9015, 75.8273),
+    "Jodhpur": (26.2389, 73.0243),
+    "Collectorate, Jodhpur RSPCB": (26.2921, 73.0369),
+    "Kota": (25.2138, 75.8648),
+    "Shrinath Puram, Kota RSPCB": (25.1389, 75.8335),
+    "Udaipur": (24.5854, 73.7125),
+    "Ashok Nagar, Udaipur RSPCB": (24.5854, 73.7125),
+    "Dehradun": (30.3165, 78.0322),
+    "Doon University, Dehradun UKPCB": (30.2683, 78.0449),
+    "Srinagar": (34.0837, 74.7973),
+    "Rajbagh, Srinagar JKPCB": (34.0672, 74.8286),
+    "Shimla": (31.1048, 77.1734),
+    "Ridge Station, Shimla HPPCB": (31.1048, 77.1734),
+    "Lucknow": (26.8467, 80.9462),
+    "Talkatora District, Lucknow CPCB": (26.8340, 80.8917),
+    "Kanpur": (26.4499, 80.3319),
+    "Nehru Nagar, Kanpur UPPCB": (26.4712, 80.3266),
+    "Varanasi": (25.3176, 82.9739),
+    "Ardhali Bazar, Varanasi UPPCB": (25.3446, 82.9790),
+    "Agra": (27.1767, 78.0081),
+    "Sanjay Palace, Agra UPPCB": (27.1983, 78.0057),
+    "Prayagraj": (25.4358, 81.8463),
+    "Nagar Nigam, Prayagraj UPPCB": (25.4358, 81.8463),
+    "Meerut": (28.9845, 77.7064),
+    "Ganga Nagar, Meerut UPPCB": (28.9954, 77.7570),
+    # East & Central India
+    "Patna": (25.5941, 85.1376),
+    "IGSC Planetarium, Patna BSPCB": (25.6116, 85.1319),
+    "Gaya": (24.7914, 85.0002),
+    "Collectorate, Gaya BSPCB": (24.7914, 85.0002),
+    "Ranchi": (23.3441, 85.3096),
+    "Albert Ekka Chowk, Ranchi JSPCB": (23.3688, 85.3262),
+    "Jamshedpur": (22.8046, 86.2029),
+    "Bistupur, Jamshedpur JSPCB": (22.8046, 86.2029),
+    "Raipur": (21.2514, 81.6296),
+    "AIIMS Tatibandh, Raipur CECB": (21.2569, 81.5792),
+    "Bhopal": (23.2599, 77.4126),
+    "T.T. Nagar, Bhopal MPPCB": (23.2348, 77.4005),
+    "Indore": (22.7196, 75.8577),
+    "Chhoti Gwaltoli, Indore MPPCB": (22.7169, 75.8722),
+    "Gwalior": (26.2183, 78.1828),
+    "Phoolbagh, Gwalior MPPCB": (26.2124, 78.1772),
+    "Jabalpur": (23.1815, 79.9864),
+    "Marhatal, Jabalpur MPPCB": (23.1686, 79.9339),
+    "Kolkata": (22.5726, 88.3639),
+    "Victoria Memorial WBPCB": (22.5448, 88.3426),
+    "Victoria Memorial CPCB": (22.5448, 88.3426),
+    "Victoria Memorial, Kolkata WBPCB": (22.5448, 88.3426),
+    "Howrah": (22.5958, 88.2636),
+    "Ghusuri, Howrah WBPCB": (22.6114, 88.3497),
+    "Asansol": (23.6739, 86.9524),
+    "Asansol Court Area, WBPCB": (23.6739, 86.9524),
+    "Siliguri": (26.7271, 88.3953),
+    "Ward 32 Bapupara, Siliguri WBPCB": (26.7271, 88.3953),
+    "Bhubaneswar": (20.2961, 85.8245),
+    "Lingaraj Mandir, Bhubaneswar OSPCB": (20.2382, 85.8338),
+    "Cuttack": (20.4625, 85.8830),
+    "CDA Area, Cuttack OSPCB": (20.4810, 85.8436),
+    "Guwahati": (26.1445, 91.7362),
+    "Railway Colony, Guwahati PCBA": (26.1806, 91.7872),
+    "Shillong": (25.5788, 91.8933),
+    "Lumpyngngad, Shillong MSPCB": (25.5788, 91.8933),
+    "Agartala": (23.8315, 91.2868),
+    "Kunjaban, Agartala TSPCB": (23.8569, 91.2868),
+    "Imphal": (24.8170, 93.9368),
+    "Kangla Park, Imphal MPCB": (24.8081, 93.9442),
+    # West India
     "Chembur MPCB": (19.0522, 72.9005),
     "Bandra MPCB": (19.0650, 72.8640),
     "Bandra Kurla Complex, Mumbai": (19.0650, 72.8640),
+    "Bandra Kurla Complex, Mumbai MPCB": (19.0650, 72.8640),
     "Mumbai": (19.0760, 72.8777),
+    "Navi Mumbai": (19.0330, 73.0297),
+    "Nerul Sector 19, Navi Mumbai MPCB": (19.0330, 73.0297),
+    "Thane": (19.2183, 72.9781),
+    "Pimpleshwar Mandir, Thane MPCB": (19.2183, 72.9781),
+    "Pune": (18.5204, 73.8567),
+    "Shivajinagar, Pune MPCB": (18.5314, 73.8446),
+    "Nagpur": (21.1458, 79.0882),
+    "Opp GPO Civil Lines, Nagpur MPCB": (21.1539, 79.0731),
+    "Nashik": (19.9975, 73.7898),
+    "Gangapur Road, Nashik MPCB": (20.0087, 73.7639),
+    "Chhatrapati Sambhajinagar": (19.8762, 75.3433),
+    "More Chowk Waluj, MPCB": (19.8400, 75.2470),
+    "Maninagar GPCB": (22.9962, 72.6025),
+    "Maninagar, Ahmedabad GPCB": (22.9962, 72.6025),
+    "Ahmedabad": (23.0225, 72.5714),
+    "Surat": (21.1702, 72.8311),
+    "Science Centre City Light, Surat GPCB": (21.1702, 72.7954),
+    "Vadodara": (22.3072, 73.1812),
+    "Dandia Bazar, Vadodara GPCB": (22.3008, 73.2043),
+    "Rajkot": (22.3039, 70.8022),
+    "Race Course, Rajkot GPCB": (22.3039, 70.7931),
+    "Gandhinagar": (23.2156, 72.6369),
+    "Sector 10, Gandhinagar GPCB": (23.2156, 72.6369),
+    "Panaji": (15.4909, 73.8278),
+    "Patto Plaza, Panaji GSPCB": (15.4945, 73.8350),
+    # South India
     "Silk Board KSPCB": (12.9177, 77.6238),
     "BTM Layout KSPCB": (12.9166, 77.6101),
     "Bengaluru Central CPCB": (12.9716, 77.5946),
     "Bengaluru": (12.9716, 77.5946),
-    "Victoria Memorial WBPCB": (22.5448, 88.3426),
-    "Victoria Memorial CPCB": (22.5448, 88.3426),
-    "Kolkata": (22.5726, 88.3639),
-    "Maninagar GPCB": (22.9962, 72.6025),
-    "Ahmedabad": (23.0225, 72.5714),
+    "Mysuru": (12.2958, 76.6394),
+    "Hebbal 1st Stage, Mysuru KSPCB": (12.3458, 76.6122),
+    "Mangaluru": (12.9141, 74.8560),
+    "Kadri, Mangaluru KSPCB": (12.8887, 74.8569),
+    "Hubballi": (15.3647, 75.1240),
+    "Deshpande Nagar, Hubballi KSPCB": (15.3578, 75.1394),
     "Alandur, Chennai CPCB": (12.9975, 80.1973),
+    "Alandur Bus Depot, Chennai CPCB": (12.9975, 80.1973),
     "Chennai": (13.0827, 80.2707),
+    "Coimbatore": (11.0168, 76.9558),
+    "SIDCO Kurichi, Coimbatore TNPCB": (10.9469, 76.9739),
+    "Madurai": (9.9252, 78.1198),
+    "Tallakulam, Madurai TNPCB": (9.9360, 78.1342),
+    "Tiruchirappalli": (10.7905, 78.7047),
+    "Bishop Heber, Trichy TNPCB": (10.8155, 78.6750),
+    "Puducherry": (11.9416, 79.8083),
+    "Jawahar Nagar, Puducherry PPCC": (11.9338, 79.8047),
     "Sanathnagar, Hyderabad PCB": (17.4563, 78.4439),
+    "Sanathnagar, Hyderabad TSPCB": (17.4563, 78.4439),
     "Hyderabad": (17.3850, 78.4867),
+    "Warangal": (17.9689, 79.5941),
+    "Hanamkonda, Warangal TSPCB": (18.0000, 79.5800),
+    "Visakhapatnam": (17.6868, 83.2185),
+    "GVM Corporation, Vizag APPCB": (17.7219, 83.3016),
+    "Vijayawada": (16.5062, 80.6480),
+    "PWD Grounds, Vijayawada APPCB": (16.5093, 80.6305),
+    "Tirupati": (13.6288, 79.4192),
+    "Tirumala, Tirupati APPCB": (13.6833, 79.3472),
+    "Kochi": (9.9312, 76.2673),
+    "Vyttila Mobility Hub, Kochi KSPCB": (9.9675, 76.3183),
+    "Thiruvananthapuram": (8.5241, 76.9366),
+    "Plamoodu, Trivandrum KSPCB": (8.5142, 76.9478),
+    "Kozhikode": (11.2588, 75.7804),
+    "Palayam, Kozhikode KSPCB": (11.2488, 75.7839),
 }
 
 
@@ -707,23 +905,32 @@ class InferenceEngine:
         steps = int(last_24.get("step_count", pd.Series([4500])).sum()) if "step_count" in last_24 else 4500
         rescue_puffs_24h = int(last_24.get("rescue_inhaler_puffs", pd.Series([0])).sum()) if "rescue_inhaler_puffs" in last_24 else 0
 
-        # Air quality fields
-        pm25 = round(float(latest.get("pm25_concentration", 85.0)), 0)
-        pm10 = round(float(latest.get("pm10_concentration", 150.0)), 0)
-        aqi = int(latest.get("aqi_index", 180))
-        if aqi > 300:
-            aqi_cat = "Severe"
-        elif aqi > 200:
-            aqi_cat = "Very Poor"
-        elif aqi > 100:
-            aqi_cat = "Poor"
-        elif aqi > 50:
-            aqi_cat = "Moderate"
+        # Air quality fields (prefer live Open-Meteo CAMS + Weather feed for the patient's CPCB station)
+        live_aq = self._fetch_live_station_air_quality(str(meta.get("city", "New Delhi")), str(meta.get("station", "")))
+        if live_aq is not None:
+            pm25 = round(float(live_aq["curr_pm25"]), 0)
+            pm10 = round(float(live_aq["curr_pm10"]), 0)
+            cpcb_info = self.compute_cpcb_aqi_and_category(pm25)
+            aqi = int(cpcb_info["value"])
+            aqi_cat = str(cpcb_info["category"])
+            temp = round(float(live_aq["curr_temp"]), 1)
+            humidity = round(float(live_aq["curr_hum"]), 0)
         else:
-            aqi_cat = "Good"
-
-        temp = round(float(latest.get("skin_temp_c", 29.5)), 1)
-        humidity = round(float(latest.get("humidity", 70.0)), 0) if "humidity" in latest else 72.0
+            pm25 = round(float(latest.get("pm25_concentration", 85.0)), 0)
+            pm10 = round(float(latest.get("pm10_concentration", 150.0)), 0)
+            aqi = int(latest.get("aqi_index", 180))
+            if aqi > 300:
+                aqi_cat = "Severe"
+            elif aqi > 200:
+                aqi_cat = "Very Poor"
+            elif aqi > 100:
+                aqi_cat = "Poor"
+            elif aqi > 50:
+                aqi_cat = "Moderate"
+            else:
+                aqi_cat = "Good"
+            temp = round(float(latest.get("skin_temp_c", 29.5)), 1)
+            humidity = round(float(latest.get("humidity", 70.0)), 0) if "humidity" in latest else 72.0
 
         custom_allergens = meta.get("custom_allergens")
         if custom_allergens and isinstance(custom_allergens, list) and len(custom_allergens) > 0:
@@ -997,7 +1204,7 @@ class InferenceEngine:
         if dataset_id not in self.patient_ids:
             self.patient_ids.append(dataset_id)
 
-        # 4. Synthesize 240 hours of continuous telemetry conditioned on clinical profile + simulated_device_profile
+        # 4. Synthesize 240 hours of continuous telemetry conditioned on clinical profile + live station air quality
         np.random.seed(next_num % 1000)
         ts_rows = []
         is_high_risk = (
@@ -1008,19 +1215,33 @@ class InferenceEngine:
             or flare_ups_last_year >= 3
             or hospitalized
         )
-        base_pm25 = (
-            155.0 if city in ["New Delhi", "Kolkata"]
-            else (98.0 if city in ["Mumbai", "Hyderabad", "Ahmedabad"] else 62.0)
-        )
+        live_aq = self._fetch_live_station_air_quality(city, station)
+        if live_aq is not None and live_aq.get("curr_pm25"):
+            base_pm25 = max(18.0, float(live_aq["curr_pm25"]))
+            live_points_by_rel_h = {
+                int(pt["h"]): float(pt["pm25"])
+                for pt in (live_aq.get("points") or [])
+                if "h" in pt and "pm25" in pt
+            }
+        else:
+            base_pm25 = (
+                155.0 if city in ["New Delhi", "Gurugram", "Noida", "Ghaziabad", "Faridabad", "Kanpur", "Patna", "Kolkata"]
+                else (98.0 if city in ["Mumbai", "Hyderabad", "Ahmedabad", "Lucknow", "Jaipur", "Pune", "Nagpur"] else 62.0)
+            )
+            live_points_by_rel_h = {}
 
         for h in range(240):
             hour_of_day = h % 24
             is_night = hour_of_day >= 22 or hour_of_day <= 6
             commute_spike = 1.6 if (7 <= hour_of_day <= 10 or 17 <= hour_of_day <= 20) else 1.0
 
-            pm25 = max(15.0, base_pm25 * commute_spike + np.sin(h / 12.0) * 20.0 + np.random.normal(0, 8.0))
+            rel_to_168 = h - 168
+            if rel_to_168 in live_points_by_rel_h:
+                pm25 = max(8.0, float(live_points_by_rel_h[rel_to_168]))
+            else:
+                pm25 = max(15.0, base_pm25 * commute_spike + np.sin(h / 12.0) * 20.0 + np.random.normal(0, 8.0))
             pm10 = pm25 * 1.6 + np.random.normal(0, 10.0)
-            aqi = min(500, int(pm25 * 1.35))
+            aqi = int(self.compute_cpcb_aqi_and_category(pm25)["value"])
 
             hr_drift = (3.5 if is_high_risk and h > 120 else 0.0) + (10.0 if not is_night and 9 <= hour_of_day <= 18 else -4.0)
             hr = max(50.0, baseline_resting_hr + hr_drift + np.random.normal(0, 2.5))
@@ -1122,6 +1343,7 @@ class InferenceEngine:
         """
         import json
         import time
+        import urllib.parse
         import urllib.request
 
         cache_key = f"{city}::{station}"
@@ -1130,12 +1352,24 @@ class InferenceEngine:
         if cached and (now_ts - cached[0]) < 600.0:
             return cached[1]
 
-        coords = (
-            STATION_COORDINATES.get(station)
-            or STATION_COORDINATES.get(city)
-            or (28.6469, 77.3164)
-        )
-        lat, lon = coords
+        coords = STATION_COORDINATES.get(station) or STATION_COORDINATES.get(city)
+        if coords is None and city:
+            try:
+                geo_url = (
+                    f"https://geocoding-api.open-meteo.com/v1/search"
+                    f"?name={urllib.parse.quote(city)}&count=1&language=en&format=json&countryCode=IN"
+                )
+                req_geo = urllib.request.Request(geo_url, headers={"User-Agent": "BreathTwin-Clinical/0.3.1"})
+                with urllib.request.urlopen(req_geo, timeout=2.5) as resp_geo:
+                    geo_data = json.loads(resp_geo.read().decode("utf-8"))
+                results = geo_data.get("results") or []
+                if results and "latitude" in results[0] and "longitude" in results[0]:
+                    coords = (float(results[0]["latitude"]), float(results[0]["longitude"]))
+                    STATION_COORDINATES[city] = coords
+            except Exception:
+                coords = None
+
+        lat, lon = coords or (28.6469, 77.3164)
 
         aq_url = (
             f"https://air-quality-api.open-meteo.com/v1/air-quality"
