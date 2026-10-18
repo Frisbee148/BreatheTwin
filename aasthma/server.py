@@ -610,3 +610,91 @@ def list_patient_logs(patient_id: str, limit: int = Query(default=20, ge=1, le=1
         "count": len(logs),
         "logs": logs,
     }
+
+
+class ClinicalNoteSimulateRequest(BaseModel):
+    note: str = Field(..., min_length=3, max_length=2000, description="Free-text clinical observation or outlier diagnosis")
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+class ClinicalNoteCommitRequest(BaseModel):
+    note: str = Field(..., min_length=3, max_length=2000)
+    verified_by_doctor: bool = True
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+class ModelAdaptRequest(BaseModel):
+    patient_id: Optional[str] = Field(default="PT-8821")
+    note: Optional[str] = Field(default=None)
+    epochs: int = Field(default=14, ge=5, le=40)
+    learning_rate: float = Field(default=0.002, ge=0.0001, le=0.02)
+    ewc_lambda: float = Field(default=85.0, ge=1.0, le=500.0)
+
+
+@app.post("/api/patients/{patient_id}/clinical-note/simulate")
+def simulate_patient_clinical_note(patient_id: str, req: ClinicalNoteSimulateRequest):
+    """
+    Converts a plain-text clinical note or outlier diagnosis (e.g., Typhoid fever, Dengue,
+    gastroenteritis) into multiple derived static, dynamic, and mechanistic ODE features,
+    and re-runs the full stacked ensemble digital twin.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    eval_hour = req.hour if req.hour is not None else global_clock.current_hour
+    try:
+        return engine.simulate_clinical_outlier(pid=patient_id, note_text=req.note, end_hour=eval_hour)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Outlier simulation failed: {exc}") from exc
+
+
+@app.post("/api/patients/{patient_id}/clinical-note/commit")
+def commit_patient_clinical_note(patient_id: str, req: ClinicalNoteCommitRequest):
+    """
+    Stores a doctor-verified outlier clinical note and its derived features into the
+    Experience Replay Buffer for continual model adaptation.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    eval_hour = req.hour if req.hour is not None else global_clock.current_hour
+    try:
+        return engine.commit_clinical_outlier(
+            pid=patient_id,
+            note_text=req.note,
+            verified_by_doctor=req.verified_by_doctor,
+            end_hour=eval_hour,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to commit outlier note: {exc}") from exc
+
+
+@app.post("/api/model/adapt-outliers")
+def trigger_model_outlier_adaptation(req: ModelAdaptRequest):
+    """
+    Executes EWC-regularized continual adaptation of the Stage-2 Meta-Learner on the
+    Outlier Experience Replay Buffer + synthetic mechanistic trajectory rollouts.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    try:
+        return engine.adapt_outlier_model(
+            patient_id=req.patient_id,
+            note_text=req.note,
+            epochs=req.epochs,
+            learning_rate=req.learning_rate,
+            ewc_lambda=req.ewc_lambda,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Model adaptation failed: {exc}") from exc
+
+
+@app.get("/api/model/adaptation-status")
+def get_model_adaptation_status():
+    """Returns active model version, outlier replay buffer entries, and adaptation metrics."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    return engine.get_adaptation_status()
+

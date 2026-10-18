@@ -30,14 +30,22 @@ class MechanisticSimulator:
         raw_window: pd.DataFrame,
         adherence_ratio: float = 0.75,
         base_fev1_pct: float = 75.0,
+        systemic_inflammation_load: float = 0.0,
+        airway_hyperresponsiveness_factor: float = 1.0,
+        medication_absorption_efficiency: float = 1.0,
     ) -> float:
         """
         Integrates the mechanistic latent airway inflammation ODE over the patient's
         observed telemetry window so the simulator runs every time the model runs.
+        Includes optional systemic cytokine driver (delta_systemic), airway
+        hyperresponsiveness multiplier (beta_AHR), and absorption efficiency (eta_absorption).
         """
         # Initial physiological state conditioned on baseline airway obstruction
         i_state = float(np.clip(0.45 + (75.0 - base_fev1_pct) * 0.006, 0.15, 0.85))
         dt = 1.0
+        eff_c = self.c * float(np.clip(medication_absorption_efficiency, 0.25, 1.0))
+        ahr_mult = float(np.clip(airway_hyperresponsiveness_factor, 0.8, 2.8))
+        sys_drive = 0.045 * float(np.clip(systemic_inflammation_load, 0.0, 1.0))
 
         for _, row in raw_window.iterrows():
             pm25 = float(row.get("pm25_concentration", 80.0))
@@ -46,14 +54,15 @@ class MechanisticSimulator:
             wheeze = float(row.get("wheezing_score", 0.0))
 
             # Effective inhaled particulate dose and acute symptom trigger load
-            dose_pm = pm25 * 0.72
-            trigger_load = min(1.5, 0.25 * (cough + wheeze) + 0.35 * rescue_puffs)
+            dose_pm = pm25 * 0.72 * ahr_mult
+            trigger_load = min(1.8, 0.25 * (cough + wheeze) + 0.35 * rescue_puffs)
 
             dI = (
                 -self.k * i_state
                 + self.a * dose_pm
                 + self.b * trigger_load
-                - self.c * adherence_ratio
+                + sys_drive
+                - eff_c * adherence_ratio
             ) * dt
             i_state = float(np.clip(i_state + dI, 0.08, 0.98))
 

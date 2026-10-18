@@ -589,5 +589,53 @@ def test_section5_forecast_contract_and_endpoints(client):
     assert wi_fc["delta48hPp"] < 0
 
 
+def test_plain_text_clinical_note_outlier_simulation_and_continual_adaptation(client):
+    # 1. Fast Loop: Plain-text Typhoid fever note -> LLM clinical extraction -> 9 derived features -> re-scored ensemble
+    res_sim = client.post(
+        "/api/patients/PT-8821/clinical-note/simulate",
+        json={
+            "note": "Patient diagnosed with Typhoid fever (Salmonella Typhi), persistent 103.2F fever, severe dehydration, and resting tachycardia 118 bpm.",
+            "hour": 168,
+        },
+    )
+    assert res_sim.status_code == 200
+    sim = res_sim.json()
+    assert sim["patientId"] == "PT-8821"
+    assert "Typhoid" in sim["extraction"]["primary_condition"]
+    assert sim["extraction"]["icd10_code"] == "A01.0"
+    assert len(sim["derivedFeatures"]) == 9
+    assert sim["adapted"]["risk48h"] > sim["baseline"]["risk48h"]
+    assert sim["deltas"]["risk48hDelta"] > 0
+    assert sim["adapted"]["inflammation"] > sim["baseline"]["inflammation"]
+    assert len(sim["trajectoryPoints"]) == 13
+
+    # 2. Slow Loop: Commit outlier note and execute EWC-regularized continual adaptation of Stage-2 Meta-Learner
+    res_adapt = client.post(
+        "/api/model/adapt-outliers",
+        json={
+            "patient_id": "PT-8821",
+            "note": "Patient diagnosed with Typhoid fever (Salmonella Typhi), persistent 103.2F fever, severe dehydration, and resting tachycardia 118 bpm.",
+            "epochs": 12,
+            "ewc_lambda": 85.0,
+        },
+    )
+    assert res_adapt.status_code == 200
+    adapt = res_adapt.json()
+    assert adapt["validationPassed"] is True
+    assert adapt["status"] == "completed_and_hot_swapped"
+    assert adapt["brierCalibrationScore"] <= 0.12
+    assert adapt["finalLoss"] <= adapt["initialLoss"]
+    assert "outlier-adapted" in adapt["modelVersion"]
+
+    # 3. Verify adaptation status endpoint reflects updated model version & outlier replay buffer
+    res_status = client.get("/api/model/adaptation-status")
+    assert res_status.status_code == 200
+    status = res_status.json()
+    assert status["modelVersion"] == adapt["modelVersion"]
+    assert status["outlierBufferCount"] >= 1
+    assert any("Typhoid" in c["primaryCondition"] for c in status["outlierCases"])
+
+
+
 
 

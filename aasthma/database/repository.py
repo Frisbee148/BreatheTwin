@@ -110,6 +110,24 @@ def add_patient_daily_log(
     """Records a patient self-reported check-in into PostgreSQL."""
     db: Session = SessionLocal()
     try:
+        # Ensure patient exists in patients table to satisfy foreign key constraint
+        patient_row = db.query(PatientModel).filter(PatientModel.patient_id == patient_id).first()
+        if not patient_row:
+            stub_patient = PatientModel(
+                patient_id=patient_id,
+                age=35,
+                sex="U",
+                height_cm=165.0,
+                weight_kg=65.0,
+                bmi=23.8,
+                asthma_severity="Moderate",
+                baseline_fev1_pct=75.0,
+                controller_medication="ICS-LABA",
+                medication_adherence=0.8,
+            )
+            db.add(stub_patient)
+            db.commit()
+
         log_entry = PatientDailyLogModel(
             patient_id=patient_id,
             rescue_puffs=rescue_puffs,

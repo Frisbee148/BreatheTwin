@@ -29,6 +29,7 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
     { label: '[02] 48H FORECAST & REASONS', href: `/patients/${patient.id}/forecast` },
     { label: '[03] WHAT-IF SANDBOX', href: `/patients/${patient.id}/what-if` },
     { label: '[04] PATIENT PORTAL VIEW', href: `/patient-portal?patientId=${patient.id}` },
+    { label: '[05] CLINICAL ADAPTATION & OUTLIERS', href: `/patients/${patient.id}/adapt` },
   ];
 
   const allPatients = React.useMemo(() => {
@@ -57,7 +58,13 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
             aria-label="Switch patient selection"
             value={patient.id}
             onChange={(e) => {
-              const tabSuffix = pathname.endsWith('/forecast') ? '/forecast' : pathname.endsWith('/what-if') ? '/what-if' : '';
+              const tabSuffix = pathname.endsWith('/forecast')
+                ? '/forecast'
+                : pathname.endsWith('/what-if')
+                ? '/what-if'
+                : pathname.endsWith('/adapt')
+                ? '/adapt'
+                : '';
               router.push(`/patients/${e.target.value}${tabSuffix}`);
             }}
             className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1 text-xs focus:outline-none focus:border-[#4CFF8A] font-mono"
