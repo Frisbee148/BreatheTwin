@@ -88,8 +88,8 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
   // LIVE NEURAL ENSEMBLE + ODE SIMULATION (Dilated TCN + XGBoost -> MLP Meta-Learner)
   // Re-runs backend model on every slider movement; falls back to local ODE if offline
   // =========================================================================
-  const baseRisk = patient.risk48h;
-  const initialAdherence = patient.controllerAdherence;
+  const baseRisk = patient?.risk48h ?? 50;
+  const initialAdherence = patient?.controllerAdherence ?? 80;
 
   const outdoorDelta = (2.5 - outdoorHours) * 6.0;
   const n95Reduction = wearN95 ? 18.0 : 0.0;
@@ -103,7 +103,7 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
   const fallbackSimulatedRisk = Math.max(10.0, Math.min(99.0, Math.round((baseRisk - totalReduction) * 10) / 10));
   const fallbackInflammation = Math.max(
     0.15,
-    Math.round((patient.estimatedInflammationState - (Math.max(0, totalReduction) / 100.0) * 0.50) * 100) / 100
+    Math.round(((patient?.estimatedInflammationState ?? 0.45) - (Math.max(0, totalReduction) / 100.0) * 0.50) * 100) / 100
   );
 
   // Authoritative risk & inflammation from backend Dilated TCN + XGBoost + MLP Meta-Learner when available
@@ -160,11 +160,11 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
       try {
         setIsSimulating(true);
         const res = await simulateWhatIf({
-          patient_id: patient.id,
-          base_risk_48h: patient.risk48h,
-          base_inflammation: patient.estimatedInflammationState,
-          current_pm25: patient.currentAirQuality.pm25,
-          current_adherence_pct: patient.controllerAdherence,
+          patient_id: patient?.id || patientId,
+          base_risk_48h: patient?.risk48h ?? 50,
+          base_inflammation: patient?.estimatedInflammationState ?? 0.45,
+          current_pm25: patient?.currentAirQuality?.pm25 ?? 80.0,
+          current_adherence_pct: patient?.controllerAdherence ?? 80,
           outdoor_hours: outdoorHours,
           wear_n95: wearN95,
           target_adherence_pct: targetAdherence,
@@ -185,11 +185,12 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
       clearTimeout(timer);
     };
   }, [
-    patient.id,
-    patient.risk48h,
-    patient.estimatedInflammationState,
-    patient.currentAirQuality.pm25,
-    patient.controllerAdherence,
+    patient?.id,
+    patientId,
+    patient?.risk48h,
+    patient?.estimatedInflammationState,
+    patient?.currentAirQuality?.pm25,
+    patient?.controllerAdherence,
     outdoorHours,
     wearN95,
     targetAdherence,

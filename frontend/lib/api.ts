@@ -377,7 +377,9 @@ export async function getPatient(patientId: string, hour?: number): Promise<Pati
     if (hour !== undefined) {
       url.searchParams.set('hour', hour.toString());
     }
-    const res = await fetch(url.toString(), { cache: 'no-store' });
+    const res = await fetch(url.toString(), {
+      cache: 'no-store',
+    });
     if (res.ok) {
       const data: Patient = await res.json();
       if (data && data.id) {
@@ -1600,7 +1602,8 @@ export async function simulateClinicalOutlier(
   }
 
   // Deterministic client fallback if backend is offline
-  const p = PATIENTS.find((pt) => pt.id === patientId) || PATIENTS[0];
+  const localCustom = getStoredCustomPatients();
+  const p = PATIENTS.find((pt) => pt.id === patientId) || localCustom.find((pt) => pt.id === patientId) || PATIENTS[0];
   const lower = note.toLowerCase();
   const isTyphoid = lower.includes('typhoid') || lower.includes('salmonella') || lower.includes('enteric');
   const isDengue = lower.includes('dengue') || lower.includes('platelet');
@@ -1624,12 +1627,14 @@ export async function simulateClinicalOutlier(
   const sysLoad = isTyphoid ? 0.68 : isDengue ? 0.74 : isPneum ? 0.82 : 0.52;
   const ahrMult = isTyphoid ? 1.55 : isDengue ? 1.65 : isPneum ? 1.90 : 1.38;
 
-  const base24 = Math.min(76, p.risk24h);
-  const base48 = Math.min(82, p.risk48h);
-  const adapted24 = Math.min(95.5, +(base24 + sysLoad * 24).toFixed(1));
-  const adapted48 = Math.min(97.5, Math.max(adapted24 + 2.5, +(base48 + sysLoad * 28).toFixed(1)));
-  const baseInf = p.estimatedInflammationState;
-  const adaptedInf = Math.min(0.96, +(baseInf + sysLoad * 0.32).toFixed(3));
+  const base24 = p?.risk24h ?? 12.0;
+  const base48 = p?.risk48h ?? 15.0;
+  const surge48 = Math.max(14.0, Math.round((sysLoad * 36 + 14) * 10) / 10);
+  const adapted48 = Math.min(98.0, Math.round((base48 + surge48) * 10) / 10);
+  const surge24 = Math.max(9.0, Math.round((sysLoad * 26 + 9) * 10) / 10);
+  const adapted24 = Math.min(adapted48 - 2.5, Math.round((base24 + surge24) * 10) / 10);
+  const baseInf = p?.estimatedInflammationState ?? 0.35;
+  const adaptedInf = Math.min(0.96, +(baseInf + sysLoad * 0.35).toFixed(3));
 
   const trajectoryPoints = Array.from({ length: 13 }, (_, idx) => {
     const h = idx * 4;
@@ -1645,8 +1650,8 @@ export async function simulateClinicalOutlier(
   });
 
   return {
-    patientId: p.id,
-    datasetId: 'PATIENT_0001',
+    patientId: patientId,
+    datasetId: p?.id || 'PATIENT_0001',
     noteText: note,
     modelVersion: 'v1.0.0-baseline',
     extraction: {

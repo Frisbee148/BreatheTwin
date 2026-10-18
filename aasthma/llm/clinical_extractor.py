@@ -490,7 +490,7 @@ def _extract_clinical_features_hf(
 
     for model_name in candidate_models:
         try:
-            client = InferenceClient(model=model_name, token=token)
+            client = InferenceClient(model=model_name, token=token, timeout=12.0)
             res = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": CLINICAL_EXTRACTION_SYSTEM_PROMPT},
