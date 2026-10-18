@@ -79,11 +79,14 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
         </div>
       </div>
 
-      {/* Patient Vital Profile Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+      {/* Patient Strip (Compact): patient ID & name, city & monitor, confirmed severity, controller adherence, clinical status chip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">PATIENT NAME</div>
-          <div className="text-sm font-semibold text-[#B6FFCC]">{patient.name}</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">PATIENT ID &amp; NAME</div>
+          <div className="text-sm font-semibold text-[#B6FFCC]">
+            <span className="font-mono text-[#4CFF8A] mr-1.5">{patient.id}</span>
+            <span>{patient.name}</span>
+          </div>
           <div className="text-[11px] text-[#2FBF63] font-mono">{patient.age}y &bull; {patient.gender === 'M' ? 'Male' : 'Female'}</div>
         </div>
 
@@ -94,19 +97,9 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
         </div>
 
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">DIAGNOSIS (EHR)</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">CONFIRMED SEVERITY</div>
           <div className="text-sm font-semibold text-[#B6FFCC]">{patient.severity}</div>
           <div className="text-[11px] text-[#2FBF63]">FEV1: {patient.baselineFEV1Percent}% pred</div>
-        </div>
-
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">48H FLARE-UP RISK</div>
-          <div className="text-lg font-bold tabular-nums text-[#FF2A1A] glow-danger">
-            {patient.risk48h}%
-          </div>
-          <div className="text-[10px] text-[#2FBF63] font-mono">
-            CI: [{patient.risk48hInterval[0]}% - {patient.risk48hInterval[1]}%]
-          </div>
         </div>
 
         <div>
@@ -115,7 +108,7 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
           <div className="text-[10px] text-[#2FBF63] truncate">{patient.controllerMedication}</div>
         </div>
 
-        <div className="flex flex-col justify-center items-start sm:items-end">
+        <div className="flex flex-col justify-center items-start lg:items-end">
           <div className="text-[10px] uppercase tracking-widest text-[#2FBF63] mb-1">CLINICAL STATUS</div>
           <StatusChip status={patient.riskLevel} />
         </div>

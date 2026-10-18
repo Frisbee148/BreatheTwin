@@ -1,155 +1,25 @@
-INFO:     Started server process [35639]
+INFO:     Started server process [135733]
 INFO:     Waiting for application startup.
-/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [19:15:31] WARNING: /__w/xgboost/xgboost/src/gbm/gbtree.cc:439: Changing updater from `grow_gpu_hist` to `grow_quantile_histmaker`.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:102: UserWarning: [20:11:49] WARNING: /__w/xgboost/xgboost/src/gbm/gbtree.cc:439: Changing updater from `grow_gpu_hist` to `grow_quantile_histmaker`.
   self.gb_models = pickle.load(f)
-/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [19:15:31] WARNING: /__w/xgboost/xgboost/src/context.cc:55: No visible GPU is found, setting device to CPU.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:102: UserWarning: [20:11:49] WARNING: /__w/xgboost/xgboost/src/context.cc:55: No visible GPU is found, setting device to CPU.
   self.gb_models = pickle.load(f)
-/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:78: UserWarning: [19:15:31] WARNING: /__w/xgboost/xgboost/src/context.cc:218: Device is changed from GPU to CPU as we couldn't find any available GPU on the system.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:102: UserWarning: [20:11:49] WARNING: /__w/xgboost/xgboost/src/context.cc:218: Device is changed from GPU to CPU as we couldn't find any available GPU on the system.
   self.gb_models = pickle.load(f)
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 [BreathTwin API] Initializing neural digital twin model and preprocessors...
 [BreathTwin API] Model loaded successfully. Service ready on port 8000.
-INFO:     127.0.0.1:43808 - "GET /api/auth/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43826 - "GET /api/auth/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43808 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43826 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43808 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43796 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43816 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53158 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53156 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53156 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53156 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53156 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53158 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53156 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53154 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53176 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53158 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53154 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53160 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53152 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53152 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53154 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53176 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53160 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55092 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55086 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55104 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55086 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55092 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52394 - "GET /api/auth/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52384 - "GET /api/auth/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52376 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52386 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48104 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48104 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48104 - "GET /api/auth/users HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48134 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48114 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48122 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:48104 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54378 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54382 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54378 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54382 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43014 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54378 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:54382 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43014 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53126 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53118 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53126 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53118 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53142 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50720 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50736 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50736 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50720 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50752 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53330 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53330 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53346 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53358 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53330 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53352 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35766 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35776 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35766 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35776 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35792 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35608 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35616 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35630 - "GET /api/clock HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35622 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35608 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35622 - "OPTIONS /api/clock/step HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35608 - "POST /api/clock/step HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35622 - "GET /api/patients?limit=12&hour=192 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35622 - "POST /api/clock/step HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35622 - "GET /api/patients?limit=12&hour=204 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39014 - "POST /api/clock/step HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39014 - "GET /api/patients?limit=12&hour=192 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36576 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36600 - "GET /api/patients/PATIENT_0010/telemetry HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36628 - "GET /api/patients/PATIENT_0010/telemetry HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36596 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36616 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36584 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36614 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58370 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58418 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58396 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58384 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58404 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55756 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55786 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55786 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55764 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55778 - "GET /api/patients/PATIENT_0010 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55760 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:55776 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34700 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34700 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34744 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34744 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34742 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34742 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34712 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34728 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34744 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34742 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34700 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34732 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56178 - "OPTIONS /api/patients/PT-8821/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56178 - "POST /api/patients/PT-8821/log HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56178 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40570 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43236 - "POST /api/what-if HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56316 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56316 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49584 - "OPTIONS /api/patients/PT-8821/chat HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49584 - "POST /api/patients/PT-8821/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34918 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34926 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34918 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34926 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34938 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34926 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34938 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34918 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32836 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32836 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32846 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:32864 - "GET /api/clock HTTP/1.1" 200 OK
+free(): chunks in smallbin corrupted

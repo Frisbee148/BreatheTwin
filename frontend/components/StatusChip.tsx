@@ -4,7 +4,21 @@ import React from 'react';
 import { RiskLevel } from '@/lib/data';
 
 interface StatusChipProps {
-  status: RiskLevel | 'NORMAL' | 'CAUTION' | 'ELEVATED' | 'HIGH RISK' | 'ONLINE' | 'ACTIVE ALERT';
+  status:
+    | RiskLevel
+    | 'NORMAL'
+    | 'CAUTION'
+    | 'ELEVATED'
+    | 'HIGH RISK'
+    | 'ONLINE'
+    | 'ACTIVE ALERT'
+    | 'Normal'
+    | 'Watch'
+    | 'Alert'
+    | 'normal'
+    | 'watch'
+    | 'alert'
+    | string;
   size?: 'sm' | 'md';
 }
 
@@ -13,16 +27,17 @@ export default function StatusChip({ status, size = 'md' }: StatusChipProps) {
   let textColor = 'text-[#4CFF8A]';
   let glowClass = 'glow-text';
   const labelText = status;
+  const upper = String(status).toUpperCase();
 
-  if (status === 'HIGH RISK' || status === 'ACTIVE ALERT') {
+  if (upper === 'HIGH RISK' || upper === 'ACTIVE ALERT' || upper === 'ALERT') {
     borderColor = 'border-[#FF2A1A]';
     textColor = 'text-[#FF2A1A]';
     glowClass = 'glow-danger';
-  } else if (status === 'ELEVATED') {
+  } else if (upper === 'ELEVATED') {
     borderColor = 'border-[#FFA61F]';
     textColor = 'text-[#FFA61F]';
     glowClass = 'glow-warn';
-  } else if (status === 'CAUTION') {
+  } else if (upper === 'CAUTION' || upper === 'WATCH') {
     borderColor = 'border-[#FFE14A]';
     textColor = 'text-[#FFE14A]';
     glowClass = 'glow-caution';

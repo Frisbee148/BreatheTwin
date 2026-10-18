@@ -342,7 +342,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
         {/* Stacked Full-Width Telemetry Graphs (One Below Another for Optimal Visibility) */}
         <div className="flex flex-col space-y-8 w-full">
           {/* Chart 1: Resting Respiratory Rate */}
-          <div className="w-full min-w-0">
+          <div id="chart-rr" className="w-full min-w-0 scroll-mt-20">
             <TelemetryChart
               title="RESTING RESPIRATORY RATE"
               data={telemetry}
@@ -359,7 +359,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
           </div>
 
           {/* Chart 2: Nocturnal SpO2 */}
-          <div className="w-full min-w-0">
+          <div id="chart-spo2" className="w-full min-w-0 scroll-mt-20">
             <TelemetryChart
               title="NOCTURNAL SPO2 SATURATION"
               data={telemetry}
@@ -378,7 +378,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
           </div>
 
           {/* Chart 3: Resting Heart Rate & Autonomic Tone */}
-          <div className="w-full min-w-0">
+          <div id="chart-rhr" className="w-full min-w-0 scroll-mt-20">
             <TelemetryChart
               title="RESTING HEART RATE (RHR)"
               data={telemetry}
@@ -395,7 +395,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
           </div>
 
           {/* Chart 4: Airway Inflammation State I(t) */}
-          <div className="w-full min-w-0">
+          <div id="chart-inflammation" className="w-full min-w-0 scroll-mt-20">
             <TelemetryChart
               title="ESTIMATED AIRWAY INFLAMMATION I(t)"
               data={telemetry}

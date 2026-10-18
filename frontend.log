@@ -5,47 +5,621 @@
 ▲ Next.js 16.4.0 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.30:3000
-✓ Ready in 948ms
-✓ Running next.config.ts took 83ms
+✓ Ready in 1028ms
+✓ Running next.config.ts took 200ms
 
- GET /patient-portal 200 in 783ms (next.js: 323ms, application-code: 461ms)
- GET / 200 in 269ms (next.js: 17ms, application-code: 252ms)
- GET / 200 in 95ms (next.js: 3ms, application-code: 92ms)
- GET /login 200 in 106ms (next.js: 14ms, application-code: 92ms)
- GET /login? 200 in 96ms (next.js: 4ms, application-code: 91ms)
- GET /login? 200 in 78ms (next.js: 3ms, application-code: 75ms)
- GET /login? 200 in 73ms (next.js: 1.9ms, application-code: 71ms)
- GET /login? 200 in 90ms (next.js: 1.8ms, application-code: 88ms)
- GET / 200 in 60ms (next.js: 13ms, application-code: 48ms)
- GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
- GET /patient-portal 200 in 89ms (next.js: 9ms, application-code: 80ms)
- GET /patients 200 in 56ms (next.js: 14ms, application-code: 42ms)
- GET / 200 in 36ms (next.js: 3ms, application-code: 33ms)
- GET /login 200 in 43ms (next.js: 3ms, application-code: 40ms)
- GET /patients 200 in 43ms (next.js: 3ms, application-code: 40ms)
- GET / 200 in 39ms (next.js: 5ms, application-code: 34ms)
-⚠ Fast Refresh had to perform a full reload when ./lib/auth.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-✓ Compiled in 70ms
- GET / 200 in 101ms (next.js: 6ms, application-code: 96ms)
-✓ Compiled in 159ms
-✓ Compiled in 88ms
+ GET / 200 in 884ms (next.js: 305ms, application-code: 579ms)
+ GET /login 200 in 81ms (next.js: 27ms, application-code: 54ms)
+ GET /patients 200 in 59ms (next.js: 14ms, application-code: 46ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+Failed to fetch patient PT-1923 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async WhatIfContent (app/patients/[id]/what-if/page.tsx:16:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-1923/what-if 200 in 1012ms (next.js: 20ms, generate-params: 860ms, application-code: 132ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-1923 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-1923 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+ GET /patient-portal 200 in 58ms (next.js: 14ms, application-code: 44ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Using local RAG fallback for patient forecast chat: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:785:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Using local RAG fallback for patient forecast chat: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:785:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+ GET /patients 200 in 41ms (next.js: 4ms, application-code: 37ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async PatientContent (app/patients/[id]/page.tsx:9:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031 200 in 928ms (next.js: 21ms, generate-params: 841ms, application-code: 66ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031/forecast 200 in 1015ms (next.js: 19ms, generate-params: 904ms, application-code: 91ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async WhatIfContent (app/patients/[id]/what-if/page.tsx:16:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031/what-if 200 in 102ms (next.js: 7ms, generate-params: 21ms, application-code: 74ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031/forecast 200 in 87ms (next.js: 4ms, generate-params: 20ms, application-code: 62ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async PatientContent (app/patients/[id]/page.tsx:9:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031 200 in 76ms (next.js: 3ms, generate-params: 20ms, application-code: 53ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031/forecast 200 in 90ms (next.js: 3ms, generate-params: 21ms, application-code: 66ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async PatientContent (app/patients/[id]/page.tsx:9:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031 200 in 82ms (next.js: 3ms, generate-params: 22ms, application-code: 57ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch telemetry for PT-6031, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:461:13)
+✓ Compiled in 203ms
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async PatientContent (app/patients/[id]/page.tsx:9:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031 200 in 178ms (next.js: 7ms, generate-params: 27ms, application-code: 144ms)
+✓ Compiled in 35ms
 ✓ Compiled in 112ms
- GET / 200 in 124ms (next.js: 3ms, application-code: 122ms)
- GET /login 200 in 41ms (next.js: 5ms, application-code: 36ms)
- GET /patients 200 in 40ms (next.js: 6ms, application-code: 35ms)
- GET /login 200 in 84ms (next.js: 3ms, application-code: 81ms)
- GET /login 200 in 42ms (next.js: 4ms, application-code: 38ms)
- GET / 200 in 34ms (next.js: 3ms, application-code: 31ms)
- GET /login 200 in 41ms (next.js: 3ms, application-code: 39ms)
- GET /patients 200 in 35ms (next.js: 3ms, application-code: 33ms)
- GET /patients/PATIENT_0010 200 in 1136ms (next.js: 20ms, generate-params: 945ms, application-code: 171ms)
- GET /patients/PATIENT_0010/forecast 200 in 1116ms (next.js: 20ms, generate-params: 920ms, application-code: 177ms)
- GET /patients/PATIENT_0010/what-if 200 in 1063ms (next.js: 20ms, generate-params: 876ms, application-code: 168ms)
- GET /login 200 in 39ms (next.js: 3ms, application-code: 36ms)
- GET /login 200 in 38ms (next.js: 2ms, application-code: 36ms)
- GET /patient-portal 200 in 41ms (next.js: 4ms, application-code: 37ms)
-✓ Compiled in 66ms
- GET /patient-portal 200 in 51ms (next.js: 3ms, application-code: 48ms)
-✓ Compiled in 81ms
-✓ Compiled in 67ms
-✓ Compiled in 69ms
+✓ Compiled in 202ms
+✓ Compiled in 77ms
+✓ Compiled in 52ms
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async PatientContent (app/patients/[id]/page.tsx:9:26)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031 200 in 127ms (next.js: 4ms, generate-params: 29ms, application-code: 95ms)
+✓ Compiled in 103ms
+ GET /patients/PT-6031/forecast 200 in 439ms (next.js: 7ms, generate-params: 33ms, application-code: 399ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:45)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+Using fallback forecast payload for PT-6031: TypeError: fetch failed
+    at async getPatientForecast (lib/api.ts:1385:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:45)
+  1383 |     if (options?.asOf) url.searchParams.set('asOf', options.asOf);
+  1384 |     if (options?.hour !== undefined) url.searchParams.set('hour', options.hour.toString());
+> 1385 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+       |                 ^
+  1386 |     if (res.ok) {
+  1387 |       return await res.json();
+  1388 |     } {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch failed
+    at async getPatient (lib/api.ts:380:17)
+    at async ForecastContent (app/patients/[id]/forecast/page.tsx:16:45)
+  378 |       url.searchParams.set('hour', hour.toString());
+  379 |     }
+> 380 |     const res = await fetch(url.toString(), { cache: 'no-store' });
+      |                 ^
+  381 |     if (res.ok) {
+  382 |       const data: Patient = await res.json();
+  383 |       if (data && data.id) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED',
+    [errors]: [
+      Error: connect ECONNREFUSED ::1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '::1',
+        port: 8000
+      },
+      Error: connect ECONNREFUSED 127.0.0.1:8000
+          at ignore-listed frames {
+        errno: -111,
+        code: 'ECONNREFUSED',
+        syscall: 'connect',
+        address: '127.0.0.1',
+        port: 8000
+      }
+    ]
+  }
+}
+ GET /patients/PT-6031/forecast 200 in 365ms (next.js: 2ms, generate-params: 28ms, application-code: 335ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Using fallback forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1390:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Using fallback forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Using fallback what-if forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1417:13)
+[browser] Using fallback forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Using fallback what-if forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1417:13)
+[browser] Using fallback forecast payload for PT-6031: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:1390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Failed to fetch patient PT-6031 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+ GET /patients/PT-6031 200 in 237ms (next.js: 3ms, generate-params: 26ms, application-code: 208ms)
+ GET /patients/PT-6031 200 in 194ms (next.js: 3ms, generate-params: 26ms, application-code: 165ms)
+ GET /patients/PT-6031 200 in 242ms (next.js: 5ms, generate-params: 30ms, application-code: 207ms)
+ GET /patients/PT-6031 200 in 231ms (next.js: 3ms, generate-params: 25ms, application-code: 203ms)
+ GET /patients/PT-1923 200 in 200ms (next.js: 3ms, generate-params: 27ms, application-code: 170ms)
+ GET /patients/PT-1923/forecast 200 in 329ms (next.js: 7ms, generate-params: 26ms, application-code: 296ms)
+ GET /patients/PT-1923/what-if 200 in 265ms (next.js: 7ms, generate-params: 22ms, application-code: 236ms)
+ GET /patients/PT-1923/forecast 200 in 399ms (next.js: 4ms, generate-params: 24ms, application-code: 371ms)

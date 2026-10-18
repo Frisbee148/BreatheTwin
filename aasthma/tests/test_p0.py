@@ -514,4 +514,80 @@ def test_what_if_endpoint_re_runs_dilated_tcn_xgboost_mlp_meta_learner(client):
     assert prot_body["simulated_risk_48h"] < high_body["simulated_risk_48h"]
 
 
+def test_section5_forecast_contract_and_endpoints(client):
+    # 1. GET /api/patients/:id/forecast agrees with twin endpoint & satisfies V1-V4 invariants
+    res_twin = client.get("/api/patients/PT-8821?hour=168")
+    assert res_twin.status_code == 200
+    twin = res_twin.json()
+
+    res_fc = client.get("/api/patients/PT-8821/forecast?hour=168")
+    assert res_fc.status_code == 200
+    fc = res_fc.json()
+
+    assert fc["patientId"] == "PT-8821"
+    assert fc["modelVersion"] == "twin-0.3.1"
+    assert fc["status"] in ("normal", "watch", "alert")
+    assert fc["alertPolicy"]["threshold"] == 0.70
+
+    # V1: 49 hourly points (0..48), cumulative p never decreases, matches twin 24h & 48h risk
+    curve = fc["curve"]
+    assert len(curve) == 49
+    assert curve[0]["h"] == 0 and curve[0]["p"] == 0.0
+    assert curve[24]["h"] == 24 and round(curve[24]["p"] * 100, 1) == twin["risk24h"]
+    assert curve[48]["h"] == 48 and round(curve[48]["p"] * 100, 1) == twin["risk48h"]
+    for i in range(1, len(curve)):
+        assert curve[i]["p"] >= curve[i - 1]["p"]
+        assert 0.0 <= curve[i]["lo"] <= curve[i]["p"] <= curve[i]["hi"] <= 1.0
+
+    # V2: drivers must sum to (p48 - baseline) in percentage points within 0.5 pts
+    drivers = fc["drivers"]
+    baseline_pp = drivers["baseline"] * 100.0
+    p48_pp = curve[48]["p"] * 100.0
+    items = drivers["items"]
+    assert len(items) == 6
+    total_driver_pp = sum(d["deltaPp"] for d in items) + drivers["other"]["deltaPp"]
+    assert abs((baseline_pp + total_driver_pp) - p48_pp) <= 0.5
+
+    # V3: 3 wearable signals, 7 days hourly with uninterpolated gaps (None), and +48h expected on inflammation
+    signals = fc["signals"]
+    assert len(signals) == 3
+    assert signals[0]["id"] == "inflammation"
+    assert signals[0]["expected"] is not None and len(signals[0]["expected"]) == 49
+    null_count = sum(1 for pt in signals[0]["points"] if pt["v"] is None)
+    assert null_count == fc["dataQuality"]["missingHours7d"]
+    assert null_count > 0
+
+    # V4: airQuality has observed & forecast points, CPCB bins, and server-derived AQI category
+    aq = fc["airQuality"]
+    assert any(p["kind"] == "observed" for p in aq["points"])
+    assert any(p["kind"] == "forecast" for p in aq["points"])
+    bin_categories = {b["category"] for b in aq["bins"]}
+    assert aq["aqi"]["category"] in bin_categories
+
+    # 2. SSE Stream endpoint
+    res_sse = client.get("/api/patients/PT-8821/forecast/stream?once=true")
+    assert res_sse.status_code == 200
+    assert "event: forecast.updated" in res_sse.text
+
+    # 3. POST /api/patients/:id/what-if returns the same payload shape with scenarioId & delta48hPp
+    res_wi = client.post(
+        "/api/patients/PT-8821/what-if",
+        json={
+            "scenarioId": "max-shield",
+            "scenarioLabel": "Maximum protection",
+            "outdoor_hours": 0.5,
+            "wear_n95": True,
+            "target_adherence_pct": 100.0,
+            "hepa_purifier": True,
+            "hour": 168,
+        },
+    )
+    assert res_wi.status_code == 200
+    wi_fc = res_wi.json()
+    assert wi_fc["scenarioId"] == "max-shield"
+    assert len(wi_fc["curve"]) == 49
+    assert wi_fc["delta48hPp"] < 0
+
+
+
 

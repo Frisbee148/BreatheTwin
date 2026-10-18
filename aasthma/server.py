@@ -327,6 +327,110 @@ def get_patient_detail(
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
 
 
+class PatientWhatIfForecastRequest(BaseModel):
+    scenarioId: str = Field(default="custom")
+    scenarioLabel: Optional[str] = Field(default=None)
+    outdoor_hours: float = Field(default=2.5, ge=0.0, le=12.0)
+    wear_n95: bool = False
+    target_adherence_pct: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    hepa_purifier: bool = False
+    asOf: Optional[str] = Field(default=None)
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+@app.get("/api/patients/{patient_id}/forecast")
+def get_patient_forecast_payload(
+    patient_id: str,
+    asOf: Optional[str] = Query(default=None, description="Simulation time ISO 8601"),
+    hour: Optional[int] = Query(default=None, ge=12, le=239),
+):
+    """
+    Returns the unified Section 5 forecast payload stamped with simulation clock time.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = hour if hour is not None else global_clock.current_hour
+    try:
+        return engine.get_patient_forecast(patient_id, end_hour=eval_hour, as_of_iso=asOf)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Forecast error: {str(e)}")
+
+
+@app.get("/api/patients/{patient_id}/forecast/stream")
+async def stream_patient_forecast(
+    patient_id: str,
+    once: bool = Query(default=False, description="Emit one SSE event and close (useful for tests)"),
+):
+    """
+    Server-sent events: emits forecast.updated on initial connection and whenever the simulation clock ticks.
+    """
+    import asyncio
+    import json as _json
+    from fastapi.responses import StreamingResponse
+
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    try:
+        engine.resolve_patient_id(patient_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    async def event_generator():
+        last_hour = None
+        while True:
+            curr_hour = global_clock.current_hour
+            if last_hour != curr_hour:
+                last_hour = curr_hour
+                payload = engine.get_patient_forecast(patient_id, end_hour=curr_hour)
+                yield f"event: forecast.updated\ndata: {_json.dumps(payload)}\n\n"
+                if once:
+                    break
+            await asyncio.sleep(2.0)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+@app.post("/api/patients/{patient_id}/what-if")
+def create_patient_what_if_forecast(
+    patient_id: str,
+    req: PatientWhatIfForecastRequest,
+):
+    """
+    Returns the same ForecastPayload shape for a scenario, with scenarioId and delta48hPp, used by V5.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = req.hour if req.hour is not None else global_clock.current_hour
+    try:
+        return engine.get_patient_what_if_forecast(
+            pid=patient_id,
+            scenario_id=req.scenarioId,
+            scenario_label=req.scenarioLabel,
+            outdoor_hours=req.outdoor_hours,
+            wear_n95=req.wear_n95,
+            target_adherence_pct=req.target_adherence_pct,
+            hepa_purifier=req.hepa_purifier,
+            end_hour=eval_hour,
+            as_of_iso=req.asOf,
+        )
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scenario forecast error: {str(e)}")
+
+
 @app.post("/api/patients/{patient_id}/copilot-report")
 def create_patient_copilot_report(
     patient_id: str,

@@ -3,7 +3,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { PATIENTS, Patient } from '@/lib/data';
-import { simulateWhatIf, WhatIfResponse, getPatient, getStoredCustomPatients } from '@/lib/api';
+import {
+  simulateWhatIf,
+  WhatIfResponse,
+  getPatient,
+  getStoredCustomPatients,
+  getActiveWhatIfScenario,
+  saveActiveWhatIfScenario,
+  clearActiveWhatIfScenario,
+} from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
 
@@ -25,19 +33,53 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
   const [targetAdherence, setTargetAdherence] = useState<number>(defaultPatient.controllerAdherence);
   const [hepaPurifier, setHepaPurifier] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [scenarioHydrated, setScenarioHydrated] = useState<boolean>(false);
 
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [backendResult, setBackendResult] = useState<WhatIfResponse | null>(null);
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
-  // Fetch live patient data from API on mount
+  // Fetch live patient data from API on mount & restore active scenario or ?preset= query param
   useEffect(() => {
     let isMounted = true;
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const presetParam = params?.get('preset');
+    const savedScenario = getActiveWhatIfScenario(patientId);
+
     getPatient(patientId).then((livePatient) => {
-      if (isMounted && livePatient) {
-        setPatient(livePatient);
-        setTargetAdherence(livePatient.controllerAdherence);
+      if (!isMounted) return;
+      const resolvedPatient = livePatient || defaultPatient;
+      setPatient(resolvedPatient);
+      if (presetParam) {
+        if (presetParam === 'n95-commute') {
+          setActivePreset('n95-commute');
+          setOutdoorHours(2.5);
+          setWearN95(true);
+          setTargetAdherence(resolvedPatient.controllerAdherence);
+          setHepaPurifier(false);
+        } else if (presetParam === 'inhaler-push') {
+          setActivePreset('inhaler-push');
+          setOutdoorHours(2.5);
+          setWearN95(false);
+          setTargetAdherence(100);
+          setHepaPurifier(false);
+        } else if (presetParam === 'safe-haven') {
+          setActivePreset('safe-haven');
+          setOutdoorHours(0.5);
+          setWearN95(false);
+          setTargetAdherence(resolvedPatient.controllerAdherence);
+          setHepaPurifier(true);
+        }
+      } else if (savedScenario) {
+        setActivePreset(savedScenario.scenarioId);
+        setOutdoorHours(savedScenario.outdoor_hours);
+        setWearN95(savedScenario.wear_n95);
+        setTargetAdherence(savedScenario.target_adherence_pct);
+        setHepaPurifier(savedScenario.hepa_purifier);
+      } else {
+        setTargetAdherence(resolvedPatient.controllerAdherence);
       }
+      setScenarioHydrated(true);
     });
     return () => { isMounted = false; };
   }, [patientId]);
@@ -154,6 +196,40 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
     hepaPurifier
   ]);
 
+  // Persist active scenario to localStorage for V5 overlay on the 48-hour forecast tab
+  useEffect(() => {
+    if (!scenarioHydrated) return;
+    const isBaseline =
+      Math.abs(outdoorHours - 2.5) < 0.05 &&
+      !wearN95 &&
+      Math.abs(targetAdherence - patient.controllerAdherence) < 0.5 &&
+      !hepaPurifier;
+
+    if (isBaseline) {
+      clearActiveWhatIfScenario(patient.id);
+    } else {
+      const labelParts: string[] = [];
+      if (activePreset === 'max-shield') labelParts.push('Maximum protection');
+      else if (activePreset === 'n95-commute') labelParts.push('Wear N95 mask');
+      else if (activePreset === 'inhaler-push') labelParts.push('100% controller adherence');
+      else if (activePreset === 'safe-haven') labelParts.push('Stay indoors + HEPA');
+      else {
+        if (wearN95) labelParts.push('N95');
+        if (outdoorHours !== 2.5) labelParts.push(`Outdoor ${outdoorHours.toFixed(1)}h`);
+        if (targetAdherence !== patient.controllerAdherence) labelParts.push(`Adherence ${targetAdherence}%`);
+        if (hepaPurifier) labelParts.push('HEPA');
+      }
+      saveActiveWhatIfScenario(patient.id, {
+        scenarioId: activePreset || 'custom',
+        scenarioLabel: labelParts.join(' + ') || 'Active scenario',
+        outdoor_hours: outdoorHours,
+        wear_n95: wearN95,
+        target_adherence_pct: targetAdherence,
+        hepa_purifier: hepaPurifier,
+      });
+    }
+  }, [scenarioHydrated, patient.id, patient.controllerAdherence, outdoorHours, wearN95, targetAdherence, hepaPurifier, activePreset]);
+
   // Clinical Preset Handlers
   const applyPreset = (presetName: string) => {
     setActivePreset(presetName);
@@ -189,6 +265,7 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
         setTargetAdherence(patient.controllerAdherence);
         setHepaPurifier(false);
         setActivePreset(null);
+        clearActiveWhatIfScenario(patient.id);
         break;
     }
   };
