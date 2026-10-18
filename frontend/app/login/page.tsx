@@ -44,21 +44,38 @@ export default function LoginPage() {
         router.push('/patients');
       } else {
         const patientId = res.account?.patient_id || 'PT-8821';
-        loginAsPatient(patientId, res.account?.full_name || 'Rajesh Sharma');
+        loginAsPatient(patientId, res.account?.full_name || 'Aarush Sen');
         router.push('/patient-portal');
       }
     } catch (err: any) {
-      // Local fallback for quick demo access if backend DB connection is interrupted
-      if (role === 'doctor' && email === 'doctor@synclave.health' && password === 'doctor123') {
-        loginAsDoctor('Dr. Vikram Mehta, MD');
-        router.push('/patients');
-        return;
-      } else if (role === 'patient' && email.startsWith('patient') && password === 'patient123') {
-        loginAsPatient('PT-8821', 'Rajesh Sharma');
-        router.push('/patient-portal');
-        return;
+      const errMsg = err?.message || '';
+      const isNetworkError =
+        errMsg.includes('Failed to fetch') ||
+        errMsg.includes('NetworkError') ||
+        errMsg.includes('Load failed');
+
+      // Local demo fallback ONLY if backend API is completely unreachable
+      if (isNetworkError) {
+        if (role === 'doctor' && email === 'doctor@synclave.health' && password === 'doctor123') {
+          loginAsDoctor('Dr. Vikram Mehta, MD');
+          router.push('/patients');
+          return;
+        } else if (role === 'patient' && email === 'patient0@synclave.health' && password === 'patient123') {
+          loginAsPatient('PT-8821', 'Aarush Sen');
+          router.push('/patient-portal');
+          return;
+        } else if (role === 'patient' && email === 'patient12@synclave.health' && password === 'patient123') {
+          loginAsPatient('PT-4409', 'Priya Nair');
+          router.push('/patient-portal');
+          return;
+        } else if (role === 'patient' && email === 'patient3@synclave.health' && password === 'patient123') {
+          loginAsPatient('PT-1923', 'Rajesh Sharma');
+          router.push('/patient-portal');
+          return;
+        }
       }
-      setError(err?.message || 'Invalid email or password. Please try again.');
+
+      setError(errMsg || 'Email does not exist.');
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { PATIENTS, Patient } from '@/lib/data';
 import {
   getPatient,
@@ -18,17 +19,29 @@ import { useAuth } from '@/lib/auth';
 
 type PlainRiskBand = 'Low' | 'Watch' | 'High';
 
-export default function PatientPortalPage() {
-  const { session, switchRoleQuick } = useAuth();
+function PatientPortalContent() {
+  const { session, switchRoleQuick, logout } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryPatientId = searchParams.get('patientId');
 
   // If logged in as a patient, lock strictly to their own patientId.
-  // If logged in as a doctor, allow previewing any patient's portal view.
-  const lockedPatientId = session.role === 'patient' ? session.patientId || 'PT-8821' : null;
+  // If logged in as a doctor, allow previewing any patient's portal view, prioritizing the URL parameter.
+  const rawPatientId = session.patientId === 'PT-4410' ? 'PT-4409' : session.patientId;
+  const lockedPatientId = session.role === 'patient' ? rawPatientId || 'PT-8821' : null;
 
   const [allPatients, setAllPatients] = useState<Patient[]>(PATIENTS);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(
-    lockedPatientId || 'PT-8821'
+    lockedPatientId || queryPatientId || 'PT-8821'
   );
+
+  // Sync URL query param if present for doctor
+  useEffect(() => {
+    if (session.role === 'doctor' && queryPatientId && queryPatientId !== selectedPatientId) {
+      setSelectedPatientId(queryPatientId);
+    }
+  }, [session.role, queryPatientId, selectedPatientId]);
+
   const activePatientId = lockedPatientId || selectedPatientId;
 
   const [patient, setPatient] = useState<Patient>(
@@ -92,6 +105,12 @@ export default function PatientPortalPage() {
     setLogSuccessMessage(null);
     setIsCopilotReportLoading(true);
     setCopilotReportError(null);
+
+    // Immediately synchronize local patient data so UI matches activePatientId instantly
+    const localMatch = PATIENTS.find((p) => p.id === activePatientId);
+    if (localMatch) {
+      setPatient(localMatch);
+    }
 
     Promise.all([
       getPatient(activePatientId),
@@ -414,7 +433,11 @@ export default function PatientPortalPage() {
               <select
                 id="portal-patient-switcher"
                 value={activePatientId}
-                onChange={(e) => setSelectedPatientId(e.target.value)}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setSelectedPatientId(nextId);
+                  router.replace(`/patient-portal?patientId=${nextId}`, { scroll: false });
+                }}
                 className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2.5 py-1.5 text-xs font-mono"
               >
                 {allPatients.map((p) => (
@@ -442,12 +465,13 @@ export default function PatientPortalPage() {
               <span className="text-[#2FBF63]">
                 PRIVACY GUARDRAIL: Viewing only your own record ({patient.id})
               </span>
-              <Link
-                href="/login"
-                className="px-2.5 py-1 border border-[#12612F] text-[#4CFF8A] hover:border-[#4CFF8A]"
+              <button
+                type="button"
+                onClick={logout}
+                className="px-2.5 py-1 border border-[#12612F] text-[#4CFF8A] hover:border-[#4CFF8A] transition-colors cursor-pointer"
               >
                 Switch Account
-              </Link>
+              </button>
             </div>
           )}
         </div>
@@ -1206,8 +1230,8 @@ export default function PatientPortalPage() {
             {/* Precautions and Recorded Triggers in responsive 2 cols */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
-                <div className="font-mono uppercase text-[#4CFF8A] font-semibold text-xs flex items-center gap-2">
-                  <span>🛡️</span> Key Precautions
+                <div className="font-mono uppercase text-[#4CFF8A] font-semibold text-xs">
+                  Key Precautions
                 </div>
                 <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#75FFA5]">
                   {copilotReport.precautions.map((item, i) => (
@@ -1217,8 +1241,8 @@ export default function PatientPortalPage() {
               </div>
 
               <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
-                <div className="font-mono uppercase text-[#FFE14A] font-semibold text-xs flex items-center gap-2">
-                  <span>⚠️</span> Recorded Triggers To Avoid
+                <div className="font-mono uppercase text-[#FFE14A] font-semibold text-xs">
+                  Recorded Triggers To Avoid
                 </div>
                 <ul className="list-disc pl-4 space-y-1.5 text-xs text-[#75FFA5]">
                   {copilotReport.triggers_to_avoid.map((item, i) => (
@@ -1351,5 +1375,19 @@ export default function PatientPortalPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function PatientPortalPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-xs font-mono text-[#4CFF8A] border border-[#12612F] bg-[#04130A]">
+          &gt; INITIALIZING PATIENT PORTAL OUTLOOK...
+        </div>
+      }
+    >
+      <PatientPortalContent />
+    </Suspense>
   );
 }

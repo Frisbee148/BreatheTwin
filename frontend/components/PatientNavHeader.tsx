@@ -28,7 +28,7 @@ export default function PatientNavHeader({ patient }: PatientNavHeaderProps) {
     { label: '[01] DIGITAL TWIN & SENSORS', href: `/patients/${patient.id}` },
     { label: '[02] 48H FORECAST & REASONS', href: `/patients/${patient.id}/forecast` },
     { label: '[03] WHAT-IF SANDBOX', href: `/patients/${patient.id}/what-if` },
-    { label: '[04] PATIENT PORTAL VIEW', href: `/patient-portal` },
+    { label: '[04] PATIENT PORTAL VIEW', href: `/patient-portal?patientId=${patient.id}` },
   ];
 
   const allPatients = React.useMemo(() => {

@@ -195,6 +195,8 @@ def _extract_json_from_text(text: str) -> dict[str, Any]:
         match = re.search(r"\{[\s\S]*\}", text)
         if match:
             text = match.group(0).strip()
+    # Strip any astral emojis or unicode symbol icons
+    text = re.sub(r"[\U00010000-\U0010ffff]", "", text)
     return json.loads(text)
 
 
@@ -225,7 +227,8 @@ def _generate_copilot_report_hf(payload: dict[str, Any], token: str) -> dict[str
         "You are the senior clinical pulmonology copilot. You must convert the Multimodal Input Datastream "
         "(Static EHR Profile, Clinical History & NLP, and Wearable Telemetry) and the Hybrid Dual-Model Predictions "
         "(24h attack risk, 48h severe exacerbation risk, severity grade 0-3, inflammation state) into a comprehensive, "
-        "structured clinical report that explains everything the model is predicting.\n\n"
+        "structured clinical report that explains everything the model is predicting.\n"
+        "Do NOT include any emoji or icon symbols anywhere in your text output.\n\n"
         "Output ONLY a single valid JSON object matching this schema:\n"
         "{\n"
         f'  "patient_id": "{patient_id}",\n'

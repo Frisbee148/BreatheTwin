@@ -197,7 +197,7 @@ def ensure_auth_tables_and_seed() -> None:
         defaults = [
             {
                 "email": "doctor@synclave.health",
-                "full_name": "Dr. Aris Thorne (Pulmonology Lead)",
+                "full_name": "Dr. Vikram Mehta, MD",
                 "role": "doctor",
                 "password_hash": _hash_password("doctor123"),
                 "patient_id": None,
@@ -207,21 +207,31 @@ def ensure_auth_tables_and_seed() -> None:
             },
             {
                 "email": "patient0@synclave.health",
-                "full_name": "Rajesh Sharma (PT-8821)",
+                "full_name": "Aarush Sen",
                 "role": "patient",
                 "password_hash": _hash_password("patient123"),
                 "patient_id": "PT-8821",
-                "license_or_clinic": "Severe Eosinophilic Asthma Care Plan",
+                "license_or_clinic": "Moderate Persistent Asthma Care Plan",
                 "is_verified": 1,
                 "verification_code": "000000",
             },
             {
                 "email": "patient12@synclave.health",
-                "full_name": "Priya Nair (PT-4410)",
+                "full_name": "Priya Nair",
                 "role": "patient",
                 "password_hash": _hash_password("patient123"),
-                "patient_id": "PT-4410",
+                "patient_id": "PT-4409",
                 "license_or_clinic": "Allergic Asthma Care Plan",
+                "is_verified": 1,
+                "verification_code": "000000",
+            },
+            {
+                "email": "patient3@synclave.health",
+                "full_name": "Rajesh Sharma",
+                "role": "patient",
+                "password_hash": _hash_password("patient123"),
+                "patient_id": "PT-1923",
+                "license_or_clinic": "Severe Persistent Asthma Care Plan",
                 "is_verified": 1,
                 "verification_code": "000000",
             },
@@ -230,6 +240,13 @@ def ensure_auth_tables_and_seed() -> None:
             existing = db.query(UserAccountModel).filter(UserAccountModel.email == item["email"]).first()
             if not existing:
                 db.add(UserAccountModel(**item))
+            else:
+                existing.full_name = item["full_name"]
+                existing.role = item["role"]
+                existing.password_hash = item["password_hash"]
+                existing.patient_id = item["patient_id"]
+                existing.license_or_clinic = item["license_or_clinic"]
+                existing.is_verified = 1
         db.commit()
     finally:
         db.close()
@@ -319,7 +336,7 @@ def login_user_account(email: str, password: str, role: str) -> Dict[str, Any]:
     try:
         user = db.query(UserAccountModel).filter(UserAccountModel.email == normalized_email).first()
         if not user:
-            raise ValueError("No account found with this email. Please sign up first.")
+            raise ValueError("Email does not exist.")
         if user.role != expected_role:
             raise ValueError(
                 f"This account is registered as a {user.role.upper()}, not {expected_role.upper()}. Please use the {user.role.capitalize()} login panel."

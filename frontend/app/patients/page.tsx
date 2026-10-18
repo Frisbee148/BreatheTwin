@@ -371,6 +371,13 @@ export default function PatientsTriagePage() {
                         >
                           WHAT-IF
                         </Link>
+                        <Link
+                          href={`/patient-portal?patientId=${p.id}`}
+                          className="h-8 px-2.5 text-[11px] uppercase tracking-wider font-medium border border-[#12612F] text-[#75FFA5] hover:border-[#4CFF8A] hover:text-[#4CFF8A] transition-colors inline-flex items-center bg-[#020A05]"
+                          title="Open Patient Portal View"
+                        >
+                          PORTAL
+                        </Link>
                       </div>
                     </td>
                   </tr>

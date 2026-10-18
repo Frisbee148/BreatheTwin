@@ -5,8 +5,9 @@
 | Role | Email | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
 | **Doctor / Clinician** | `doctor@synclave.health` | `doctor123` | Full Cohort, Latent ODE Telemetry, 24h & 48h Conformal Risk, SHAP Attributions, Benchmarks |
-| **Patient (Alex Rivera / PT-8821)** | `patient0@synclave.health` | `patient123` | Personal Patient Portal only: Plain-language status (Low/Watch/High), 48h Outlook, Simplified Signals, What-If, Check-in Log, Care Plan, RAG Chat |
-| **Patient (Maya Lin / PT-4410)** | `patient12@synclave.health` | `patient123` | Personal Patient Portal only (Patient PT-4410) |
+| **Patient (Aarush Sen / PT-8821)** | `patient0@synclave.health` | `patient123` | Personal Patient Portal only (Patient PT-8821 • New Delhi) |
+| **Patient (Priya Nair / PT-4409)** | `patient12@synclave.health` | `patient123` | Personal Patient Portal only (Patient PT-4409 • Mumbai) |
+| **Patient (Rajesh Sharma / PT-1923)** | `patient3@synclave.health` | `patient123` | Personal Patient Portal only (Patient PT-1923 • New Delhi) |
 
 All user records are persisted and authenticated against the PostgreSQL database (`user_accounts` table).
 

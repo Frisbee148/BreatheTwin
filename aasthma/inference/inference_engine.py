@@ -786,6 +786,12 @@ class InferenceEngine:
         margin_24 = max(5.0, min(24.0, (1.0 - abs(risk_24h / 50.0 - 1.0)) * 12.0 + learning_extra_margin))
         margin_48 = max(6.0, min(26.0, (1.0 - abs(risk_48h / 50.0 - 1.0)) * 14.0 + learning_extra_margin))
 
+        # FR-16: For new enrollment, cold-start wide conformal band must adhere to schedule (e.g. Day 1 >= 18%)
+        if is_new_enrollment:
+            scheduled_hw = 22.0 if obs_day == 1 else max(7.0, 22.0 - (obs_day - 1) * 2.5)
+            margin_48 = max(margin_48, scheduled_hw)
+            margin_24 = max(margin_24, round(scheduled_hw * 0.85, 1))
+
         ci_24 = [int(max(0, round(risk_24h - margin_24))), int(min(100, round(risk_24h + margin_24)))]
         ci_48 = [int(max(0, round(risk_48h - margin_48))), int(min(100, round(risk_48h + margin_48)))]
 

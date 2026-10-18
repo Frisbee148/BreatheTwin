@@ -671,3 +671,76 @@ Failed to fetch patient PT-6031 from API, using local cache: TypeError: fetch fa
  HEAD /patients/PT-8821/forecast 200 in 127ms (next.js: 2ms, generate-params: 38ms, application-code: 87ms)
  HEAD /patient-portal 200 in 102ms (next.js: 4ms, application-code: 97ms)
  GET /patient-portal 200 in 96ms (next.js: 1.8ms, application-code: 94ms)
+✓ Compiled in 144ms
+✓ Compiled in 55ms
+ GET /patient-portal 200 in 114ms (next.js: 3ms, application-code: 111ms)
+✓ Compiled in 97ms
+ GET /patient-portal 200 in 91ms (next.js: 2ms, application-code: 89ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+ GET /patient-portal 200 in 102ms (next.js: 1.8ms, application-code: 100ms)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Failed to fetch patients from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:361:13)
+[browser] Failed to fetch patient PT-8821 from API, using local cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:390:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Failed to run what-if simulation on API, computing local approximation: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:507:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+[browser] Copilot API unreachable, using local RAG report cache: TypeError: NetworkError when attempting to fetch resource. (lib/api.ts:413:13)
+✓ Compiled in 69ms
+ GET /patient-portal 200 in 106ms (next.js: 2ms, application-code: 104ms)
+ GET /login 200 in 36ms (next.js: 5ms, application-code: 31ms)
+ GET /patient-portal 200 in 36ms (next.js: 4ms, application-code: 32ms)
+⚠ Fast Refresh had to perform a full reload when ./lib/auth.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 75ms
+ GET /patient-portal 200 in 99ms (next.js: 4ms, application-code: 95ms)
+⚠ Fast Refresh had to perform a full reload when ./lib/auth.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 43ms
+ GET /patient-portal 200 in 110ms (next.js: 3ms, application-code: 107ms)
+⚠ Fast Refresh had to perform a full reload when ./lib/auth.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 38ms
+ GET /patient-portal 200 in 93ms (next.js: 3ms, application-code: 90ms)
+✓ Compiled in 75ms
+✓ Compiled in 86ms
+✓ Compiled in 70ms
+ GET /patient-portal 200 in 89ms (next.js: 2.0ms, application-code: 87ms)
+ GET /login 200 in 42ms (next.js: 6ms, application-code: 36ms)
+ GET /login 200 in 49ms (next.js: 5ms, application-code: 45ms)
+ GET /login 200 in 32ms (next.js: 2ms, application-code: 29ms)
+ GET /patient-portal 200 in 40ms (next.js: 4ms, application-code: 35ms)
+ GET / 200 in 37ms (next.js: 4ms, application-code: 33ms)
+ GET /login 200 in 42ms (next.js: 4ms, application-code: 38ms)
+ GET /patients 200 in 36ms (next.js: 5ms, application-code: 32ms)
+ GET /patients/PT-8930 200 in 142ms (next.js: 7ms, generate-params: 43ms, application-code: 93ms)
+ GET /patients/PT-8930/forecast 200 in 161ms (next.js: 6ms, generate-params: 45ms, application-code: 110ms)
+ GET /patients/PT-8930/what-if 200 in 125ms (next.js: 6ms, generate-params: 36ms, application-code: 83ms)
+ GET /patient-portal 200 in 39ms (next.js: 2ms, application-code: 37ms)
+ GET /patient-portal 200 in 38ms (next.js: 2ms, application-code: 35ms)
+ GET /patient-portal 200 in 38ms (next.js: 3ms, application-code: 36ms)
+⚠ Fast Refresh had to perform a full reload when ./app/patient-portal/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 223ms
+⨯ Error: The default export is not a React Component in "/patient-portal/page"
+    at ignore-listed frames
+⨯ Error: The default export is not a React Component in "/patient-portal/page"
+    at ignore-listed frames {
+  page: '/patient-portal'
+}
+ GET /patient-portal 500 in 3.0s (next.js: 2.7s, application-code: 264ms)
+[browser] Uncaught Error: The default export is not a React Component in "/patient-portal/page"
+✓ Compiled in 89ms
+ GET /patient-portal 200 in 128ms (next.js: 4ms, application-code: 125ms)
+ GET /patients/PT-8930/what-if 200 in 136ms (next.js: 4ms, generate-params: 45ms, application-code: 88ms)
+ GET /patient-portal?patientId=PT-8930 200 in 40ms (next.js: 2ms, application-code: 38ms)

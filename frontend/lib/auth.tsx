@@ -34,7 +34,8 @@ export const DEFAULT_DOCTOR_SESSION: AuthSession = {
 };
 
 export function createPatientSession(patientId: string): AuthSession {
-  const found = PATIENTS.find((p) => p.id === patientId) || PATIENTS[0];
+  const cleanId = patientId === 'PT-4410' ? 'PT-4409' : patientId;
+  const found = PATIENTS.find((p) => p.id === cleanId) || PATIENTS[0];
   return {
     role: 'patient',
     userId: found.id,
@@ -75,9 +76,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as AuthSession;
         if (parsed && (parsed.role === 'doctor' || parsed.role === 'patient')) {
+          let resolved = { ...parsed };
+          if (resolved.role === 'patient') {
+            if (resolved.patientId === 'PT-4410') {
+              resolved.patientId = 'PT-4409';
+              resolved.userId = 'PT-4409';
+            }
+            const matching = PATIENTS.find((p) => p.id === resolved.patientId);
+            if (matching) {
+              resolved.name = matching.name;
+              resolved.subtitle = `${matching.city} • Personal Asthma Twin`;
+              resolved.patientId = matching.id;
+              resolved.userId = matching.id;
+            }
+          }
           setSession({
-            ...parsed,
-            isLoggedIn: parsed.isLoggedIn ?? true,
+            ...resolved,
+            isLoggedIn: resolved.isLoggedIn ?? true,
           });
         }
       }
@@ -137,10 +152,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginAsPatient = (patientId: string, customName?: string) => {
-    const base = createPatientSession(patientId);
+    const cleanId = patientId === 'PT-4410' ? 'PT-4409' : patientId;
+    const base = createPatientSession(cleanId);
+    const cleanName = customName
+      ? customName.replace(/\s*\(PT-\d+\)/i, '').trim()
+      : base.name;
+
     const next: AuthSession = {
       ...base,
-      name: customName?.trim() ? customName.trim() : base.name,
+      name: cleanName || base.name,
       isLoggedIn: true,
     };
     persistSession(next);
