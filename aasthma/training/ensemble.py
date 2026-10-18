@@ -385,14 +385,11 @@ def _report_metrics(
 
 
 def train_ensemble() -> dict[str, Any]:
-    if not torch.cuda.is_available():
-        raise RuntimeError(
-            "CUDA GPU is required to train the stacking ensemble; no CPU fallback is used."
-        )
-    device = torch.device("cuda")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device_name = torch.cuda.get_device_name(device) if device.type == "cuda" else "CPU"
     torch.manual_seed(SEED)
     np.random.seed(SEED)
-    print(f"Training meta-learner on {torch.cuda.get_device_name(device)}")
+    print(f"Training meta-learner on {device_name}")
 
     with open(TCN_CONFIG_PATH, "rb") as file:
         tcn_config = pickle.load(file)
@@ -507,7 +504,7 @@ def train_ensemble() -> dict[str, Any]:
     torch.save(meta_model.state_dict(), checkpoint_tmp)
     config = {
         "version": 1,
-        "device": torch.cuda.get_device_name(device),
+        "device": device_name,
         "seed": SEED,
         "window_size_hours": WINDOW_SIZE,
         "train_patient_count": int(len(train_ids)),

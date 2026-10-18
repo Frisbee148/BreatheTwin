@@ -43,53 +43,58 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
   }, [patientId]);
 
   // =========================================================================
-  // LIVE REACTIVE ODE SIMULATION MODEL (0ms Zero-Latency Local Calculation)
-  // Ensures all counters and sliders change the trajectory immediately on drag!
+  // LIVE NEURAL ENSEMBLE + ODE SIMULATION (Dilated TCN + XGBoost -> MLP Meta-Learner)
+  // Re-runs backend model on every slider movement; falls back to local ODE if offline
   // =========================================================================
   const baseRisk = patient.risk48h;
   const initialAdherence = patient.controllerAdherence;
 
-  // Real-time intervention deltas:
-  // 1. Outdoor hours: baseline is 2.5h. Less outdoor time reduces risk; more outdoor time in smog increases risk.
   const outdoorDelta = (2.5 - outdoorHours) * 6.0;
-  // 2. N95 respirator during transit: -18% risk reduction
   const n95Reduction = wearN95 ? 18.0 : 0.0;
-  // 3. Controller adherence improvement: up to -22% risk reduction
   const adherenceDiff = Math.max(0, targetAdherence - initialAdherence);
   const adherenceReduction = (adherenceDiff / 100.0) * 25.0;
-  // 4. HEPA air purifier in bedroom: -9% risk reduction
   const hepaReduction = hepaPurifier ? 9.0 : 0.0;
 
-  // Total mitigated risk calculation
   const totalReductionRaw = outdoorDelta + n95Reduction + adherenceReduction + hepaReduction;
   const totalReduction = Math.round(totalReductionRaw * 10) / 10;
-  
-  // Projected 48h Risk under intervention
-  const simulatedRisk = Math.max(10.0, Math.min(99.0, Math.round((baseRisk - totalReduction) * 10) / 10));
-  const riskDelta = Math.round((simulatedRisk - baseRisk) * 10) / 10;
 
-  // Latent airway inflammation I(t)
-  const simulatedInflammation = Math.max(
+  const fallbackSimulatedRisk = Math.max(10.0, Math.min(99.0, Math.round((baseRisk - totalReduction) * 10) / 10));
+  const fallbackInflammation = Math.max(
     0.15,
     Math.round((patient.estimatedInflammationState - (Math.max(0, totalReduction) / 100.0) * 0.50) * 100) / 100
   );
 
-  const simulatedStatus = 
-    simulatedRisk >= 70 ? 'HIGH RISK' :
-    simulatedRisk >= 55 ? 'ELEVATED' :
-    simulatedRisk >= 35 ? 'CAUTION' : 'NORMAL';
+  // Authoritative risk & inflammation from backend Dilated TCN + XGBoost + MLP Meta-Learner when available
+  const simulatedRisk = backendResult?.simulatedRisk ?? fallbackSimulatedRisk;
+  const riskDelta = backendResult?.riskDelta ?? Math.round((simulatedRisk - baseRisk) * 10) / 10;
+  const simulatedInflammation = backendResult?.simulatedInflammation ?? fallbackInflammation;
+
+  const simulatedStatus =
+    backendResult?.simulatedStatus ??
+    (simulatedRisk >= 70 ? 'HIGH RISK' :
+     simulatedRisk >= 55 ? 'ELEVATED' :
+     simulatedRisk >= 35 ? 'CAUTION' : 'NORMAL');
 
   // =========================================================================
   // 48-HOUR DUAL TRAJECTORY COMPUTATION
-  // Generates the time-series curves from t = 0h to t = 48h
+  // Uses backend ODE + Neural Ensemble trajectoryPoints when available
   // =========================================================================
   const trajectoryPoints: TrajectoryHourPoint[] = useMemo(() => {
+    if (backendResult?.trajectoryPoints && backendResult.trajectoryPoints.length >= 5) {
+      return backendResult.trajectoryPoints.map((pt) => ({
+        hour: pt.hour,
+        label: pt.label,
+        baselineRisk: pt.baselineRisk,
+        simulatedRisk: pt.simulatedRisk,
+        divergence: Math.round(Math.abs(pt.baselineRisk - pt.simulatedRisk) * 10) / 10,
+      }));
+    }
+
     const hours = [0, 6, 12, 18, 24, 30, 36, 42, 48];
     const startingRisk = Math.max(15, Math.round(baseRisk * 0.68));
 
     return hours.map((h) => {
       const progress = h / 48.0;
-      // Exponential saturation curve towards 48h end state
       const shape = Math.sin((progress * Math.PI) / 2);
 
       const bRisk = Math.round((startingRisk + (baseRisk - startingRisk) * shape) * 10) / 10;
@@ -104,9 +109,9 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
         divergence: Math.round(Math.abs(bRisk - clampedSRisk) * 10) / 10,
       };
     });
-  }, [baseRisk, simulatedRisk]);
+  }, [baseRisk, simulatedRisk, backendResult]);
 
-  // Debounced backend synchronization with FastAPI ODE solver
+  // Execute live counterfactual forward pass (Dilated TCN + XGBoost + MLP + ODE) on every slider change
   useEffect(() => {
     let isCancelled = false;
     const timer = setTimeout(async () => {
@@ -131,7 +136,7 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
       } finally {
         if (!isCancelled) setIsSimulating(false);
       }
-    }, 250);
+    }, 80);
 
     return () => {
       isCancelled = true;
@@ -771,6 +776,40 @@ export default function PatientWhatIfView({ patientId, initialPatient: propPatie
                 {riskDelta === 0 ? '0% (No Change)' : `${Math.abs(riskDelta)}% Lower Risk`}
               </span>
             </div>
+
+            {/* Live 3-Stage Ensemble Re-Scoring Breakdown */}
+            {backendResult?.modelBreakdown?.ensembleExecuted && (
+              <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-3 space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="font-bold uppercase text-[#0E793C] dark:text-[#4CFF8A]">
+                    LIVE ENSEMBLE RE-SCORING (DILATED TCN + XGBOOST &rarr; MLP META-LEARNER)
+                  </span>
+                  <span className="text-[#4A755A] dark:text-[#2FBF63]">
+                    {isSimulating ? 'RE-RUNNING...' : 'SYNCED'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 font-mono text-center">
+                  <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-white dark:bg-[#04130A] p-2">
+                    <div className="text-[9px] text-[#4A755A] dark:text-[#A7E8BD]">DILATED TCN (48H)</div>
+                    <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC]">
+                      {backendResult.modelBreakdown.tcnRisk48h}%
+                    </div>
+                  </div>
+                  <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-white dark:bg-[#04130A] p-2">
+                    <div className="text-[9px] text-[#4A755A] dark:text-[#A7E8BD]">XGBOOST (48H)</div>
+                    <div className="text-xs font-bold text-[#0E2E1B] dark:text-[#B6FFCC]">
+                      {backendResult.modelBreakdown.gradientBoostingRisk48h}%
+                    </div>
+                  </div>
+                  <div className="border border-[#0E793C] dark:border-[#4CFF8A] bg-white dark:bg-[#04130A] p-2">
+                    <div className="text-[9px] text-[#0E793C] dark:text-[#4CFF8A]">FUSED MLP + ODE</div>
+                    <div className="text-xs font-bold text-[#0E793C] dark:text-[#4CFF8A]">
+                      {backendResult.modelBreakdown.fusedMetaRisk48h}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Card 2: Clinical & Patient Action Recommendation */}

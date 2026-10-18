@@ -120,3 +120,23 @@ class PatientDailyLogModel(Base):
     notes = Column(Text, nullable=True)
 
     patient = relationship("PatientModel", back_populates="daily_logs")
+
+
+class UserAccountModel(Base):
+    """
+    Dual-Interface Authentication Table (Doctor & Patient accounts with verification)
+    Stored in PostgreSQL.
+    """
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(150), unique=True, index=True, nullable=False)
+    full_name = Column(String(150), nullable=False)
+    role = Column(String(20), index=True, nullable=False)  # 'doctor' or 'patient'
+    password_hash = Column(String(256), nullable=False)
+    patient_id = Column(String(50), nullable=True)         # e.g., 'PT-8821' for patients
+    license_or_clinic = Column(String(150), nullable=True) # e.g., 'MCI-44821 • Pulmonology' for doctors
+    is_verified = Column(Boolean, default=False, nullable=False)
+    verification_code = Column(String(20), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+

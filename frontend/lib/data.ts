@@ -60,6 +60,32 @@ export interface Patient {
     description: string;
     targetStream: 'AIR_QUALITY' | 'WEARABLE' | 'EHR' | 'MEDICATION';
   }[];
+  simulatedDeviceProfile?: 'typical' | 'restless_sleeper' | 'low_activity' | string;
+  basePredictions?: {
+    tcnRisk24h: number;
+    gradientBoostingRisk24h: number;
+    tcnRisk48h: number;
+    gradientBoostingRisk48h: number;
+    metaRisk24h: number;
+    metaRisk48h: number;
+    xgbRisk48h?: number;
+    mlpRisk48h?: number;
+  };
+  learningBaseline?: {
+    active: boolean;
+    currentDay: number;
+    totalCalibrationDays: number;
+    statusLabel: string;
+    uncertaintyHalfWidthPct: number;
+    simulatedDeviceProfile?: string;
+    convergenceSchedule?: {
+      day: string | number;
+      label?: string;
+      bandHalfWidth: number;
+      status: string;
+    }[];
+  };
+  whatIfPreview?: any;
 }
 
 export interface TelemetryPoint {

@@ -52,6 +52,26 @@ export interface WhatIfResponse {
     targetAdherence: number;
     hepaPurifier: boolean;
   };
+  modelBreakdown?: {
+    ensembleExecuted: boolean;
+    scoringEngine?: string;
+    tcnRisk24h?: number;
+    gradientBoostingRisk24h?: number;
+    metaRisk24h?: number;
+    tcnRisk48h?: number;
+    gradientBoostingRisk48h?: number;
+    rawMetaRisk48h?: number;
+    odeRisk48h?: number;
+    fusedMetaRisk48h?: number;
+  };
+  trajectoryPoints?: {
+    hour: number;
+    label: string;
+    baselineRisk: number;
+    simulatedRisk: number;
+    baselineInflammation: number;
+    simulatedInflammation: number;
+  }[];
 }
 
 export interface CopilotReport {
@@ -144,12 +164,13 @@ export async function stepClock(hours: number = 1): Promise<ClockInfo | null> {
 }
 
 export interface CreatePatientInput {
-  name: string;
+  name?: string;
   age: number;
   gender?: string;
   city: string;
   station?: string;
   asthma_severity: string;
+  simulated_device_profile?: 'typical' | 'restless_sleeper' | 'low_activity' | string;
   baseline_fev1_pct?: number;
   baseline_fev1_fvc?: number;
   baseline_pef_lmin?: number;
@@ -158,13 +179,14 @@ export interface CreatePatientInput {
   baseline_rr?: number;
   controller_medication?: string;
   controller_adherence?: number;
+  reported_adherence?: number;
   smoking_status?: string;
   pack_years?: number;
   copd_status?: boolean;
   comorbidity_burden?: number;
   flare_ups_last_year?: number;
   hospitalized?: boolean;
-  allergens?: string;
+  allergens?: string[] | string;
 }
 
 const CUSTOM_PATIENTS_KEY = 'digi_custom_patients';
@@ -209,15 +231,20 @@ export async function createPatient(input: CreatePatientInput): Promise<Patient>
 
   // Resilient fallback: synthesize digital twin client-side if backend is offline
   const randId = `PT-${Math.floor(1000 + Math.random() * 9000)}`;
-  const adherence = input.controller_adherence ?? 75;
+  const adherence = input.reported_adherence ?? input.controller_adherence ?? 75;
   const fev1 = input.baseline_fev1_pct ?? 70;
-  const isHighRisk = fev1 < 60 || adherence < 50 || input.smoking_status === 'Active';
+  const isHighRisk = fev1 < 60 || adherence < 50 || input.smoking_status === 'Active' || input.smoking_status === 'Current';
   const risk48h = isHighRisk ? 72.0 : 18.5;
   const riskLevel = risk48h >= 70 ? 'HIGH RISK' : risk48h >= 50 ? 'ELEVATED' : 'NORMAL';
+  const parsedAllergens = Array.isArray(input.allergens)
+    ? input.allergens
+    : input.allergens
+    ? input.allergens.split(',').map((s) => s.trim())
+    : ['Dust Mites', 'PM2.5 Smog'];
 
   const syntheticPatient: Patient = {
     id: randId,
-    name: input.name,
+    name: input.name || `Synthetic Twin · ${input.city.slice(0, 3).toUpperCase()}-${randId.slice(-3)}`,
     age: input.age,
     gender: (input.gender === 'Female' ? 'F' : 'M'),
     city: input.city,
@@ -231,14 +258,29 @@ export async function createPatient(input: CreatePatientInput): Promise<Patient>
     baselineFEV1FVC: Math.round((input.baseline_fev1_fvc ?? 0.72) * 100),
     baselineRR: input.baseline_rr ?? 16,
     baselineRHR: input.baseline_resting_hr ?? 74,
-    allergens: input.allergens ? input.allergens.split(',').map(s => s.trim()) : ['Dust Mites', 'Vehicle Exhaust'],
-    smokingHistory: input.smoking_status === 'Active' ? `Active Smoker (${input.pack_years || 5} pack-years)` : 'Never Smoked',
+    allergens: parsedAllergens,
+    smokingHistory: input.smoking_status === 'Active' || input.smoking_status === 'Current' ? `Current Smoker (${input.pack_years || 5} pack-years)` : input.smoking_status === 'Former' ? `Former Smoker (${input.pack_years || 5} pack-years)` : 'Never Smoked',
     comorbidities: input.copd_status ? ['COPD', 'Hypertension'] : ['None'],
     flareUpsLastYear: input.flare_ups_last_year ?? 1,
+    simulatedDeviceProfile: input.simulated_device_profile ?? 'typical',
+    learningBaseline: {
+      active: true,
+      currentDay: 1,
+      totalCalibrationDays: 7,
+      statusLabel: 'LEARNING PERSONAL BASELINE (DAY 1 OF 7)',
+      uncertaintyHalfWidthPct: 22.0,
+      simulatedDeviceProfile: input.simulated_device_profile ?? 'typical',
+      convergenceSchedule: [
+        { day: 1, label: 'Day 1', bandHalfWidth: 22, status: 'Wide initial conformal band (cold-start)' },
+        { day: 3, label: 'Day 3', bandHalfWidth: 16, status: 'Adapting to nocturnal RR & HRV rhythm' },
+        { day: 5, label: 'Day 5', bandHalfWidth: 11, status: 'Personal physiological baseline converging' },
+        { day: 7, label: 'Day 7', bandHalfWidth: 7, status: 'Fully calibrated conformal interval' },
+      ],
+    },
     risk24h: +(risk48h * 0.85).toFixed(1),
-    risk24hInterval: [Math.max(0, Math.round(risk48h * 0.7)), Math.min(100, Math.round(risk48h * 0.95))],
+    risk24hInterval: [Math.max(0, Math.round(risk48h * 0.85 - 20)), Math.min(100, Math.round(risk48h * 0.85 + 20))],
     risk48h,
-    risk48hInterval: [Math.max(0, Math.round(risk48h * 0.8)), Math.min(100, Math.round(risk48h * 1.15))],
+    risk48hInterval: [Math.max(0, Math.round(risk48h - 22)), Math.min(100, Math.round(risk48h + 22))],
     riskLevel,
     activeAlert: risk48h >= 70,
     alertHeadline: risk48h >= 70 ? 'Acute 48h flare-up risk elevation predicted' : 'Airway physiology stable; within baseline bounds',
@@ -532,6 +574,7 @@ export interface DatabaseStatus {
     clinical_events: number;
     timeseries_telemetry: number;
     patient_daily_logs: number;
+    user_accounts?: number;
   };
 }
 
@@ -542,6 +585,82 @@ export async function getDatabaseStatus(): Promise<DatabaseStatus | null> {
     if (res.ok) return await res.json();
   } catch {}
   return null;
+}
+
+export interface AuthUserAccount {
+  id: number;
+  email: string;
+  full_name: string;
+  role: 'doctor' | 'patient';
+  patient_id: string | null;
+  license_or_clinic: string | null;
+  is_verified: boolean;
+  verification_code?: string;
+  created_at?: string;
+}
+
+export async function signupUserAccount(payload: {
+  email: string;
+  full_name: string;
+  role: 'doctor' | 'patient';
+  password: string;
+  patient_id?: string;
+  license_or_clinic?: string;
+}): Promise<{ status: string; message: string; account: AuthUserAccount }> {
+  const res = await fetch(`${API_BASE}/auth/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || 'Sign up failed');
+  }
+  return data;
+}
+
+export async function verifyUserAccount(payload: {
+  email: string;
+  verification_code: string;
+}): Promise<{ status: string; message: string; account: AuthUserAccount }> {
+  const res = await fetch(`${API_BASE}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || 'Verification failed');
+  }
+  return data;
+}
+
+export async function loginUserAccount(payload: {
+  email: string;
+  password: string;
+  role: 'doctor' | 'patient';
+}): Promise<{ status: string; message: string; account: AuthUserAccount }> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.detail || 'Login failed');
+  }
+  return data;
+}
+
+export async function getRegisteredAccounts(): Promise<AuthUserAccount[]> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/users`, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      return data.users || [];
+    }
+  } catch {}
+  return [];
 }
 
 export interface PatientDailyLogPayload {
@@ -736,4 +855,5 @@ export async function askPatientForecastChat(
     ],
   };
 }
+
 

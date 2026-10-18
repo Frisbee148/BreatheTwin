@@ -1,5 +1,15 @@
 # DigitalTwin
 
+## Login Credentials
+
+| Role | Email | Password | Access Scope |
+| :--- | :--- | :--- | :--- |
+| **Doctor / Clinician** | `doctor@synclave.health` | `doctor123` | Full Cohort, Latent ODE Telemetry, 24h & 48h Conformal Risk, SHAP Attributions, Benchmarks |
+| **Patient (Alex Rivera / PT-8821)** | `patient0@synclave.health` | `patient123` | Personal Patient Portal only: Plain-language status (Low/Watch/High), 48h Outlook, Simplified Signals, What-If, Check-in Log, Care Plan, RAG Chat |
+| **Patient (Maya Lin / PT-4410)** | `patient12@synclave.health` | `patient123` | Personal Patient Portal only (Patient PT-4410) |
+
+All user records are persisted and authenticated against the PostgreSQL database (`user_accounts` table).
+
 ## Patient Copilot Reports
 
 The Forecast page can request a patient-specific report from

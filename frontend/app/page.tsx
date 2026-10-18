@@ -132,25 +132,13 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Primary Dual-Interface Buttons */}
-            <div className="flex flex-wrap gap-3 pt-1">
-              <Link
-                href="/patients"
-                className="h-12 px-6 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-white dark:text-[#020A05] bg-[#4CFF8A] hover:bg-transparent hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-[0_0_16px_rgba(76,255,138,0.35)]"
-              >
-                DOCTOR DASHBOARD &gt;
-              </Link>
-              <Link
-                href="/patient-portal"
-                className="h-12 px-6 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-[#4CFF8A] bg-[#04130A] hover:bg-[#4CFF8A] hover:text-[#020A05] transition-all flex items-center justify-center cursor-pointer"
-              >
-                PATIENT PORTAL &gt;
-              </Link>
+            {/* Primary Action Button */}
+            <div className="pt-2">
               <Link
                 href="/login"
-                className="h-12 px-5 text-xs sm:text-sm uppercase tracking-wider font-semibold border border-[#12612F] text-white hover:border-[#4CFF8A] hover:text-[#5CFF95] transition-colors flex items-center justify-center bg-[#04130A] cursor-pointer"
+                className="inline-flex h-12 px-8 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-white dark:text-[#020A05] bg-[#4CFF8A] hover:bg-transparent hover:text-white transition-all items-center justify-center cursor-pointer shadow-[0_0_16px_rgba(76,255,138,0.35)]"
               >
-                DUAL LOGIN
+                GO TO LOGIN &rarr;
               </Link>
             </div>
 

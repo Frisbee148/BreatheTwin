@@ -12,15 +12,25 @@ export interface AuthSession {
   name: string;
   subtitle: string;
   patientId?: string; // Set when role === 'patient'
+  isLoggedIn: boolean;
 }
 
 const AUTH_STORAGE_KEY = 'breathtwin_auth_session_v1';
+
+export const GUEST_SESSION: AuthSession = {
+  role: 'doctor',
+  userId: '',
+  name: '',
+  subtitle: '',
+  isLoggedIn: false,
+};
 
 export const DEFAULT_DOCTOR_SESSION: AuthSession = {
   role: 'doctor',
   userId: 'DOC-101',
   name: 'Dr. Vikram Mehta, MD',
   subtitle: 'Senior Pulmonologist • All-Cohort Access',
+  isLoggedIn: true,
 };
 
 export function createPatientSession(patientId: string): AuthSession {
@@ -31,6 +41,7 @@ export function createPatientSession(patientId: string): AuthSession {
     name: found.name,
     subtitle: `${found.city} • Personal Asthma Twin`,
     patientId: found.id,
+    isLoggedIn: true,
   };
 }
 
@@ -39,19 +50,21 @@ interface AuthContextValue {
   isHydrated: boolean;
   loginAsDoctor: (customName?: string) => void;
   loginAsPatient: (patientId: string, customName?: string) => void;
+  logout: () => void;
   switchRoleQuick: (role: UserRole, patientId?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
-  session: DEFAULT_DOCTOR_SESSION,
+  session: GUEST_SESSION,
   isHydrated: false,
   loginAsDoctor: () => {},
   loginAsPatient: () => {},
+  logout: () => {},
   switchRoleQuick: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<AuthSession>(DEFAULT_DOCTOR_SESSION);
+  const [session, setSession] = useState<AuthSession>(GUEST_SESSION);
   const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -62,7 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         const parsed = JSON.parse(raw) as AuthSession;
         if (parsed && (parsed.role === 'doctor' || parsed.role === 'patient')) {
-          setSession(parsed);
+          setSession({
+            ...parsed,
+            isLoggedIn: parsed.isLoggedIn ?? true,
+          });
         }
       }
     } catch (err) {
@@ -72,10 +88,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Enforce strict role guardrails: Patients can only view their own portal (/patient-portal, /login, /)
+  // Strict role guardrails & authentication protection
   useEffect(() => {
     if (!isHydrated) return;
-    if (session.role === 'patient') {
+
+    // Protected routes requiring authentication
+    const isProtectedRoute =
+      pathname.startsWith('/patients') ||
+      pathname.startsWith('/patient-portal') ||
+      pathname.startsWith('/patient-preview') ||
+      pathname.startsWith('/benchmarks') ||
+      pathname.startsWith('/assumptions');
+
+    if (!session.isLoggedIn && isProtectedRoute) {
+      router.replace('/login');
+      return;
+    }
+
+    if (session.isLoggedIn && session.role === 'patient') {
       const isDoctorOnlyRoute =
         pathname.startsWith('/patients') ||
         pathname.startsWith('/benchmarks') ||
@@ -101,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const next: AuthSession = {
       ...DEFAULT_DOCTOR_SESSION,
       name: customName?.trim() ? customName.trim() : DEFAULT_DOCTOR_SESSION.name,
+      isLoggedIn: true,
     };
     persistSession(next);
   };
@@ -110,8 +141,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const next: AuthSession = {
       ...base,
       name: customName?.trim() ? customName.trim() : base.name,
+      isLoggedIn: true,
     };
     persistSession(next);
+  };
+
+  const logout = () => {
+    setSession(GUEST_SESSION);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      } catch (err) {
+        console.warn('Failed to clear auth session:', err);
+      }
+    }
+    router.push('/login');
   };
 
   const switchRoleQuick = (role: UserRole, patientId?: string) => {
@@ -134,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isHydrated,
         loginAsDoctor,
         loginAsPatient,
+        logout,
         switchRoleQuick,
       }}
     >

@@ -5,11 +5,47 @@
 ▲ Next.js 16.4.0 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.1.30:3000
-✓ Ready in 1002ms
-✓ Running next.config.ts took 62ms
+✓ Ready in 948ms
+✓ Running next.config.ts took 83ms
 
- GET / 200 in 931ms (next.js: 367ms, application-code: 564ms)
- GET /patient-portal 200 in 86ms (next.js: 25ms, application-code: 61ms)
- GET /login 200 in 58ms (next.js: 17ms, application-code: 41ms)
- GET /patients 200 in 59ms (next.js: 17ms, application-code: 43ms)
- GET /patients/PATIENT_0009 200 in 1040ms (next.js: 19ms, generate-params: 833ms, application-code: 188ms)
+ GET /patient-portal 200 in 783ms (next.js: 323ms, application-code: 461ms)
+ GET / 200 in 269ms (next.js: 17ms, application-code: 252ms)
+ GET / 200 in 95ms (next.js: 3ms, application-code: 92ms)
+ GET /login 200 in 106ms (next.js: 14ms, application-code: 92ms)
+ GET /login? 200 in 96ms (next.js: 4ms, application-code: 91ms)
+ GET /login? 200 in 78ms (next.js: 3ms, application-code: 75ms)
+ GET /login? 200 in 73ms (next.js: 1.9ms, application-code: 71ms)
+ GET /login? 200 in 90ms (next.js: 1.8ms, application-code: 88ms)
+ GET / 200 in 60ms (next.js: 13ms, application-code: 48ms)
+ GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
+ GET /patient-portal 200 in 89ms (next.js: 9ms, application-code: 80ms)
+ GET /patients 200 in 56ms (next.js: 14ms, application-code: 42ms)
+ GET / 200 in 36ms (next.js: 3ms, application-code: 33ms)
+ GET /login 200 in 43ms (next.js: 3ms, application-code: 40ms)
+ GET /patients 200 in 43ms (next.js: 3ms, application-code: 40ms)
+ GET / 200 in 39ms (next.js: 5ms, application-code: 34ms)
+⚠ Fast Refresh had to perform a full reload when ./lib/auth.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+✓ Compiled in 70ms
+ GET / 200 in 101ms (next.js: 6ms, application-code: 96ms)
+✓ Compiled in 159ms
+✓ Compiled in 88ms
+✓ Compiled in 112ms
+ GET / 200 in 124ms (next.js: 3ms, application-code: 122ms)
+ GET /login 200 in 41ms (next.js: 5ms, application-code: 36ms)
+ GET /patients 200 in 40ms (next.js: 6ms, application-code: 35ms)
+ GET /login 200 in 84ms (next.js: 3ms, application-code: 81ms)
+ GET /login 200 in 42ms (next.js: 4ms, application-code: 38ms)
+ GET / 200 in 34ms (next.js: 3ms, application-code: 31ms)
+ GET /login 200 in 41ms (next.js: 3ms, application-code: 39ms)
+ GET /patients 200 in 35ms (next.js: 3ms, application-code: 33ms)
+ GET /patients/PATIENT_0010 200 in 1136ms (next.js: 20ms, generate-params: 945ms, application-code: 171ms)
+ GET /patients/PATIENT_0010/forecast 200 in 1116ms (next.js: 20ms, generate-params: 920ms, application-code: 177ms)
+ GET /patients/PATIENT_0010/what-if 200 in 1063ms (next.js: 20ms, generate-params: 876ms, application-code: 168ms)
+ GET /login 200 in 39ms (next.js: 3ms, application-code: 36ms)
+ GET /login 200 in 38ms (next.js: 2ms, application-code: 36ms)
+ GET /patient-portal 200 in 41ms (next.js: 4ms, application-code: 37ms)
+✓ Compiled in 66ms
+ GET /patient-portal 200 in 51ms (next.js: 3ms, application-code: 48ms)
+✓ Compiled in 81ms
+✓ Compiled in 67ms
+✓ Compiled in 69ms

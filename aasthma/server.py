@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -23,6 +23,11 @@ from aasthma.database import (
     get_patient_telemetry_series,
     add_patient_daily_log,
     get_patient_daily_logs,
+    ensure_auth_tables_and_seed,
+    signup_user_account,
+    verify_user_account,
+    login_user_account,
+    list_user_accounts,
 )
 
 from contextlib import asynccontextmanager
@@ -37,6 +42,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     global engine
     print("[BreathTwin API] Initializing neural digital twin model and preprocessors...")
+    try:
+        ensure_auth_tables_and_seed()
+    except Exception as exc:
+        logger.warning("Could not seed PostgreSQL auth tables at startup: %s", exc)
     engine = InferenceEngine()
     print("[BreathTwin API] Model loaded successfully. Service ready on port 8000.")
     yield
@@ -96,29 +105,55 @@ class PatientChatRequest(BaseModel):
     history: Optional[List[Dict[str, str]]] = Field(default=None, description="Prior conversation messages")
 
 
+class AuthSignupRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    full_name: str = Field(..., min_length=2, max_length=255)
+    role: str = Field(..., pattern="^(doctor|patient)$")
+    password: str = Field(..., min_length=4, max_length=128)
+    patient_id: Optional[str] = Field(default="0", description="Assigned patient profile ID for patient accounts")
+    license_or_clinic: Optional[str] = Field(default=None, description="Medical license or clinic / care plan")
+
+
+class AuthVerifyRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    verification_code: str = Field(..., min_length=4, max_length=16)
+
+
+class AuthLoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=255)
+    password: str = Field(..., min_length=1, max_length=128)
+    role: str = Field(..., pattern="^(doctor|patient)$")
+
 
 class CreatePatientRequest(BaseModel):
-    name: str = Field(default="New Patient", description="Full name of patient")
+    name: Optional[str] = Field(default=None, description="Optional synthetic label; auto-generated if omitted")
     age: int = Field(default=40, ge=5, le=105)
-    gender: str = Field(default="Male")
+    gender: str = Field(default="Male", description="Biological sex (Male/Female)")
     city: str = Field(default="New Delhi")
     station: Optional[str] = None
     asthma_severity: str = Field(default="Moderate_Persistent")
+    simulated_device_profile: str = Field(
+        default="typical",
+        description="Simulated wearable stream profile: typical, restless_sleeper, or low_activity",
+    )
     baseline_fev1_pct: float = Field(default=72.0, ge=20.0, le=120.0)
-    baseline_fev1_fvc: float = Field(default=0.72, ge=0.3, le=1.0)
-    baseline_pef_lmin: float = Field(default=380.0, ge=100.0, le=800.0)
-    baseline_spo2: float = Field(default=95.0, ge=80.0, le=100.0)
-    baseline_resting_hr: int = Field(default=74, ge=45, le=140)
-    baseline_rr: int = Field(default=16, ge=8, le=40)
+    baseline_fev1_fvc: Optional[float] = Field(default=None, ge=0.3, le=1.0)
+    baseline_pef_lmin: Optional[float] = Field(default=None, ge=100.0, le=800.0)
+    baseline_spo2: Optional[float] = Field(default=None, ge=80.0, le=100.0)
+    baseline_resting_hr: Optional[int] = Field(default=None, ge=45, le=140)
+    baseline_rr: Optional[int] = Field(default=None, ge=8, le=40)
     controller_medication: str = Field(default="Budesonide_Formoterol_200_6")
-    controller_adherence: int = Field(default=75, ge=0, le=100)
+    controller_adherence: Optional[int] = Field(default=None, ge=0, le=100)
+    reported_adherence: Optional[int] = Field(default=75, ge=0, le=100)
     smoking_status: str = Field(default="Never")
     pack_years: int = Field(default=0, ge=0, le=100)
     copd_status: bool = False
     comorbidity_burden: int = Field(default=1, ge=0, le=5)
     flare_ups_last_year: int = Field(default=1, ge=0, le=20)
     hospitalized: bool = False
-    allergens: Optional[str] = "Dust Mites, Vehicle Exhaust"
+    allergens: Optional[Union[List[str], str]] = Field(
+        default_factory=lambda: ["Dust Mites", "PM2.5 Smog"]
+    )
 
 
 # Routes
@@ -134,6 +169,72 @@ def health_check():
         "simulation_clock": global_clock.get_time_info(),
         "model_loaded": engine is not None,
     }
+
+
+@app.post("/api/auth/signup")
+def api_auth_signup(req: AuthSignupRequest):
+    """Registers a Doctor or Patient account in PostgreSQL and generates a 6-digit verification code."""
+    try:
+        account = signup_user_account(
+            email=req.email,
+            full_name=req.full_name,
+            role=req.role,
+            password=req.password,
+            patient_id=req.patient_id,
+            license_or_clinic=req.license_or_clinic,
+        )
+        return {
+            "status": "verification_required",
+            "message": f"Verification code generated for {account['email']}. Enter the 6-digit code to activate your account.",
+            "account": account,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PostgreSQL signup error: {exc}") from exc
+
+
+@app.post("/api/auth/verify")
+def api_auth_verify(req: AuthVerifyRequest):
+    """Verifies a Doctor or Patient account using the 6-digit verification code stored in PostgreSQL."""
+    try:
+        account = verify_user_account(email=req.email, verification_code=req.verification_code)
+        return {
+            "status": "verified",
+            "message": "Account verified in PostgreSQL.",
+            "account": account,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PostgreSQL verification error: {exc}") from exc
+
+
+@app.post("/api/auth/login")
+def api_auth_login(req: AuthLoginRequest):
+    """Authenticates a verified Doctor or Patient account from PostgreSQL."""
+    try:
+        account = login_user_account(email=req.email, password=req.password, role=req.role)
+        return {
+            "status": "authenticated",
+            "message": f"Logged in as {account['role']}",
+            "account": account,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"PostgreSQL login error: {exc}") from exc
+
+
+@app.get("/api/auth/users")
+def api_auth_users():
+    """Returns registered accounts stored in PostgreSQL."""
+    try:
+        users = list_user_accounts()
+        return {"count": len(users), "users": users}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to list PostgreSQL accounts: {exc}") from exc
+
 
 
 @app.get("/api/clock")
@@ -331,7 +432,8 @@ def get_patient_telemetry(
 def simulate_counterfactual(req: WhatIfRequest):
     """
     Runs mechanistic counterfactual What-If simulation by numerically integrating
-    the latent airway inflammation differential equation and re-scoring neural risk (PRD FR-7).
+    the latent airway inflammation differential equation and re-scoring neural risk
+    via Dilated TCN + XGBoost -> MLP Meta-Learner (PRD FR-7).
     """
     result = simulator.simulate_what_if(
         base_risk_48h=req.base_risk_48h,
@@ -343,6 +445,9 @@ def simulate_counterfactual(req: WhatIfRequest):
         target_adherence_pct=req.target_adherence_pct,
         hepa_purifier=req.hepa_purifier,
         horizon_hours=req.horizon_hours,
+        engine=engine,
+        patient_id=req.patient_id,
+        eval_hour=global_clock.current_hour,
     )
     return result
 

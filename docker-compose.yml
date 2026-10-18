@@ -1,0 +1,23 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: breathtwin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-synclave}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-synclave}
+      POSTGRES_DB: ${POSTGRES_DB:-breathtwin}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - breathtwin_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-synclave} -d ${POSTGRES_DB:-breathtwin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  breathtwin_pgdata:

@@ -5,6 +5,11 @@ if [ -f ".env" ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
+# Ensure Docker PostgreSQL is running
+if command -v docker >/dev/null 2>&1; then
+  docker compose up -d >/dev/null 2>&1 || true
+fi
+
 # Start backend
 nohup env PYTHONPATH=. aasthma/.venv/bin/uvicorn aasthma.server:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
 BACKEND_PID=$!

@@ -338,3 +338,180 @@ def test_patient_rag_chat_endpoint_and_guardrails(client):
     assert "cannot recommend changing" in med_body["answer"].lower()
     assert "%" not in med_body["answer"]
 
+
+def test_postgres_dual_auth_signup_verify_and_login(client):
+    import uuid
+    unique_tag = uuid.uuid4().hex[:8]
+    doc_email = f"dr.{unique_tag}@synclave.health"
+    pat_email = f"pt.{unique_tag}@synclave.health"
+
+    # 1. Doctor Sign Up -> stores unverified entry in PostgreSQL with 6-digit verification code
+    res_doc_signup = client.post(
+        "/api/auth/signup",
+        json={
+            "email": doc_email,
+            "full_name": "Dr. Test Pulmonologist",
+            "role": "doctor",
+            "password": "docpass123",
+            "license_or_clinic": "MD-TEST-100",
+        },
+    )
+    assert res_doc_signup.status_code == 200
+    doc_signup_body = res_doc_signup.json()
+    assert doc_signup_body["status"] == "verification_required"
+    doc_code = doc_signup_body["account"]["verification_code"]
+    assert len(doc_code) == 6
+    assert doc_signup_body["account"]["is_verified"] is False
+
+    # Unverified login should be rejected
+    res_unverified = client.post(
+        "/api/auth/login",
+        json={"email": doc_email, "password": "docpass123", "role": "doctor"},
+    )
+    assert res_unverified.status_code == 401
+
+    # 2. Verify Doctor Code in PostgreSQL
+    res_doc_verify = client.post(
+        "/api/auth/verify",
+        json={"email": doc_email, "verification_code": doc_code},
+    )
+    assert res_doc_verify.status_code == 200
+    assert res_doc_verify.json()["account"]["is_verified"] is True
+
+    # 3. Doctor Login succeeds
+    res_doc_login = client.post(
+        "/api/auth/login",
+        json={"email": doc_email, "password": "docpass123", "role": "doctor"},
+    )
+    assert res_doc_login.status_code == 200
+    assert res_doc_login.json()["account"]["role"] == "doctor"
+
+    # 4. Patient Sign Up, Verify, and Login in PostgreSQL
+    res_pat_signup = client.post(
+        "/api/auth/signup",
+        json={
+            "email": pat_email,
+            "full_name": "Test Patient User",
+            "role": "patient",
+            "password": "patpass123",
+            "patient_id": "PT-8821",
+        },
+    )
+    assert res_pat_signup.status_code == 200
+    pat_code = res_pat_signup.json()["account"]["verification_code"]
+
+    res_pat_verify = client.post(
+        "/api/auth/verify",
+        json={"email": pat_email, "verification_code": pat_code},
+    )
+    assert res_pat_verify.status_code == 200
+    assert res_pat_verify.json()["account"]["is_verified"] is True
+
+    res_pat_login = client.post(
+        "/api/auth/login",
+        json={"email": pat_email, "password": "patpass123", "role": "patient"},
+    )
+    assert res_pat_login.status_code == 200
+    assert res_pat_login.json()["account"]["patient_id"] == "PT-8821"
+
+
+def test_new_patient_enrollment_runs_full_tcn_xgboost_mlp_ensemble_and_learning_baseline(client):
+    # Enroll a new synthetic patient using the simplified 10-field 2-step payload
+    # (no name, no wearable SpO2/HR/RR inputs, optional fev1_fvc/pef, simulated_device_profile)
+    res = client.post(
+        "/api/patients",
+        json={
+            "age": 38,
+            "gender": "Female",
+            "city": "New Delhi",
+            "asthma_severity": "Severe_Persistent",
+            "simulated_device_profile": "restless_sleeper",
+            "baseline_fev1_pct": 58.0,
+            "controller_medication": "Budesonide_Formoterol_200_6",
+            "reported_adherence": 42,
+            "flare_ups_last_year": 4,
+            "hospitalized": True,
+            "smoking_status": "Former",
+            "pack_years": 9,
+            "allergens": ["PM2.5 Smog", "Dust Mites", "Cold Air"],
+        },
+    )
+    assert res.status_code == 201
+    new_patient = res.json()
+
+    # Auto-generated synthetic ID and label
+    assert new_patient["id"].startswith("PT-")
+    assert "Synthetic" in new_patient["name"]
+    assert new_patient["simulatedDeviceProfile"] == "restless_sleeper"
+
+    # Must execute all 3 model stages (Dilated TCN + XGBoost -> MLP Meta-Learner)
+    assert "basePredictions" in new_patient
+    bp = new_patient["basePredictions"]
+    assert "tcnRisk48h" in bp
+    assert "xgbRisk48h" in bp
+    assert "mlpRisk48h" in bp
+    assert new_patient["risk48h"] == bp["mlpRisk48h"]
+
+    # Automatic What-If preview generated during predict_patient
+    assert "whatIfPreview" in new_patient
+    assert "simulated_risk_48h" in new_patient["whatIfPreview"]
+
+    # FR-16 Learning Baseline with wide uncertainty bands narrowing over Days 1-7
+    assert "learningBaseline" in new_patient
+    lb = new_patient["learningBaseline"]
+    assert lb["active"] is True
+    assert lb["day"] == 1
+    assert lb["bandHalfWidthPct"] >= 18.0
+    assert len(lb["uncertaintySchedule"]) == 7
+    assert lb["uncertaintySchedule"][0]["halfWidthPct"] > lb["uncertaintySchedule"][-1]["halfWidthPct"]
+
+    # Subsequent detail lookup and cohort prediction must NOT crash
+    res_detail = client.get(f"/api/patients/{new_patient['id']}")
+    assert res_detail.status_code == 200
+    assert res_detail.json()["id"] == new_patient["id"]
+
+
+def test_what_if_endpoint_re_runs_dilated_tcn_xgboost_mlp_meta_learner(client):
+    res_high_exposure = client.post(
+        "/api/what-if",
+        json={
+            "patient_id": "PT-8821",
+            "base_risk_48h": 82.0,
+            "base_inflammation": 0.84,
+            "current_pm25": 240.0,
+            "current_adherence_pct": 55.0,
+            "outdoor_hours": 5.0,
+            "wear_n95": False,
+            "target_adherence_pct": 40.0,
+            "hepa_purifier": False,
+        },
+    )
+    assert res_high_exposure.status_code == 200
+    high_body = res_high_exposure.json()
+
+    res_protected = client.post(
+        "/api/what-if",
+        json={
+            "patient_id": "PT-8821",
+            "base_risk_48h": 82.0,
+            "base_inflammation": 0.84,
+            "current_pm25": 240.0,
+            "current_adherence_pct": 55.0,
+            "outdoor_hours": 0.5,
+            "wear_n95": True,
+            "target_adherence_pct": 100.0,
+            "hepa_purifier": True,
+        },
+    )
+    assert res_protected.status_code == 200
+    prot_body = res_protected.json()
+
+    assert "modelBreakdown" in prot_body
+    mb = prot_body["modelBreakdown"]
+    assert mb["scoringEngine"] == "Dilated_TCN_XGBoost_MLP_MetaLearner"
+    assert "tcn48h" in mb and "xgboost48h" in mb and "mlpMeta48h" in mb
+    assert len(prot_body.get("trajectoryPoints", [])) >= 5
+    assert prot_body["simulated_risk_48h"] < high_body["simulated_risk_48h"]
+
+
+
