@@ -79,8 +79,9 @@ export default function PatientAdaptationView({
   const [patientLogs, setPatientLogs] = useState<PatientDailyLogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
 
-  const [epochs, setEpochs] = useState<number>(14);
-  const [ewcLambda, setEwcLambda] = useState<number>(85);
+  // Standard Calibrated Adaptation Parameters
+  const STANDARD_EPOCHS = 14;
+  const STANDARD_EWC_LAMBDA = 85;
 
   useEffect(() => {
     let mounted = true;
@@ -162,7 +163,7 @@ export default function PatientAdaptationView({
     if (!noteText.trim()) return;
     setIsAdapting(true);
     try {
-      const summary = await adaptOutlierModel(patientId, noteText, epochs, ewcLambda);
+      const summary = await adaptOutlierModel(patientId, noteText, STANDARD_EPOCHS, STANDARD_EWC_LAMBDA);
       setAdaptationResult(summary);
       const updatedSim = summary.updatedSimulation;
       if (updatedSim) {
@@ -446,36 +447,22 @@ export default function PatientAdaptationView({
               forgetting.
             </p>
 
-            <div className="grid grid-cols-2 gap-3 mb-4 text-xs font-mono">
-              <div className="bg-[#F6FBF7] dark:bg-[#061C0E] border border-[#B4E3C5] dark:border-[#12612F] p-2.5">
-                <label htmlFor="adapt-epochs" className="block text-[10px] text-[#0A602F] dark:text-[#2FBF63] mb-1 font-semibold">
-                  FINE-TUNING EPOCHS: <span className="text-[#0E793C] dark:text-[#4CFF8A] font-bold">{epochs}</span>
-                </label>
-                <input
-                  id="adapt-epochs"
-                  type="range"
-                  min={6}
-                  max={30}
-                  value={epochs}
-                  onChange={(e) => setEpochs(Number(e.target.value))}
-                  className="w-full accent-[#0E793C] dark:accent-[#4CFF8A]"
-                />
+            {/* Standard Calibrated Retraining Guardrails */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 mb-4 bg-[#F6FBF7] dark:bg-[#061C0E] border border-[#B4E3C5] dark:border-[#12612F] text-xs font-mono">
+              <div className="flex items-center gap-3">
+                <div>
+                  <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Fine-Tuning: </span>
+                  <span className="text-[#0E793C] dark:text-[#4CFF8A] font-bold">{STANDARD_EPOCHS} Epochs</span>
+                </div>
+                <span className="text-[#B4E3C5] dark:text-[#12612F]">•</span>
+                <div>
+                  <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">EWC Anchor Guardrail (λ): </span>
+                  <span className="text-[#0E793C] dark:text-[#4CFF8A] font-bold">{STANDARD_EWC_LAMBDA}</span>
+                </div>
               </div>
-              <div className="bg-[#F6FBF7] dark:bg-[#061C0E] border border-[#B4E3C5] dark:border-[#12612F] p-2.5">
-                <label htmlFor="adapt-ewc" className="block text-[10px] text-[#0A602F] dark:text-[#2FBF63] mb-1 font-semibold">
-                  EWC ANCHOR LAMBDA (λ): <span className="text-[#0E793C] dark:text-[#4CFF8A] font-bold">{ewcLambda}</span>
-                </label>
-                <input
-                  id="adapt-ewc"
-                  type="range"
-                  min={20}
-                  max={200}
-                  step={5}
-                  value={ewcLambda}
-                  onChange={(e) => setEwcLambda(Number(e.target.value))}
-                  className="w-full accent-[#0E793C] dark:accent-[#4CFF8A]"
-                />
-              </div>
+              <span className="text-[10px] font-semibold text-[#0E793C] dark:text-[#4CFF8A] bg-[#EAF8EF] dark:bg-[#0E793C]/20 px-2 py-0.5 border border-[#0E793C]/30">
+                STANDARD CALIBRATION
+              </span>
             </div>
 
             <button

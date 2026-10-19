@@ -1,4 +1,4 @@
-# BreathTwin (DigitalTwin): Multimodal Mechanistic-Neural Digital Twin for 24–48 Hour Asthma Flare-Up Forecasting
+# BreathTwin
 
 > **Documentation Standard**: Written in compliance with **ASD-STE100 (Simplified Technical English, 70% Domain Adaptation)**. Sentences use active voice, direct technical terminology, and bounded clause length while retaining standard clinical and machine learning nomenclature.
 
@@ -11,7 +11,7 @@ All mandatory items required by the repository submission form are included and 
 | # | Mandatory Submission Item | Status | Repository Section / Public File Link |
 | :--- | :--- | :--- | :--- |
 | 1 | **Team Details** | Included | [Section 1: Team Details](#1-team-details) |
-| 2 | **College / Incubator Information** | Included | [Section 2: College and Incubator Information](#2-college-and-incubator-information) |
+| 2 | **College Information** | Included | [Section 2: College Information](#2-college-information) |
 | 3 | **Project Title** | Included | [Section 3: Project Title](#3-project-title) |
 | 4 | **Problem Statement** | Included | [Section 4: Problem Statement](#4-problem-statement) |
 | 5 | **Healthcare Use Case** | Included | [Section 5: Healthcare Use Case](#5-healthcare-use-case) |
@@ -27,32 +27,36 @@ All mandatory items required by the repository submission form are included and 
 
 ## 1. Team Details
 
-- **Team Name**: Team DigiTwin (`BreathTwin`)
+- **Submission Project Name**: `BreathTwin`
+- **Submission Directory / Package Identifier**: `ABAY_LNMIIT/NSUT`
+- **Team Composition**: Inter-College Collaborative Engineering Team (LNMIIT & NSUT)
 - **Repository URL**: `https://github.com/Frisbee148/DigitalTwin`
 
-| Role | Full Name | GitHub Handle | Email / Contact | Primary Responsibility |
-| :--- | :--- | :--- | :--- | :--- |
-| **Team Lead** | Aarush Bhattacharjee | `@AarushBhattacharjee` | `doctor@synclave.health` | System Architecture, Mechanistic ODE Simulator, Product Specification |
-| **ML & Backend Engineer** | Shubhang | `@Frisbee148` | `712shubhang@gmail.com` | Dilated TCN + XGBoost + MLP Stacking Ensemble, FastAPI Backend, PostgreSQL |
-| **AI & Full-Stack Engineer** | Rakshit Gupta | `@rakshitgupta121` | `rakshitsir123@gmail.com` | Clinical Copilot LLM Pipeline, Next.js 16 Dashboard, 3D Thermal Viewport |
+| Role | Contributor / Profile | Institution | Primary Responsibility |
+| :--- | :--- | :--- | :--- |
+| **Team Lead, AI & Full-Stack Engineer, Backend Architect** | Aarush Bhattacharjee / Frisbee148 (`@Frisbee148`) | The LNM Institute of Information Technology (LNMIIT) | Team Lead; System & Codebase Architecture; Full-Stack Development (Next.js 16, Three.js, WebGL/GLSL); Backend Infrastructure (FastAPI, PostgreSQL 16); Mechanistic ODE Airway Simulator; LLM Clinical Copilot Integration; Experience Replay & Continual Adaptation Pipeline. |
+| **Machine Learning Engineer** | Rakshit Gupta (`@Hobbiskar21`) | Netaji Subhas University of Technology (NSUT) | All Machine Learning Responsibilities; Stage-1A Dilated Temporal Convolutional Network (TCN); Stage-1B XGBoost Multi-Target Suite; Stage-2 Stacking MLP Meta-Learner Architecture; Feature Preprocessing; Benchmark Validation & Conformal Calibration. |
 
 ---
 
-## 2. College and Incubator Information
+## 2. College Information
 
-| Field | Details |
-| :--- | :--- |
-| **Team / Submission Folder Naming** | `DigiTwin` (`TeamName_CollegeName` submission format ready) |
-| **Department / Focus Area** | Department of Computer Science & Pulmonary Health Informatics |
-| **Institution / College** | Indian Institute of Technology / Engineering Institution (Update institution name before final form upload if needed) |
-| **Incubator / Lab Affiliation** | Clinical AI & Digital Health Innovation Lab |
-| **Country** | India |
+This project is an **inter-college engineering collaboration** between two Indian premier technical institutions:
+
+| Attribute | Institution 01 (Lead Contributor) | Institution 02 (ML Contributor) |
+| :--- | :--- | :--- |
+| **Institution Name** | **The LNM Institute of Information Technology (LNMIIT)** | **Netaji Subhas University of Technology (NSUT)** |
+| **Location** | Jaipur, Rajasthan, India | New Delhi, Delhi, India |
+| **Department** | Computer Science & Engineering | Computer Science / Artificial Intelligence |
+| **Submission Directory** | `ABAY_LNMIIT/NSUT` | `ABAY_LNMIIT/NSUT` |
 
 ---
 
 ## 3. Project Title
 
-**BreathTwin (DigitalTwin): A Hybrid Mechanistic-Neural Digital Twin for 24-to-48-Hour Asthma Exacerbation Forecasting and Counterfactual Intervention Simulation**
+**BreathTwin**
+
+*A Multimodal Mechanistic-Neural Digital Twin for 24-to-48-Hour Asthma Flare-Up Forecasting and Counterfactual Intervention Simulation*
 
 BreathTwin constructs a continuous, individualized physiological model of an asthma patient. The system fuses static electronic health records (EHR), 20-channel wearable sensor streams, and real-time ambient air quality telemetry to predict acute asthma flare-ups 24 to 48 hours before severe dyspnea occurs.
 
@@ -76,18 +80,18 @@ BreathTwin converts outpatient asthma care from reactive emergency triage to pro
 ### 5.1 Primary Persona: Treating Doctor (Pulmonologist / Primary-Care Clinician)
 1. **Cohort Risk Triage (`/patients`)**: The doctor opens the clinical dashboard and reviews patients ranked by 48-hour exacerbation probability and severity grade (`Grade 0` to `Grade 3`).
 2. **Physiological Digital Twin Inspection (`/patients/[id]`)**: The doctor inspects the patient's 3D pulmonary twin, bronchial thermal inflammation map, latent inflammation state $I(t)$, and 12-hour multi-sensor deviations against personal rolling baselines.
-3. **Explainable Forecast & Clinical Copilot (`/patients/[id]/forecast`)**: The system displays 24-hour and 48-hour risk probabilities with 90% conformal confidence intervals, ranked SHAP feature attributions, and an AI-generated clinical copilot report.
+3. **Explainable Forecast & Clinical Copilot Report (`/patients/[id]/forecast`)**: The system displays 24-hour and 48-hour risk probabilities with 90% conformal confidence intervals, ranked SHAP feature attributions, and a formal, clinician-reviewed AI Clinical Copilot Report.
 4. **Counterfactual What-If Sandbox (`/patients/[id]/what-if`)**: Before advising the patient, the doctor simulates targeted interventions on the digital twin:
    - **Intervention 01 (Stay Indoors)**: Reduces outdoor exposure hours to cut inhaled $\text{PM}_{2.5}$ dose.
    - **Intervention 02 (Wear N95 Respirator)**: Applies a 95% particulate filtration factor during heavy traffic commutes.
    - **Intervention 03 (HEPA Air Filtration)**: Lowers indoor particulate infiltration from `0.65` to `0.30`.
    - **Intervention 04 (ICS Controller Adherence Step-Up)**: Increases inhaled corticosteroid adherence toward 100% to accelerate mucosal recovery rate $c \cdot \text{Controller}(t)$.
-5. **Unstructured Clinical Note Adaptation (`/patients/[id]/adaptation`)**: The doctor enters free-text clinical notes (such as concurrent typhoid fever, dengue, acute dehydration, or beta-blocker exposure) to dynamically recalibrate physiological baselines and ODE inflammation drivers.
+5. **Unstructured Clinical Note Adaptation (`/patients/[id]/adaptation`)**: The doctor enters free-text clinical notes (such as concurrent typhoid fever, dengue, acute dehydration, or beta-blocker exposure) to dynamically recalibrate physiological baselines, latent ODE inflammation drivers, and trigger continual model retraining.
 
 ### 5.2 Secondary Persona: Asthma Patient (`/patient-portal`)
 1. **Personal Risk & AQI Guidance**: The patient views a plain-language 24–48 hour flare-up summary and local station air quality advisories.
 2. **Daily Self-Reported Outcome (PRO) Logging**: The patient records daily rescue inhaler (`SABA`) puffs, controller adherence, cough, wheeze, and chest tightness into PostgreSQL.
-3. **Interactive Copilot Chat**: The patient asks questions about environmental triggers and breathing exercises within clinician-approved boundaries.
+3. **Clinical Copilot Report Access**: The patient reviews clinician-approved copilot report summaries containing actionable non-pharmacological precautions, environmental triggers to avoid, and personalized breathing exercises.
 
 ---
 
@@ -100,7 +104,8 @@ BreathTwin converts outpatient asthma care from reactive emergency triage to pro
 | **Backend API Server** | Python 3.11+, FastAPI `0.110+`, Uvicorn, Pydantic `2.5+`, HTTPX | REST endpoints, simulation clock replay, schema validation, weather sync |
 | **Deep Learning & Boosting** | PyTorch `2.0+`, XGBoost `2.0+`, scikit-learn `1.3+`, NumPy, Pandas | Stage-1 Dilated TCN, Stage-1 XGBoost Suite, Stage-2 Stacking MLP Meta-Learner |
 | **Mechanistic Simulation** | Custom Euler-Maruyama ODE Solver (`MechanisticSimulator`) | Continuous airway inflammation state $I(t)$ integration and counterfactuals |
-| **Clinical Copilot & NLP** | OpenAI API (`gpt-4o`), Hugging Face `InferenceClient` (`Llama-3.1-8B` / `Qwen2.5`) | Schema-validated clinical reports, patient Q&A, clinical note perturbation extraction |
+| **Clinical Copilot & NLP** | OpenAI API (`gpt-4o`), Hugging Face `InferenceClient` (`Llama-3.1-8B` / `Qwen2.5`) | Schema-validated clinical reports, clinical note perturbation extraction |
+| **Continual Adaptation & EWC** | Elastic Weight Consolidation (EWC), Experience Replay Buffer, PyTorch | Fine-tuning Stage-2 Meta-Learner on LLM-extracted clinical outlier trajectories |
 | **Database & Persistence** | PostgreSQL 16 (`postgres:16-alpine`), SQLAlchemy 2.0, Psycopg 3 | Stores patients, telemetry, clinical events, daily logs, and RBAC accounts |
 | **Environmental Feeds** | CPCB Station Coordinates (70+ Indian cities), Open-Meteo Air Quality API | Real-time and replayed $\text{PM}_{2.5}$, $\text{PM}_{10}$, and AQI telemetry |
 | **Packaging & Testing** | Docker Compose, Pytest `8.0+`, Bash service orchestration (`run.sh`, `stop.sh`) | Reproducible database containerization and automated P0 verification tests |
@@ -109,7 +114,7 @@ BreathTwin converts outpatient asthma care from reactive emergency triage to pro
 
 ## 7. AI/ML Model and Framework Details
 
-BreathTwin uses a **Hybrid Three-Stage Multimodal Architecture** coupled with a **Mechanistic Differential Equation State Estimator**.
+BreathTwin uses a **Hybrid Three-Stage Multimodal Architecture** coupled with a **Mechanistic Differential Equation State Estimator** and an **LLM-Driven Dynamic Feature Extraction & Continual Retraining Pipeline**.
 
 ### 7.1 Mechanistic Airway Inflammation State Estimator (Latent ODE)
 Implemented in [`aasthma/simulation/mechanistic_simulator.py`](aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state $I(t) \in [0.05, 1.0]$ governed by the stochastic differential equation:
@@ -142,7 +147,47 @@ Implemented in [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) (c
   `[tcn_risk_24h, xgboost_risk_24h, tcn_risk_48h, xgboost_risk_48h, tcn_severity_0..3, xgboost_severity_0..3]`
 - Passes the vector through `Linear(12, 32) -> BatchNorm1d -> ReLU -> Dropout(0.2) -> Linear(32, 16) -> ReLU` to produce calibrated multi-horizon probabilities and severity grades in `< 5 ms`.
 
-### 7.5 Held-Out Test Set Performance & Benchmark Comparison
+### 7.5 Dynamic Feature Addition via LLM Extraction and Continual Retraining
+Implemented in [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py) and [`aasthma/inference/inference_engine.py`](aasthma/inference/inference_engine.py):
+
+```
+Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe vomiting, SpO2 91%")
+                                      │
+                                      ▼
+           [Stage-3 Clinical LLM Extraction / Deterministic Ontology Engine]
+                                      │
+            ┌─────────────────────────┴─────────────────────────┐
+            ▼                                                   ▼
+  [Vital Sign Perturbations]                         [Mechanistic ODE Modifiers]
+  • Δ Skin Temp: +2.5 °C                             • Systemic Load (δ_sys): 0.65
+  • Δ Resting HR: +25 bpm                            • Airway Hyperresponsiveness (β_AHR): 1.60
+  • Δ Respiratory Rate: +5 br/min                    • Absorption Efficiency (η_absorb): 0.70
+  • Δ SpO2: -3.2%                                    • Dehydration: mild_dehydration
+            │                                                   │
+            └─────────────────────────┬─────────────────────────┘
+                                      ▼
+             [Dynamic Feature Override & Mechanistic ODE Integration]
+                                      │
+                                      ▼
+             [Doctor Commit to Experience Replay Buffer (PostgreSQL)]
+                                      │
+                                      ▼
+             [Continual Meta-Learner Retraining with EWC Regularization]
+               L_total = L_task + (λ_EWC / 2) · Σ F_i · (θ_i - θ_i,anchor)²
+```
+
+1. **Unstructured Text Extraction**: The clinician submits unstructured observations (e.g., systemic infections like Typhoid fever, Dengue, Malaria, or medication changes such as beta-blocker introduction).
+2. **Physiological Mapping**: The LLM extractor transforms clinical free text into calibrated numerical perturbations:
+   - **Static EHR & History Overrides**: Comorbidity burden increments and primary condition ICD-10 mapping.
+   - **Dynamic Wearable Deltas**: Parametric shifts applied to skin temperature ($\Delta T$), resting heart rate ($\Delta \text{HR}$), respiratory rate ($\Delta \text{RR}$), $\text{SpO}_2$ drops, and $\text{HRV}$ reduction factors.
+   - **Mechanistic ODE Latent Modifiers**: Injects systemic cytokine load ($\delta_{\text{systemic}}$), scales airway hyperresponsiveness ($\beta_{\text{AHR}}$) to particulate dose, and adjusts controller absorption efficiency ($\eta_{\text{absorption}}$).
+3. **Continual Retraining with Elastic Weight Consolidation (EWC)**:
+   - Doctor-verified outlier cases are stored in the **Experience Replay Buffer** (`/api/patients/{id}/clinical-note/commit`).
+   - The adaptation engine executes continual retraining (`/api/model/adapt-outliers`) on `RespiTwinMLPMetaLearner` using EWC loss to prevent catastrophic forgetting of baseline asthma patterns:
+     $$\mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i (\theta_i - \theta_{i, \text{base}})^2$$
+     where $F_i$ represents the diagonal Fisher Information Matrix of prior weights.
+
+### 7.6 Held-Out Test Set Performance & Benchmark Comparison
 Evaluated on a patient-split cohort (`800` training patients, `100` validation patients, `100` held-out test patients; random seed `42`):
 
 | Model / Evaluation Metric | 24h ROC-AUC | 48h ROC-AUC | 24h Precision (@0.5) | 24h Recall (@0.5) | Severity Weighted F1 | Mean Lead Time | Inference Latency |
@@ -151,9 +196,9 @@ Evaluated on a patient-split cohort (`800` training patients, `100` validation p
 | Standard Recurrent Network (LSTM Baseline) | 0.7850 | 0.7790 | 0.6840 | 0.6520 | 0.7010 | 22.1 ± 5.8 h | 110 ms |
 | Tabular Gradient Boosted Trees (XGBoost-Only Baseline) | 0.7410 | 0.7320 | 0.6310 | 0.5980 | 0.6640 | 18.6 ± 6.2 h | < 15 ms |
 
-### 7.6 Stage 3: Clinical Copilot & NLP Feature Extraction
-Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py) and [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py):
-- **Structured Clinical Copilot**: Uses `OpenAI GPT-4o` or `Hugging Face InferenceClient` (`meta-llama/Llama-3.1-8B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`) with strict Pydantic schema enforcement (`CopilotReport`) to synthesize telemetry trends, SHAP drivers, precautions, and emergency red flags.
+### 7.7 Stage 3: Clinical Copilot Report Generation
+Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py):
+- **Structured Clinical Copilot Report**: Uses `OpenAI GPT-4o` or `Hugging Face InferenceClient` (`meta-llama/Llama-3.1-8B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`) with strict Pydantic schema enforcement (`CopilotReport`) to synthesize telemetry trends, SHAP drivers, precautions, breathing exercises, and emergency red flags.
 - **Safety Guardrail**: The prompt pipeline strips autonomous prescribing protocols and enforces that medication adjustments follow the clinician-approved care plan.
 
 ---
@@ -168,7 +213,7 @@ Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py) and [`aasthma/llm/clin
 - **`00:00 – 03:30`**: Problem Statement, Indian Urban Pollution Context, and the 24–36h Inflammatory Blindspot.
 - **`03:30 – 08:15`**: Three-Stream Data Ingestion (60 Static EHR Features, 20 Wearable Channels, CPCB Live AQI) and PostgreSQL Schema.
 - **`08:15 – 13:00`**: Doctor Dashboard Walkthrough — Cohort Triage, 3D/Thermal Pulmonary Twin Viewport, and 24h/48h Conformal Risk Forecast.
-- **`13:00 – 17:30`**: Counterfactual What-If Sandbox (Stay Indoors, N95 Mask, HEPA Filter, ICS Step-Up), Clinical Note Adaptation, and AI Copilot Report.
+- **`13:00 – 17:30`**: Counterfactual What-If Sandbox (Stay Indoors, N95 Mask, HEPA Filter, ICS Step-Up), Dynamic LLM Note Adaptation, Retraining, and Copilot Report.
 - **`17:30 – 20:00`**: Stacked Dilated-TCN + XGBoost + MLP Architecture, Ablation Benchmarks, and Patient Portal Demonstration.
 
 ---
@@ -206,13 +251,13 @@ flowchart LR
         TCN["Stage 1A: Dilated TCN Fusion<br/>StaticMLPEncoder + Conv1DDynamicEncoder (d=1,2,4)"]
         XGB["Stage 1B: XGBoost Multi-Target Suite<br/>Rolling Window Stats + Lag Shifts"]
         META["Stage 2: RespiTwinMLPMetaLearner<br/>12D Base Probs → Calibrated 24h/48h Risk + Severity"]
-        LLM["Stage 3: Clinical Copilot & Note Extractor<br/>Pydantic Schema + Non-Prescriptive Guardrails"]
+        LLM["Stage 3: Clinical Copilot & Note Extractor<br/>LLM Dynamic Feature Extraction & EWC Retraining"]
     end
 
     subgraph UI["03. FastAPI Gateway & Next.js 16 Interfaces"]
         API["FastAPI Backend (:8000)<br/>REST Endpoints + Simulation Clock"]
         DOC["Doctor Dashboard (:3000)<br/>Cohort Triage, 3D/Thermal Twin, What-If Sandbox"]
-        PAT["Patient Portal (:3000/patient-portal)<br/>Personal Forecast, Daily Logs, Copilot Chat"]
+        PAT["Patient Portal (:3000/patient-portal)<br/>Personal Forecast, Daily Logs, Copilot Report"]
     end
 
     EHR & WEAR & AQI --> PG
@@ -221,6 +266,7 @@ flowchart LR
     TCN & XGB --> META
     ODE <--> META
     META --> LLM
+    LLM -->|"Dynamic Deltas & EWC Retrain"| META
     META & ODE & LLM --> API
     API --> DOC & PAT
 ```
@@ -230,7 +276,7 @@ flowchart LR
 The repository separates the Python clinical inference backend (`aasthma/`) from the Next.js 16 visualization frontend (`frontend/`):
 
 ```text
-DigiTwin/
+ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 ├── aasthma/                          # Python Backend, Mechanistic ODE, and 3-Stage AI Pipeline
 │   ├── server.py                     # FastAPI gateway (:8000), RBAC auth, clock, and REST routes
 │   ├── models/digital_twin_model.py  # Stage-1A PyTorch Dilated TCN + Static MLP fusion network
@@ -238,7 +284,7 @@ DigiTwin/
 │   │   ├── model1/                   # Stage-1A Dilated TCN trainer and digital_twin_model.pt
 │   │   ├── model2/                   # Stage-1B XGBoost trainer and gb_digital_twin_models.pkl
 │   │   └── ensemble.py               # Stage-2 RespiTwinMLPMetaLearner and meta_ensemble_model.pt
-│   ├── inference/inference_engine.py # Real-time multimodal feature pipeline, conformal bounds, SHAP
+│   ├── inference/inference_engine.py # Multimodal pipeline, EWC model adaptation, conformal bounds
 │   ├── simulation/
 │   │   ├── mechanistic_simulator.py  # Latent airway inflammation ODE solver and What-If engine
 │   │   ├── clock.py                  # Replay clock synchronizing 240-hour telemetry streams
@@ -263,10 +309,10 @@ DigiTwin/
 | Module | File Path | Core Function |
 | :--- | :--- | :--- |
 | **FastAPI Service Layer** | [`aasthma/server.py`](aasthma/server.py) | Exposes REST endpoints for cohort triage, counterfactual simulation, clinical note adaptation, copilot reports, and PostgreSQL authentication. |
-| **Multimodal Inference Engine** | [`aasthma/inference/inference_engine.py`](aasthma/inference/inference_engine.py) | Loads Stage-1 TCN, Stage-1 XGBoost, and Stage-2 MLP checkpoints; computes 90% conformal intervals, SHAP drivers, and live CPCB/Open-Meteo weather overlays. |
+| **Multimodal Inference Engine** | [`aasthma/inference/inference_engine.py`](aasthma/inference/inference_engine.py) | Loads Stage-1 TCN, Stage-1 XGBoost, and Stage-2 MLP checkpoints; computes 90% conformal bounds, SHAP drivers, live CPCB feeds, and EWC continual adaptation. |
 | **Mechanistic ODE Simulator** | [`aasthma/simulation/mechanistic_simulator.py`](aasthma/simulation/mechanistic_simulator.py) | Integrates the differential equation $dI/dt$ across hourly windows and executes counterfactual What-If interventions. |
 | **Stacked Ensemble Trainer** | [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) | Trains and serializes `RespiTwinMLPMetaLearner` over held-out patient predictions from the TCN and XGBoost base learners. |
-| **Clinical Copilot & NLP** | [`aasthma/llm/llm.py`](aasthma/llm/llm.py), [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py) | Generates schema-checked clinical copilot reports and extracts physiological deltas from free-text clinical notes. |
+| **Clinical Copilot & NLP Extraction** | [`aasthma/llm/llm.py`](aasthma/llm/llm.py), [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py) | Generates schema-checked clinical copilot reports, extracts physiological deltas from free-text clinical notes, and feeds the continual retraining buffer. |
 | **Frontend Clinical Views** | [`frontend/app/`](frontend/app/), [`frontend/components/`](frontend/components/) | Renders the clinician cohort dashboard, 3D/GLSL thermal lung viewport, counterfactual sandbox, and role-isolated patient portal. |
 
 ---
@@ -279,7 +325,8 @@ DigiTwin/
 1. **Early Exacerbation Detection**: Achieves **0.9399 ROC-AUC (24h)** and **0.9428 ROC-AUC (48h)** on held-out test patients with a mean warning lead time of **42.4 ± 4.1 hours** before severe exacerbation onset.
 2. **Multi-Class Severity Grading**: Achieves **0.8435 weighted F1-score** across 4 clinical severity tiers (`Grade 0` to `Grade 3`).
 3. **Interactive Counterfactual Verification**: Clinicians can test environmental and medication interventions (`Stay Indoors`, `Wear N95 Mask`, `HEPA Filtration`, `ICS Controller Step-Up`) with `< 65 ms` round-trip latency.
-4. **Auditable Clinical Transparency**: Every risk prediction includes 90% conformal uncertainty bounds, personal baseline z-score deviations, SHAP feature attributions, and literature-cited physiological coefficients (`/assumptions`).
+4. **Dynamic Adaptation to Clinical Outliers**: Free-text clinical diagnoses (e.g., concurrent typhoid or dengue fever) are converted by an LLM into parametric ODE modifiers and integrated into the Stage-2 Meta-Learner via Elastic Weight Consolidation (EWC) without catastrophic forgetting.
+5. **Auditable Clinical Transparency**: Every risk prediction includes 90% conformal uncertainty bounds, personal baseline z-score deviations, SHAP feature attributions, and literature-cited physiological coefficients (`/assumptions`).
 
 ---
 

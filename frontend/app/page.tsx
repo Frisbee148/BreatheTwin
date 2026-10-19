@@ -395,7 +395,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Directory Structure Tree */}
             <pre className="lg:col-span-6 bg-[#020A05] border border-[#12612F]/60 p-4 text-[11px] sm:text-xs font-mono text-[#75FFA5] overflow-x-auto leading-relaxed">
-{`DigiTwin/
+{`ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 ├── aasthma/                          # Python Backend, Mechanistic ODE & 3-Stage AI
 │   ├── server.py                     # FastAPI gateway (:8000), RBAC auth & REST API
 │   ├── models/digital_twin_model.py  # Stage-1A PyTorch Dilated TCN + Static MLP
@@ -403,7 +403,7 @@ export default function HomePage() {
 │   │   ├── model1/                   # Stage-1A Dilated TCN & digital_twin_model.pt
 │   │   ├── model2/                   # Stage-1B XGBoost & gb_digital_twin_models.pkl
 │   │   └── ensemble.py               # Stage-2 RespiTwinMLPMetaLearner (.pt)
-│   ├── inference/inference_engine.py # Multimodal pipeline, conformal bounds, SHAP
+│   ├── inference/inference_engine.py # Multimodal pipeline, EWC adaptation, bounds
 │   ├── simulation/
 │   │   ├── mechanistic_simulator.py  # Latent airway ODE solver & What-If engine
 │   │   ├── clock.py                  # Replay clock synchronizing 240h streams
@@ -791,9 +791,9 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-sm font-mono">
           <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2">
             <div className="text-xs text-[#3DE07A] uppercase font-semibold">TEAM &amp; COLLEGE</div>
-            <div className="text-white font-bold text-base">BreathTwin &bull; Team DigiTwin</div>
-            <div className="text-[#5CFF95]">Lead: Aarush Bhattacharjee</div>
-            <div className="text-[#75FFA5] text-xs">Department of Pulmonary Informatics</div>
+            <div className="text-white font-bold text-base">BreathTwin &bull; ABAY_LNMIIT/NSUT</div>
+            <div className="text-[#5CFF95]">Lead: Aarush Bhattacharjee / Frisbee148 (LNMIIT)</div>
+            <div className="text-[#75FFA5] text-xs">ML: Rakshit Gupta / Hobbiskar21 (NSUT)</div>
           </div>
 
           <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2">

@@ -34,3 +34,16 @@
   372 |           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-sm">
  GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
  GET / 200 in 87ms (next.js: 2.0ms, application-code: 85ms)
+ GET / 200 in 90ms (next.js: 3ms, application-code: 86ms)
+ GET /login 200 in 70ms (next.js: 21ms, application-code: 48ms)
+ GET /patients 200 in 52ms (next.js: 16ms, application-code: 37ms)
+ GET /patients/PT-4409/what-if 200 in 1102ms (next.js: 24ms, generate-params: 844ms, application-code: 234ms)
+ GET /patient-portal?patientId=PT-4409 200 in 67ms (next.js: 17ms, application-code: 50ms)
+ GET /patients/PT-4409/adapt 200 in 1077ms (next.js: 18ms, generate-params: 899ms, application-code: 160ms)
+ GET /patients/PT-4409/forecast 200 in 1240ms (next.js: 19ms, generate-params: 865ms, application-code: 356ms)
+ GET /patients/PT-4409/adapt 200 in 180ms (next.js: 4ms, generate-params: 21ms, application-code: 154ms)
+✓ Compiled in 73ms
+✓ Compiled in 49ms
+ GET / 200 in 98ms (next.js: 3ms, application-code: 95ms)
+ GET / 200 in 94ms (next.js: 1.3ms, application-code: 93ms)
+✓ Compiled in 141ms

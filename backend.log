@@ -18,3 +18,91 @@ INFO:     127.0.0.1:54534 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54534 - "POST /api/what-if HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54528 - "POST /api/what-if HTTP/1.1" 200 OK
 INFO:     127.0.0.1:54520 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52730 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52722 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52730 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52722 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59872 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52722 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52730 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59872 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42026 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42026 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42042 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42064 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42048 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42026 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47642 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47656 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47664 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47676 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47652 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47658 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37856 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37856 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37884 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37898 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37854 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37854 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37884 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37854 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37898 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37904 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37884 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37898 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37858 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37898 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37856 - "POST /api/patients/PT-4409/copilot-report HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37870 - "POST /api/patients/PT-4409/copilot-report HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: The read operation timed out
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: The read operation timed out
+Hugging Face extraction with model google/gemma-2-2b-it failed: (Request ID: Root=1-6ad6208f-2dec067e14af5ddb5ed34eac;80dc3f67-0ad7-4744-9ddb-3a789468c8cc)
+
+Bad request:
+{'message': "The requested model 'google/gemma-2-2b-it' is not supported by any provider you have enabled.", 'type': 'invalid_request_error', 'param': 'model', 'code': 'model_not_supported'}
+INFO:     127.0.0.1:37858 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: The read operation timed out
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: The read operation timed out
+Hugging Face extraction with model google/gemma-2-2b-it failed: (Request ID: Root=1-6ad620a8-770676cf51631c614a22133d;9be50abb-b3e6-4a50-96fe-14d680462164)
+
+Bad request:
+{'message': "The requested model 'google/gemma-2-2b-it' is not supported by any provider you have enabled.", 'type': 'invalid_request_error', 'param': 'model', 'code': 'model_not_supported'}
+INFO:     127.0.0.1:37898 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37854 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37884 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58904 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58908 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58928 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58928 - "GET /api/patients/PT-4409/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58940 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58970 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58986 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58918 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58956 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58904 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58986 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58956 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58956 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58956 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58956 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58940 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58992 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58986 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: The read operation timed out
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: The read operation timed out
+Hugging Face extraction with model google/gemma-2-2b-it failed: (Request ID: Root=1-6ad620d4-2b9275217260576e75168841;dbc6e869-076f-4c35-aa1c-353bb4e4c6c2)
+
+Bad request:
+{'message': "The requested model 'google/gemma-2-2b-it' is not supported by any provider you have enabled.", 'type': 'invalid_request_error', 'param': 'model', 'code': 'model_not_supported'}
+INFO:     127.0.0.1:58956 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58940 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58970 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58918 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
