@@ -360,23 +360,23 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Full Vector System Architecture Diagram */}
+        {/* Full PlantUML System Architecture Diagram (Light Mode Standard) */}
         <div className="border border-[#12612F] bg-[#04130A] p-4 sm:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/50 pb-3 font-mono text-xs sm:text-sm">
             <span className="text-white font-bold">
-              &gt; THREE-STAGE MULTIMODAL DIGITAL TWIN ARCHITECTURE DIAGRAM
+              &gt; PLANTUML MULTIMODAL SYSTEM ARCHITECTURE DIAGRAM (LIGHT SPEC)
             </span>
             <span className="text-[#FFE14A]">
               HELD-OUT TEST ROC-AUC: 24H = 0.9399 | 48H = 0.9428
             </span>
           </div>
 
-          <div className="w-full overflow-x-auto bg-[#020A05] border border-[#12612F]/60 p-2">
+          <div className="w-full overflow-x-auto bg-white border border-[#CBD5E1] p-3 sm:p-5 rounded-sm shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/architecture-diagram.svg"
-              alt="BreathTwin System and Codebase Architecture Diagram"
-              className="w-full h-auto min-w-[780px] block"
+              alt="BreathTwin PlantUML System and Codebase Architecture Diagram"
+              className="w-full h-auto min-w-[840px] block mx-auto"
             />
           </div>
         </div>

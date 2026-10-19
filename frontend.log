@@ -47,3 +47,14 @@
  GET / 200 in 98ms (next.js: 3ms, application-code: 95ms)
  GET / 200 in 94ms (next.js: 1.3ms, application-code: 93ms)
 ✓ Compiled in 141ms
+ GET /patients/PT-4409/adapt 200 in 2.5s (next.js: 3ms, generate-params: 20ms, application-code: 2.5s)
+ GET /benchmarks 200 in 63ms (next.js: 19ms, application-code: 44ms)
+ GET /patients 200 in 45ms (next.js: 5ms, application-code: 40ms)
+ GET /patients/PATIENT_0011 200 in 1067ms (next.js: 22ms, generate-params: 871ms, application-code: 174ms)
+ GET /patients/PATIENT_0011/forecast 200 in 350ms (next.js: 4ms, generate-params: 24ms, application-code: 321ms)
+ GET /patients/PATIENT_0011/adapt 200 in 275ms (next.js: 3ms, generate-params: 21ms, application-code: 251ms)
+✓ Compiled in 123ms
+ GET / 200 in 114ms (next.js: 4ms, application-code: 110ms)
+ GET /patient-portal 200 in 123ms (next.js: 3ms, application-code: 120ms)
+ GET /patients 200 in 94ms (next.js: 3ms, application-code: 91ms)
+ GET / 200 in 42ms (next.js: 3ms, application-code: 39ms)

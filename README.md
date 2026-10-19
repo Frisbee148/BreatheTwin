@@ -75,23 +75,63 @@ Asthma management in polluted urban regions suffers from a critical clinical bli
 
 ## 5. Healthcare Use Case
 
-BreathTwin converts outpatient asthma care from reactive emergency triage to proactive, pre-symptomatic intervention across two synchronized interfaces:
+BreathTwin converts outpatient asthma care from reactive emergency triage to proactive, pre-symptomatic intervention. The platform provides dedicated interfaces for two clinical personas: treating physicians and asthma patients.
 
 ### 5.1 Primary Persona: Treating Doctor (Pulmonologist / Primary-Care Clinician)
-1. **Cohort Risk Triage (`/patients`)**: The doctor opens the clinical dashboard and reviews patients ranked by 48-hour exacerbation probability and severity grade (`Grade 0` to `Grade 3`).
-2. **Physiological Digital Twin Inspection (`/patients/[id]`)**: The doctor inspects the patient's 3D pulmonary twin, bronchial thermal inflammation map, latent inflammation state $I(t)$, and 12-hour multi-sensor deviations against personal rolling baselines.
-3. **Explainable Forecast & Clinical Copilot Report (`/patients/[id]/forecast`)**: The system displays 24-hour and 48-hour risk probabilities with 90% conformal confidence intervals, ranked SHAP feature attributions, and a formal, clinician-reviewed AI Clinical Copilot Report.
-4. **Counterfactual What-If Sandbox (`/patients/[id]/what-if`)**: Before advising the patient, the doctor simulates targeted interventions on the digital twin:
-   - **Intervention 01 (Stay Indoors)**: Reduces outdoor exposure hours to cut inhaled $\text{PM}_{2.5}$ dose.
-   - **Intervention 02 (Wear N95 Respirator)**: Applies a 95% particulate filtration factor during heavy traffic commutes.
-   - **Intervention 03 (HEPA Air Filtration)**: Lowers indoor particulate infiltration from `0.65` to `0.30`.
-   - **Intervention 04 (ICS Controller Adherence Step-Up)**: Increases inhaled corticosteroid adherence toward 100% to accelerate mucosal recovery rate $c \cdot \text{Controller}(t)$.
-5. **Unstructured Clinical Note Adaptation (`/patients/[id]/adaptation`)**: The doctor enters free-text clinical notes (such as concurrent typhoid fever, dengue, acute dehydration, or beta-blocker exposure) to dynamically recalibrate physiological baselines, latent ODE inflammation drivers, and trigger continual model retraining.
 
-### 5.2 Secondary Persona: Asthma Patient (`/patient-portal`)
-1. **Personal Risk & AQI Guidance**: The patient views a plain-language 24–48 hour flare-up summary and local station air quality advisories.
-2. **Daily Self-Reported Outcome (PRO) Logging**: The patient records daily rescue inhaler (`SABA`) puffs, controller adherence, cough, wheeze, and chest tightness into PostgreSQL.
-3. **Clinical Copilot Report Access**: The patient reviews clinician-approved copilot report summaries containing actionable non-pharmacological precautions, environmental triggers to avoid, and personalized breathing exercises.
+#### Page 1: Outpatient Cohort Risk Triage (`/patients`)
+* **Population-Level Risk Ranking**: Automatically sorts the active patient panel by predicted 48-hour exacerbation probability.
+* **Multi-Grade Severity Classification**: Categorizes patient status from `Grade 0 (Stable)` through `Grade 3 (Severe / Critical)`.
+* **Rapid Clinical Triage Badges**: Displays instantaneous visual status pills (`High Risk`, `Moderate`, `Low`) for rapid bedside prioritization.
+* **Environmental Context Integration**: Overlays live ambient $\text{PM}_{2.5}$ / $\text{PM}_{10}$ air quality indices for each patient's home station.
+* **Direct Clinical Navigation**: One-click deep link to individual digital twins, forecasts, sandbox counterfactuals, and note adaptation.
+
+#### Page 2: Physiological Digital Twin Viewport (`/patients/[id]`)
+* **Interactive 3D Pulmonary Visualization**: Renders an anatomical 3D lung model using Three.js and WebGL with responsive orbit controls.
+* **Thermal Inflammation Shader Overlay**: Dynamic GLSL thermal color maps visualize localized bronchial mucosal swelling based on latent $I(t)$.
+* **Continuous Latent Airway State $I(t)$**: Plots continuous inflammatory trajectory derived from the Euler-Maruyama ODE solver ($[0.05, 1.0]$).
+* **Multi-Sensor Telemetry Comparison**: Compares rolling 12-hour wearable vitals ($\text{SpO}_2$, resting heart rate, respiratory rate, HRV) against the patient's personalized healthy baseline.
+* **Historical Longitudinal Trajectory**: Tracks 14-day trend history for spirometry baseline, daily controller compliance, and acute symptom spikes.
+
+#### Page 3: 24-Hour & 48-Hour Conformal Risk Forecast (`/patients/[id]/forecast`)
+* **Multi-Horizon Risk Probability**: Displays dual prospective risk gauges predicting exacerbation probability at 24 hours and 48 hours.
+* **Conformal Uncertainty Bands**: Wraps predictions in 90% conformal prediction intervals to guarantee statistical coverage under real-world sensor noise.
+* **Interactive Hourly Timeline Scrubber**: Enables clinicians to scrub across hours $t+0$ to $t+48$ to observe projected metric evolution.
+* **Ranked SHAP Feature Attribution**: Explains risk drivers using local SHAP contribution bars (e.g., nocturnal $\text{SpO}_2$ drops, $\text{PM}_{2.5}$ surge, missed controller doses).
+* **Targeted Clinical Guidance**: Formulates evidence-based clinical recommendations directly aligned with dominant SHAP risk contributors.
+
+#### Page 4: Counterfactual What-If Sandbox (`/patients/[id]/what-if`)
+* **Intervention 01 — Stay Indoors Simulation**: Models the physiological impact of zero outdoor exposure hours to reduce inhaled particulate dose.
+* **Intervention 02 — N95 Respirator Simulation**: Evaluates 95% particulate filtration efficacy during peak commuting or smog hours.
+* **Intervention 03 — HEPA Air Filtration Simulation**: Simulates high-efficiency indoor filtration lowering indoor infiltration ratio from `0.65` to `0.30`.
+* **Intervention 04 — ICS Controller Step-Up**: Simulates 100% adherence to inhaled corticosteroid therapy, computing accelerated mucosal recovery rate.
+* **Real-Time Delta Comparison**: Computes before-versus-after trajectory overlays, delta risk percentage reduction, and expected $\text{FEV}_1$ stabilization.
+
+#### Page 5: Clinical Note Adaptation & Model Retraining (`/patients/[id]/adaptation`)
+* **Unstructured Doctor Free-Text Ingestion**: Accepts natural language clinical observations (e.g., concurrent typhoid fever, dengue, acute dehydration, beta-blocker introduction).
+* **Stage-3 LLM Physiological Feature Extraction**: Automatically extracts quantitative physiological perturbations ($\Delta T$, $\Delta \text{HR}$, $\Delta \text{RR}$, $\Delta \text{SpO}_2$) and mechanistic ODE modifiers ($\delta_{\text{systemic}}$, $\beta_{\text{AHR}}$, $\eta_{\text{absorption}}$).
+* **Dynamic Parameter Override**: Directly injects extracted perturbations into the patient's runtime digital twin without database schema migrations.
+* **Experience Replay Buffer Commit**: Persists verified clinical outlier episodes into PostgreSQL with clinician attribution and timestamp.
+* **Continual Retraining with Elastic Weight Consolidation (EWC)**: Fine-tunes the Stage-2 Meta-Learner on outlier trajectories while penalizing weight movement away from baseline Fisher information parameters.
+
+---
+
+### 5.2 Secondary Persona: Asthma Patient
+
+#### Page 6: Patient View & Self-Management Portal (`/patient-portal`)
+* **Plain-Language Risk Status**: Presents current clinical risk level (`Low`, `Moderate`, `High`) in intuitive patient-friendly terminology without clinical jargon.
+* **Local Ambient AQI Advisory**: Displays local monitoring station air quality readings with concrete activity recommendations.
+* **AI Clinical Copilot Report**: Generates and renders a comprehensive, patient-centered Copilot Report:
+  - *Clinical Summary & Primary Reason*: Explains physiological state and recent environmental triggers in clear language.
+  - *Actionable Non-Pharmacological Precautions*: Advises on indoor ventilation, mask usage, and activity pacing.
+  - *Identified Environmental Triggers to Avoid*: Highlights active outdoor pollutants, humidity changes, and temperature drops.
+  - *Personalized Guided Breathing Exercises*: Details paced diaphragmatic and pursed-lip breathing routines to alleviate respiratory strain.
+  - *Emergency Warning Flags*: Highlights specific red-flag symptoms (severe chest tightness, blue lips, speaking difficulty) that necessitate immediate emergency care.
+* **Daily Self-Reported Outcome (PRO) Logging**:
+  - *Rescue Medication Tracking*: Records daily short-acting beta-agonist (`SABA`) rescue inhaler actuations.
+  - *Controller Adherence Confirmation*: Logs daily inhaled corticosteroid doses taken.
+  - *Symptom Severity Scales*: Records self-reported cough, wheeze, dyspnea, and nocturnal awakening frequency.
+* **Direct Database Synchronization**: Immediately stores daily patient entries into PostgreSQL to update the clinical digital twin ahead of the next doctor review.
 
 ---
 
@@ -198,7 +238,7 @@ Evaluated on a patient-split cohort (`800` training patients, `100` validation p
 
 ### 7.7 Stage 3: Clinical Copilot Report Generation
 Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py):
-- **Structured Clinical Copilot Report**: Uses `OpenAI GPT-4o` or `Hugging Face InferenceClient` (`meta-llama/Llama-3.1-8B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`) with strict Pydantic schema enforcement (`CopilotReport`) to synthesize telemetry trends, SHAP drivers, precautions, breathing exercises, and emergency red flags.
+- **Structured Clinical Copilot Report**: Uses `OpenAI GPT-4o` or `Hugging Face InferenceClient` (`meta-llama/Llama-3.1-8B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`) with strict Pydantic schema enforcement (`CopilotReport`) to synthesize telemetry trends, SHAP drivers, actionable precautions, guided breathing exercises, and emergency red flags for the Patient Portal (`/patient-portal`).
 - **Safety Guardrail**: The prompt pipeline strips autonomous prescribing protocols and enforces that medication adjustments follow the clinician-approved care plan.
 
 ---
@@ -213,8 +253,8 @@ Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py):
 - **`00:00 – 03:30`**: Problem Statement, Indian Urban Pollution Context, and the 24–36h Inflammatory Blindspot.
 - **`03:30 – 08:15`**: Three-Stream Data Ingestion (60 Static EHR Features, 20 Wearable Channels, CPCB Live AQI) and PostgreSQL Schema.
 - **`08:15 – 13:00`**: Doctor Dashboard Walkthrough — Cohort Triage, 3D/Thermal Pulmonary Twin Viewport, and 24h/48h Conformal Risk Forecast.
-- **`13:00 – 17:30`**: Counterfactual What-If Sandbox (Stay Indoors, N95 Mask, HEPA Filter, ICS Step-Up), Dynamic LLM Note Adaptation, Retraining, and Copilot Report.
-- **`17:30 – 20:00`**: Stacked Dilated-TCN + XGBoost + MLP Architecture, Ablation Benchmarks, and Patient Portal Demonstration.
+- **`13:00 – 17:30`**: Counterfactual What-If Sandbox (Stay Indoors, N95 Mask, HEPA Filter, ICS Step-Up), Dynamic LLM Note Adaptation, and Experience Replay Retraining.
+- **`17:30 – 20:00`**: Stacked Dilated-TCN + XGBoost + MLP Architecture, Ablation Benchmarks, and Patient Portal with AI Copilot Report.
 
 ---
 
@@ -230,10 +270,13 @@ This project is released under the **MIT Open-Source License**. See the [`LICENS
 
 ## 10. System and Codebase Architecture
 
-### 10.1 Architecture Diagram (PDF, SVG, and Mermaid)
+### 10.1 Architecture Diagram (PDF, SVG, and PlantUML)
 
 - **Downloadable Architecture Diagram (PDF Format)**: [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf)
 - **Vector Architecture Diagram (SVG Format)**: [`docs/Architecture_Diagram.svg`](docs/Architecture_Diagram.svg) • [`frontend/public/architecture-diagram.svg`](frontend/public/architecture-diagram.svg)
+- **PlantUML Diagram Source**: [`docs/architecture.puml`](docs/architecture.puml)
+
+The architecture diagram is compiled from PlantUML in a standard high-contrast light mode with clean vertical signal routing, preventing text overflow and minimizing line intersections.
 
 ![BreathTwin System and Codebase Architecture Diagram](frontend/public/architecture-diagram.svg)
 
