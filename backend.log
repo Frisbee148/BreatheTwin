@@ -1,0 +1,20 @@
+INFO:     Started server process [13245]
+INFO:     Waiting for application startup.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [18:51:51] WARNING: /__w/xgboost/xgboost/src/gbm/gbtree.cc:439: Changing updater from `grow_gpu_hist` to `grow_quantile_histmaker`.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [18:51:51] WARNING: /__w/xgboost/xgboost/src/context.cc:55: No visible GPU is found, setting device to CPU.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [18:51:51] WARNING: /__w/xgboost/xgboost/src/context.cc:218: Device is changed from GPU to CPU as we couldn't find any available GPU on the system.
+  self.gb_models = pickle.load(f)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[BreathTwin API] Initializing neural digital twin model and preprocessors...
+[BreathTwin API] Model loaded successfully. Service ready on port 8000.
+INFO:     127.0.0.1:54528 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54520 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54528 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54520 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54534 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54534 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54528 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54520 - "POST /api/what-if HTTP/1.1" 200 OK

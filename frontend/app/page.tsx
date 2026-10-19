@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import StatusChip from '@/components/StatusChip';
 import InteractiveThermalReveal, { LungMarker } from '@/components/InteractiveThermalReveal';
 import ScrambleText from '@/components/ScrambleText';
 import MedicalLifeline from '@/components/MedicalLifeline';
@@ -329,90 +328,152 @@ export default function HomePage() {
       </section>
 
       {/* =========================================================================
-          4. SEE THE TWIN (PRODUCT PREVIEW)
+          4. SYSTEM & CODEBASE ARCHITECTURE (REPLACES PRODUCT PREVIEW)
       ========================================================================= */}
       <section className="border-t border-[#12612F]/60 pt-12 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <ScrambleText
-              text="03 — PRODUCT PREVIEW"
+              text="03 — SYSTEM & CODEBASE ARCHITECTURE"
               prefix={<span className="text-[#4CFF8A] font-bold">◈</span>}
               className="text-xs sm:text-sm font-semibold tracking-widest text-[#3DE07A] uppercase"
             />
             <h2 className="text-2xl sm:text-4xl font-bold text-white mt-1.5 tracking-tight">
-              What the treating doctor sees.
+              Multimodal system and codebase architecture.
             </h2>
           </div>
-          <Link
-            href="/patients"
-            className="text-xs sm:text-sm font-bold text-white border border-[#12612F] px-4 py-2 hover:border-[#4CFF8A] hover:text-[#5CFF95] transition-colors uppercase font-mono"
-          >
-            VIEW ALL PATIENTS (6) &gt;
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 font-mono text-xs sm:text-sm">
+            <a
+              href="/docs/Architecture_Diagram.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-[#020A05] bg-[#4CFF8A] border border-[#4CFF8A] px-4 py-2 hover:bg-transparent hover:text-white transition-colors uppercase"
+            >
+              DOWNLOAD ARCHITECTURE PDF &rarr;
+            </a>
+            <Link
+              href="/patients"
+              className="font-bold text-white border border-[#12612F] px-4 py-2 hover:border-[#4CFF8A] hover:text-[#5CFF95] transition-colors uppercase"
+            >
+              OPEN COHORT TRIAGE &gt;
+            </Link>
+          </div>
         </div>
 
-        {/* Static Realistic Clinician Dashboard Preview Card */}
-        <div className="border border-[#12612F] bg-[#04130A] p-6 space-y-6">
-          {/* Patient Header Banner */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#12612F]/50 pb-4">
-            <div className="flex items-center space-x-3">
-              <span className="font-mono text-lg font-bold text-white">
-                {patient.id}
-              </span>
-              <span className="text-[#3DE07A] font-bold">&bull;</span>
-              <span className="text-base sm:text-lg font-bold text-white">
-                {patient.name}
-              </span>
-              <span className="text-xs sm:text-sm text-[#75FFA5] font-mono">
-                ({patient.age}y {patient.gender}, {patient.city})
-              </span>
-            </div>
-            <StatusChip status={patient.riskLevel} size="md" />
+        {/* Full Vector System Architecture Diagram */}
+        <div className="border border-[#12612F] bg-[#04130A] p-4 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/50 pb-3 font-mono text-xs sm:text-sm">
+            <span className="text-white font-bold">
+              &gt; THREE-STAGE MULTIMODAL DIGITAL TWIN ARCHITECTURE DIAGRAM
+            </span>
+            <span className="text-[#FFE14A]">
+              HELD-OUT TEST ROC-AUC: 24H = 0.9399 | 48H = 0.9428
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-sm">
-            {/* Risk Forecast Readout */}
-            <div className="md:col-span-4 border border-[#12612F]/60 bg-[#020A05] p-5 space-y-3 font-mono">
-              <div className="text-xs text-[#3DE07A] uppercase tracking-wider font-semibold">
-                48-HOUR EXACERBATION RISK
-              </div>
-              <div className="text-4xl sm:text-5xl font-bold text-[#FF2A1A] tabular-nums">
-                {patient.risk48h}%
-              </div>
-              <div className="text-xs sm:text-sm text-[#FFE14A]">
-                Confidence range: [{patient.risk48hInterval[0]}% – {patient.risk48hInterval[1]}%]
-              </div>
-              <div className="border-t border-[#12612F]/40 pt-2 text-[#75FFA5] text-xs sm:text-sm">
-                Lead time to attack: <span className="text-white font-bold">{patient.leadTimeHours} Hours</span>
-              </div>
-            </div>
+          <div className="w-full overflow-x-auto bg-[#020A05] border border-[#12612F]/60 p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/architecture-diagram.svg"
+              alt="BreathTwin System and Codebase Architecture Diagram"
+              className="w-full h-auto min-w-[780px] block"
+            />
+          </div>
+        </div>
 
-            {/* Alert Reasons (SHAP Attribution) */}
-            <div className="md:col-span-8 border border-[#12612F]/60 bg-[#020A05] p-5 space-y-3 font-mono">
-              <div className="text-xs text-[#3DE07A] uppercase tracking-wider font-semibold">
-                TOP RISK CONTRIBUTORS (SHAP ATTRIBUTION)
-              </div>
-              <div className="space-y-2.5">
-                {patient.shapReasons.slice(0, 3).map((r) => (
-                  <div key={r.rank} className="flex items-center justify-between border-b border-[#12612F]/30 pb-2 text-sm sm:text-base">
-                    <span className="text-white font-medium">{r.feature}</span>
-                    <span className="text-[#FF2A1A] font-bold">+{r.impactPercent}%</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-xs sm:text-sm text-[#75FFA5] pt-1">
-                Airway inflammation state estimated at <span className="text-white font-bold">I(t) = {patient.estimatedInflammationState}</span> (safety threshold: {patient.inflammationThreshold}).
-              </div>
+        {/* Codebase Architecture Snippet (Consistent with README Section 10.2) */}
+        <div className="border border-[#12612F] bg-[#04130A] p-5 sm:p-6 space-y-5">
+          <div className="space-y-1.5">
+            <div className="text-xs font-mono text-[#3DE07A] uppercase font-semibold tracking-wider">
+              {`// CODEBASE ARCHITECTURE (ASD-STE100 SPECIFICATION)`}
+            </div>
+            <p className="text-sm sm:text-base text-[#75FFA5] leading-relaxed">
+              The repository separates the Python clinical inference backend (<code className="text-white font-mono">aasthma/</code>) from the Next.js 16 visualization frontend (<code className="text-white font-mono">frontend/</code>):
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* Directory Structure Tree */}
+            <pre className="lg:col-span-6 bg-[#020A05] border border-[#12612F]/60 p-4 text-[11px] sm:text-xs font-mono text-[#75FFA5] overflow-x-auto leading-relaxed">
+{`DigiTwin/
+├── aasthma/                          # Python Backend, Mechanistic ODE & 3-Stage AI
+│   ├── server.py                     # FastAPI gateway (:8000), RBAC auth & REST API
+│   ├── models/digital_twin_model.py  # Stage-1A PyTorch Dilated TCN + Static MLP
+│   ├── training/
+│   │   ├── model1/                   # Stage-1A Dilated TCN & digital_twin_model.pt
+│   │   ├── model2/                   # Stage-1B XGBoost & gb_digital_twin_models.pkl
+│   │   └── ensemble.py               # Stage-2 RespiTwinMLPMetaLearner (.pt)
+│   ├── inference/inference_engine.py # Multimodal pipeline, conformal bounds, SHAP
+│   ├── simulation/
+│   │   ├── mechanistic_simulator.py  # Latent airway ODE solver & What-If engine
+│   │   ├── clock.py                  # Replay clock synchronizing 240h streams
+│   │   └── clinical_data.py          # Cited ODE coefficients & ablation benchmarks
+│   ├── llm/
+│   │   ├── llm.py                    # Stage-3 Pydantic Clinical Copilot generator
+│   │   └── clinical_extractor.py     # Free-text note parser for ODE perturbations
+│   └── database/                     # SQLAlchemy 2.0 ORM, PostgreSQL 16 repository
+├── frontend/                         # Next.js 16 + React 19 + Three.js Web App
+│   ├── app/                          # App Router: /patients, /forecast, /what-if
+│   ├── components/                   # PulmonaryTwin3D, InteractiveThermalReveal
+│   └── lib/                          # Typed API client (api.ts) & auth context
+├── docs/                             # Public PDF/SVG Architecture & Presentation
+├── docker-compose.yml                # PostgreSQL 16 container orchestration
+└── run.sh / stop.sh                  # One-command full-stack service scripts`}
+            </pre>
+
+            {/* Module Breakdown Table */}
+            <div className="lg:col-span-6 border border-[#12612F]/60 bg-[#020A05] overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono border-collapse">
+                <thead>
+                  <tr className="border-b border-[#12612F] text-white bg-[#04130A]">
+                    <th className="p-2.5">MODULE</th>
+                    <th className="p-2.5">PATH</th>
+                    <th className="p-2.5">CORE FUNCTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#12612F]/30 text-[#75FFA5]">
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">FastAPI Gateway</td>
+                    <td className="p-2.5 text-[#4CFF8A]">aasthma/server.py</td>
+                    <td className="p-2.5 font-sans">Exposes REST routes for cohort triage, counterfactual simulation, note adaptation, copilot reports, and RBAC auth.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">Inference Engine</td>
+                    <td className="p-2.5 text-[#4CFF8A]">aasthma/inference/</td>
+                    <td className="p-2.5 font-sans">Loads TCN, XGBoost, and MLP checkpoints; computes 90% conformal bounds, SHAP drivers, and live CPCB/Open-Meteo feeds.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">Mechanistic ODE</td>
+                    <td className="p-2.5 text-[#4CFF8A]">aasthma/simulation/</td>
+                    <td className="p-2.5 font-sans">Integrates airway inflammation differential equation dI/dt across hourly windows and executes What-If interventions.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">Stacked Ensemble</td>
+                    <td className="p-2.5 text-[#4CFF8A]">aasthma/training/</td>
+                    <td className="p-2.5 font-sans">Combines Stage-1 Dilated TCN and XGBoost predictions through RespiTwinMLPMetaLearner for 24h/48h risk and severity.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">Clinical Copilot</td>
+                    <td className="p-2.5 text-[#4CFF8A]">aasthma/llm/</td>
+                    <td className="p-2.5 font-sans">Generates Pydantic-validated clinical reports and extracts physiological deltas from free-text clinical notes.</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-white font-bold">Frontend Views</td>
+                    <td className="p-2.5 text-[#4CFF8A]">frontend/app/</td>
+                    <td className="p-2.5 font-sans">Renders doctor cohort triage, 3D/GLSL thermal lung viewport, counterfactual sandbox, and patient companion portal.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Quick Links into Patient View */}
-          <div className="flex flex-wrap gap-4 pt-1 border-t border-[#12612F]/40 font-mono text-xs sm:text-sm">
+          {/* Quick Navigation Links */}
+          <div className="flex flex-wrap gap-4 pt-2 border-t border-[#12612F]/40 font-mono text-xs sm:text-sm">
             <Link
               href={`/patients/${patient.id}`}
               className="text-white font-semibold hover:text-[#5CFF95] hover:underline"
             >
-              &gt; Open Full Twin Viewport
+              &gt; Open Full Twin Viewport ({patient.id})
             </Link>
             <span className="text-[#12612F]">|</span>
             <Link
@@ -745,14 +806,17 @@ export default function HomePage() {
           <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2">
             <div className="text-xs text-[#3DE07A] uppercase font-semibold">SUBMISSION ARTIFACTS</div>
             <div className="space-y-1.5">
+              <a href="/docs/Architecture_Diagram.pdf" target="_blank" rel="noopener noreferrer" className="block text-white hover:text-[#5CFF95] hover:underline">
+                &bull; Architecture Diagram (PDF) &rarr;
+              </a>
+              <a href="/docs/Project_Presentation.pdf" target="_blank" rel="noopener noreferrer" className="block text-white hover:text-[#5CFF95] hover:underline">
+                &bull; Project Presentation &amp; Outcomes (PDF) &rarr;
+              </a>
               <Link href="/assumptions" className="block text-white hover:text-[#5CFF95] hover:underline">
                 &bull; Physiology Assumptions &amp; Citations &rarr;
               </Link>
               <Link href="/benchmarks" className="block text-white hover:text-[#5CFF95] hover:underline">
                 &bull; Model Ablation Benchmarks &rarr;
-              </Link>
-              <Link href="/patients" className="block text-white hover:text-[#5CFF95] hover:underline">
-                &bull; Patient Cohort Triage View &rarr;
               </Link>
             </div>
           </div>

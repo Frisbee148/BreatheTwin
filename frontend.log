@@ -1,0 +1,36 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.4.0 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.30:3000
+✓ Ready in 1282ms
+✓ Running next.config.ts took 164ms
+
+ GET / 200 in 971ms (next.js: 345ms, application-code: 626ms)
+✓ Compiled in 145ms
+⨯ ReferenceError: StatusChip is not defined
+    at HomePage (app/page.tsx:369:14)
+  367 |               </span>
+  368 |             </div>
+> 369 |             <StatusChip status={patient.riskLevel} size="md" />
+      |              ^
+  370 |           </div>
+  371 |
+  372 |           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-sm"> {
+  digest: '1132864944'
+}
+ GET / 500 in 179ms (next.js: 4ms, application-code: 175ms)
+[browser] Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. Consider using template tag instead (https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template). 
+[browser] Uncaught ReferenceError: StatusChip is not defined
+    at HomePage (app/page.tsx:369:14)
+  367 |               </span>
+  368 |             </div>
+> 369 |             <StatusChip status={patient.riskLevel} size="md" />
+      |              ^
+  370 |           </div>
+  371 |
+  372 |           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-sm">
+ GET / 200 in 118ms (next.js: 3ms, application-code: 115ms)
+ GET / 200 in 87ms (next.js: 2.0ms, application-code: 85ms)
