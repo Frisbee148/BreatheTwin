@@ -31,18 +31,11 @@ function PatientPortalContent() {
   const lockedPatientId = session.role === 'patient' ? rawPatientId || 'PT-8821' : null;
 
   const [allPatients, setAllPatients] = useState<Patient[]>(PATIENTS);
-  const [selectedPatientId, setSelectedPatientId] = useState<string>(
-    lockedPatientId || queryPatientId || 'PT-8821'
-  );
+  const [doctorSelectedPatientId, setDoctorSelectedPatientId] = useState<string>('PT-8821');
 
-  // Sync URL query param if present for doctor
-  useEffect(() => {
-    if (session.role === 'doctor' && queryPatientId && queryPatientId !== selectedPatientId) {
-      setSelectedPatientId(queryPatientId);
-    }
-  }, [session.role, queryPatientId, selectedPatientId]);
-
-  const activePatientId = lockedPatientId || selectedPatientId;
+  const activePatientId =
+    lockedPatientId ||
+    (session.role === 'doctor' && queryPatientId ? queryPatientId : doctorSelectedPatientId);
 
   const [patient, setPatient] = useState<Patient>(
     PATIENTS.find((p) => p.id === activePatientId) || PATIENTS[0]
@@ -54,6 +47,14 @@ function PatientPortalContent() {
   const [useBedroomPurifier, setUseBedroomPurifier] = useState<boolean>(false);
   const [whatIfBand, setWhatIfBand] = useState<PlainRiskBand>('Watch');
   const [isSimulatingWhatIf, setIsSimulatingWhatIf] = useState<boolean>(false);
+
+  // UI Interactive States
+  const [isUrgentDrawerOpen, setIsUrgentDrawerOpen] = useState<boolean>(false);
+  const [selectedStripIndex, setSelectedStripIndex] = useState<number>(0);
+  const [showNormalSignals, setShowNormalSignals] = useState<boolean>(false);
+  const [expandedSignalWhy, setExpandedSignalWhy] = useState<Record<string, boolean>>({});
+  const [showActionWhy, setShowActionWhy] = useState<boolean>(false);
+  const [showNoteInput, setShowNoteInput] = useState<boolean>(false);
 
   // Daily Log Check-In State
   const [controllerTaken, setControllerTaken] = useState<boolean>(true);
@@ -102,40 +103,45 @@ function PatientPortalContent() {
   // Load active patient data, initial logs, and copilot report
   useEffect(() => {
     let isMounted = true;
-    setLogSuccessMessage(null);
-    setIsCopilotReportLoading(true);
-    setCopilotReportError(null);
+    queueMicrotask(() => {
+      if (!isMounted) return;
+      setLogSuccessMessage(null);
+      setIsCopilotReportLoading(true);
+      setCopilotReportError(null);
 
-    // Immediately synchronize local patient data so UI matches activePatientId instantly
-    const localMatch = PATIENTS.find((p) => p.id === activePatientId);
-    if (localMatch) {
-      setPatient(localMatch);
-    }
+      const localMatch = PATIENTS.find((p) => p.id === activePatientId);
+      if (localMatch) {
+        setPatient(localMatch);
+      }
+    });
 
     Promise.all([
       getPatient(activePatientId),
       getPatientCheckIns(activePatientId),
       getPatientCopilotReport(activePatientId),
-    ]).then(([livePatient, checkInsData, reportData]) => {
-      if (!isMounted) return;
-      if (livePatient) {
-        setPatient(livePatient);
-      }
-      if (checkInsData && Array.isArray(checkInsData.logs)) {
-        setRecentLogs(checkInsData.logs);
-      }
-      if (reportData) {
-        setCopilotReport(reportData);
-      }
-    }).catch((err) => {
-      if (isMounted) {
-        setCopilotReportError(err instanceof Error ? err.message : 'Failed to load copilot report');
-      }
-    }).finally(() => {
-      if (isMounted) {
-        setIsCopilotReportLoading(false);
-      }
-    });
+    ])
+      .then(([livePatient, checkInsData, reportData]) => {
+        if (!isMounted) return;
+        if (livePatient) {
+          setPatient(livePatient);
+        }
+        if (checkInsData && Array.isArray(checkInsData.logs)) {
+          setRecentLogs(checkInsData.logs);
+        }
+        if (reportData) {
+          setCopilotReport(reportData);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setCopilotReportError(err instanceof Error ? err.message : 'Failed to load copilot report');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCopilotReportLoading(false);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -148,7 +154,15 @@ function PatientPortalContent() {
     [patient.riskLevel]
   );
 
-  // Synthesize Today's Plain-Language Short Reason
+  // Active protections check & effective risk level
+  const activeTogglesCount =
+    (stayIndoorsEvening ? 1 : 0) +
+    (wearMaskOutdoors ? 1 : 0) +
+    (useBedroomPurifier ? 1 : 0);
+  const isWhatIfActive = activeTogglesCount > 0;
+  const effectiveRiskBand: PlainRiskBand = isWhatIfActive ? whatIfBand : todayPlainRisk;
+
+  // Synthesize Today's Plain-Language Short Reason (Maximum one sentence)
   const todayShortReason = useMemo(() => {
     const aqi = patient.currentAirQuality.aqi;
     const rrDiff = patient.currentTelemetry.rr - patient.baselineRR;
@@ -176,7 +190,9 @@ function PatientPortalContent() {
   useEffect(() => {
     let isCancelled = false;
     const outdoorHours = stayIndoorsEvening ? 0.5 : 2.5;
-    setIsSimulatingWhatIf(true);
+    queueMicrotask(() => {
+      if (!isCancelled) setIsSimulatingWhatIf(true);
+    });
 
     simulateWhatIf({
       patient_id: patient.id,
@@ -198,7 +214,6 @@ function PatientPortalContent() {
           (useBedroomPurifier ? 1 : 0);
 
         let mapped: PlainRiskBand = mapRiskToPlainWord(res.simulatedStatus);
-        // Ensure clear plain-language step-down when non-medication protections are active
         if (todayPlainRisk === 'High' && activeCount >= 1 && mapped === 'High') {
           mapped = activeCount >= 3 ? 'Low' : 'Watch';
         } else if (todayPlainRisk === 'Watch' && activeCount >= 2) {
@@ -223,136 +238,168 @@ function PatientPortalContent() {
     useBedroomPurifier,
   ]);
 
-  // 48-Hour Simple Outlook Strip Data (Next to Air-Quality Forecast, No Raw Probabilities)
+  // 48-Hour Simple Outlook Strip Data (Synchronized with effective risk level)
   const outlook48hStrip = useMemo(() => {
     const aqi = patient.currentAirQuality.aqi;
-    const isHigh = todayPlainRisk === 'High';
-    const isWatch = todayPlainRisk === 'Watch';
+    const isHigh = effectiveRiskBand === 'High';
+    const isWatch = effectiveRiskBand === 'Watch';
 
     return [
       {
         window: 'This Afternoon',
         hours: 'Next 8h',
         riskBand: isHigh ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'sun',
         airForecast: aqi >= 200 ? 'Moderate Haze' : 'Fair Air',
-        note: 'Afternoon sunlight helps disperse ground smog',
+        note: 'Afternoon sunlight helps disperse ground smog.',
       },
       {
         window: 'Tonight',
         hours: '8h – 16h',
         riskBand: isHigh ? ('High' as PlainRiskBand) : isWatch ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'smog',
         airForecast: aqi >= 200 ? 'Poor Air (Smog Peak)' : 'Moderate Air',
-        note: 'Risk likely to rise as evening traffic fumes settle',
+        note: 'Risk likely to rise as evening traffic fumes settle.',
       },
       {
         window: 'Tomorrow Morning',
         hours: '16h – 24h',
         riskBand: isHigh ? ('High' as PlainRiskBand) : isWatch ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'cloud',
         airForecast: aqi >= 200 ? 'Very Poor Air' : 'Hazy Morning',
-        note: 'Cool morning air traps fine dust near the ground',
+        note: 'Cool morning air traps fine dust near the ground.',
       },
       {
         window: 'Tomorrow Afternoon',
         hours: '24h – 32h',
         riskBand: isHigh ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'sun',
         airForecast: 'Cleaner Window',
-        note: 'Best window for brief outdoor errands',
+        note: 'Best window for brief outdoor errands.',
       },
       {
         window: 'Tomorrow Night',
         hours: '32h – 40h',
         riskBand: isHigh ? ('High' as PlainRiskBand) : isWatch ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'smog',
         airForecast: aqi >= 200 ? 'Poor Evening Air' : 'Moderate Haze',
-        note: 'Stay indoors to protect overnight breathing',
+        note: 'Stay indoors to protect overnight breathing.',
       },
       {
         window: 'Day 2 Outlook',
         hours: '40h – 48h',
         riskBand: isHigh ? ('Watch' as PlainRiskBand) : ('Low' as PlainRiskBand),
+        airIcon: 'cloud',
         airForecast: aqi >= 200 ? 'Moderate – Poor' : 'Good – Fair',
-        note: 'Steadies if indoor air stays clean',
+        note: 'Steadies if indoor air stays clean.',
       },
     ];
-  }, [patient.currentAirQuality.aqi, todayPlainRisk]);
+  }, [patient.currentAirQuality.aqi, effectiveRiskBand]);
 
-  // Simplified Personal Signals ("Normal for you" vs "Different from your usual")
-  const simplifiedSignals = useMemo(() => {
-    const rrDiff = patient.currentTelemetry.rr - patient.baselineRR;
-    const spo2Low = patient.currentTelemetry.spo2 < 94.0;
-    const sleepRestless =
-      patient.currentTelemetry.sleepAwakenings >= 3 ||
-      patient.currentTelemetry.deepSleepPercent < 13;
+  // Body vs Usual Signals with range values and plain summary
+  const bodySignals = useMemo(() => {
+    const rr = patient.currentTelemetry.rr;
+    const baselineRR = patient.baselineRR;
+    const rrDiff = rr - baselineRR;
+    const rrDifferent = rrDiff >= 2.0;
+
+    const spo2 = patient.currentTelemetry.spo2;
+    const spo2Different = spo2 < 94.5;
+
+    const awakenings = patient.currentTelemetry.sleepAwakenings;
+    const deepSleep = patient.currentTelemetry.deepSleepPercent;
+    const sleepDifferent = awakenings >= 3 || deepSleep < 13;
+
+    const rhr = patient.currentTelemetry.rhr;
+    const baselineRHR = patient.baselineRHR;
+    const rhrDifferent = Math.abs(rhr - baselineRHR) >= 8;
 
     return [
       {
+        id: 'rr',
         name: 'Resting Breathing Rate',
-        comparison: rrDiff >= 2.0 ? 'Different from your usual' : 'Normal for you',
-        isDifferent: rrDiff >= 2.0,
-        plainSummary:
-          rrDiff >= 2.0
-            ? 'Your breathing at rest and during the night has been a little faster than your usual pace.'
-            : 'Your resting breathing pace is steady and matches your usual personal rhythm.',
+        currentDisplay: `${rr} bpm`,
+        usualDisplay: `${baselineRR - 1}–${baselineRR + 1.5} bpm`,
+        min: 10,
+        max: 26,
+        currentVal: rr,
+        usualMin: baselineRR - 1,
+        usualMax: baselineRR + 1.5,
+        isDifferent: rrDifferent,
+        statusWord: rrDifferent ? 'Different' : 'Usual',
+        sentence: rrDifferent
+          ? 'Your resting breathing is faster than your personal usual pace.'
+          : 'Your resting breathing pace is steady and normal for you.',
       },
       {
-        name: 'Oxygen Level',
-        comparison: spo2Low ? 'Different from your usual' : 'Normal for you',
-        isDifferent: spo2Low,
-        plainSummary: spo2Low
-          ? 'Your overnight oxygen dipped slightly below your usual comfortable range during sleep.'
-          : 'Your oxygen level has stayed right in your normal personal range day and night.',
+        id: 'spo2',
+        name: 'Night Oxygen Level',
+        currentDisplay: `${spo2}%`,
+        usualDisplay: '95–99%',
+        min: 88,
+        max: 100,
+        currentVal: spo2,
+        usualMin: 95,
+        usualMax: 99,
+        isDifferent: spo2Different,
+        statusWord: spo2Different ? 'Different' : 'Usual',
+        sentence: spo2Different
+          ? 'Overnight oxygen dipped slightly below your usual range.'
+          : 'Overnight oxygen stayed right in your usual personal range.',
       },
       {
-        name: 'Sleep Quality',
-        comparison: sleepRestless ? 'Different from your usual' : 'Normal for you',
-        isDifferent: sleepRestless,
-        plainSummary: sleepRestless
-          ? 'Your sleep was more restless than your usual last night, with a few brief awakenings.'
-          : 'You slept smoothly through the night with your usual restful sleep pattern.',
+        id: 'sleep',
+        name: 'Sleep Restfulness',
+        currentDisplay: `${awakenings} ${awakenings === 1 ? 'wake' : 'wakes'}`,
+        usualDisplay: '0–1 wake',
+        min: 0,
+        max: 5,
+        currentVal: awakenings,
+        usualMin: 0,
+        usualMax: 1,
+        isDifferent: sleepDifferent,
+        statusWord: sleepDifferent ? 'Different' : 'Usual',
+        sentence: sleepDifferent
+          ? `Sleep was restless with ${awakenings} brief awakenings.`
+          : 'Sleep was smooth and restful with your usual pattern.',
+      },
+      {
+        id: 'rhr',
+        name: 'Resting Heart Rate',
+        currentDisplay: `${rhr} bpm`,
+        usualDisplay: `${baselineRHR - 4}–${baselineRHR + 4} bpm`,
+        min: 50,
+        max: 110,
+        currentVal: rhr,
+        usualMin: baselineRHR - 4,
+        usualMax: baselineRHR + 4,
+        isDifferent: rhrDifferent,
+        statusWord: rhrDifferent ? 'Different' : 'Usual',
+        sentence: rhrDifferent
+          ? 'Resting heart rate is slightly elevated compared to your baseline.'
+          : 'Resting heart rate is right within your normal range.',
       },
     ];
   }, [patient]);
 
-  // Fixed, Doctor-Approved Set of Suggested Actions
-  const doctorApprovedActions = [
-    {
-      id: 'limit-outdoors',
-      title: 'Limit time outdoors',
-      whyItHelps:
-        'Reduces how much smoky air and fine road dust your lungs breathe in during peak pollution hours, keeping airway swelling down.',
-      badge: 'DOCTOR-APPROVED',
-    },
-    {
-      id: 'wear-mask',
-      title: 'Wear a mask (N95)',
-      whyItHelps:
-        'A snug N95 mask filters out most fine dust and traffic smoke particles whenever you have to commute or step outside.',
-      badge: 'DOCTOR-APPROVED',
-    },
-    {
-      id: 'rescue-inhaler',
-      title: 'Keep your rescue inhaler with you',
-      whyItHelps:
-        'Gives you quick relief right away if you feel sudden chest tightness, coughing, or shortness of breath while away from home.',
-      badge: 'DOCTOR-APPROVED',
-    },
-    {
-      id: 'follow-plan',
-      title: 'Follow your asthma action plan',
-      whyItHelps:
-        'Taking your daily prescribed controller medication on schedule calms sensitive airways and helps prevent flare-ups before they start.',
-      badge: 'DOCTOR-APPROVED',
-    },
-  ];
+  const differingSignals = useMemo(
+    () => bodySignals.filter((s) => s.isDifferent),
+    [bodySignals]
+  );
+  const normalSignals = useMemo(
+    () => bodySignals.filter((s) => !s.isDifferent),
+    [bodySignals]
+  );
 
-  // Build plain-language What-If sentence
+  // Plain-language What-If sentence (Under 1 sentence)
   const whatIfSentence = useMemo(() => {
     const chosen: string[] = [];
-    if (stayIndoorsEvening) chosen.push('stay indoors this evening');
-    if (wearMaskOutdoors) chosen.push('wear an N95 mask when stepping out');
-    if (useBedroomPurifier) chosen.push('run your bedroom air purifier tonight');
+    if (stayIndoorsEvening) chosen.push('limiting evening outdoor time');
+    if (wearMaskOutdoors) chosen.push('wearing an N95 mask outside');
+    if (useBedroomPurifier) chosen.push('running your bedroom purifier');
 
     if (chosen.length === 0) {
-      return `If you keep your usual outdoor routine tonight without extra air protection, your risk stays at ${todayPlainRisk}.`;
+      return `Without clean-air protections tonight, your risk stays at ${todayPlainRisk}.`;
     }
 
     const actionPhrase =
@@ -363,9 +410,9 @@ function PatientPortalContent() {
         : `${chosen[0]}, ${chosen[1]}, and ${chosen[2]}`;
 
     if (todayPlainRisk === whatIfBand) {
-      return `If you ${actionPhrase}, your risk stays steady at ${whatIfBand} and your airways remain protected against evening smog.`;
+      return `By ${actionPhrase}, your risk stays steady at ${whatIfBand}.`;
     }
-    return `If you ${actionPhrase}, your risk drops from ${todayPlainRisk} to ${whatIfBand}.`;
+    return `By ${actionPhrase}, your risk drops from ${todayPlainRisk} to ${whatIfBand}.`;
   }, [stayIndoorsEvening, wearMaskOutdoors, useBedroomPurifier, todayPlainRisk, whatIfBand]);
 
   // Handle Daily Check-In Log Submission
@@ -388,33 +435,44 @@ function PatientPortalContent() {
         setRecentLogs(updated.logs);
       }
       setLogNotes('');
-      setLogSuccessMessage(
-        'Check-in saved! Your digital twin has updated your personal log for today.'
-      );
+      setShowNoteInput(false);
+      setLogSuccessMessage('Check-in saved! Your digital twin updated your personal log.');
     } finally {
       setIsSubmittingLog(false);
     }
   };
 
-  const getBandBadgeClasses = (band: PlainRiskBand) => {
-    if (band === 'High') {
-      return 'border-[#FF2A1A] bg-[#FF2A1A]/15 text-[#FF2A1A]';
-    }
-    if (band === 'Watch') {
-      return 'border-[#FFE14A] bg-[#FFE14A]/15 text-[#FFE14A]';
-    }
+  const getRiskIcon = (band: PlainRiskBand) => {
+    if (band === 'High') return '▲';
+    if (band === 'Watch') return '◆';
+    return '●';
+  };
+
+  const getBandTextClass = (band: PlainRiskBand) => {
+    if (band === 'High') return 'text-[#FF2A1A]';
+    if (band === 'Watch') return 'text-[#FFE14A]';
+    return 'text-[#4CFF8A]';
+  };
+
+  const getBandBadgeClass = (band: PlainRiskBand) => {
+    if (band === 'High') return 'border-[#FF2A1A] bg-[#FF2A1A]/15 text-[#FF2A1A]';
+    if (band === 'Watch') return 'border-[#FFE14A] bg-[#FFE14A]/15 text-[#FFE14A]';
     return 'border-[#4CFF8A] bg-[#4CFF8A]/15 text-[#4CFF8A]';
+  };
+
+  const toggleSignalWhy = (id: string) => {
+    setExpandedSignalWhy((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
     <div className="space-y-6 pb-12">
       {/* =========================================================================
-          TOP ROLE CONTEXT BAR (SHOWS PATIENT ISOLATION OR DOCTOR PREVIEW)
+          TOP ROLE CONTEXT BAR (AUTH & DOCTOR PREVIEW GUARDRAILS)
       ========================================================================= */}
-      <div className="border border-[#12612F] bg-[#04130A] p-4 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div className="border border-[#12612F] bg-[#04130A] p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center space-x-3">
           <span className="px-2.5 py-1 font-mono font-bold uppercase border border-[#4CFF8A] bg-[#061C0E] text-[#4CFF8A]">
-            {session.role === 'patient' ? 'PATIENT PERSONAL PORTAL' : 'DOCTOR PREVIEW OF PATIENT PORTAL'}
+            {session.role === 'patient' ? 'PATIENT PORTAL' : 'DOCTOR PREVIEW'}
           </span>
           <div>
             <span className="font-bold text-[#B6FFCC] text-sm">{patient.name}</span>
@@ -424,21 +482,21 @@ function PatientPortalContent() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {session.role === 'doctor' ? (
             <>
               <label htmlFor="portal-patient-switcher" className="text-[11px] font-mono uppercase text-[#2FBF63]">
-                PREVIEW PATIENT:
+                PREVIEW:
               </label>
               <select
                 id="portal-patient-switcher"
                 value={activePatientId}
                 onChange={(e) => {
                   const nextId = e.target.value;
-                  setSelectedPatientId(nextId);
+                  setDoctorSelectedPatientId(nextId);
                   router.replace(`/patient-portal?patientId=${nextId}`, { scroll: false });
                 }}
-                className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2.5 py-1.5 text-xs font-mono"
+                className="bg-[#061C0E] border border-[#12612F] text-[#4CFF8A] px-2 py-1 text-xs font-mono"
               >
                 {allPatients.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -449,22 +507,20 @@ function PatientPortalContent() {
               <button
                 type="button"
                 onClick={() => switchRoleQuick('patient', activePatientId)}
-                className="px-3 py-1.5 border border-[#FFE14A] text-[#FFE14A] hover:bg-[#FFE14A] hover:text-[#020A05] font-mono font-bold uppercase text-[11px] transition-colors cursor-pointer"
+                className="px-2.5 py-1 border border-[#FFE14A] text-[#FFE14A] hover:bg-[#FFE14A] hover:text-[#020A05] font-mono font-bold uppercase text-[11px] transition-colors cursor-pointer"
               >
-                Lock to {patient.name.split(' ')[0]}&apos;s Login
+                Lock Login
               </button>
               <Link
                 href={`/patients/${patient.id}`}
-                className="px-3 py-1.5 border border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05] font-mono font-bold uppercase text-[11px] transition-colors"
+                className="px-2.5 py-1 border border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05] font-mono font-bold uppercase text-[11px] transition-colors"
               >
-                Back to Doctor Twin &rarr;
+                Doctor Twin &rarr;
               </Link>
             </>
           ) : (
             <div className="flex items-center space-x-3 font-mono text-[11px]">
-              <span className="text-[#2FBF63]">
-                PRIVACY GUARDRAIL: Viewing only your own record ({patient.id})
-              </span>
+              <span className="text-[#2FBF63]">Viewing record {patient.id}</span>
               <button
                 type="button"
                 onClick={logout}
@@ -478,675 +534,774 @@ function PatientPortalContent() {
       </div>
 
       {/* =========================================================================
-          ALWAYS-VISIBLE URGENT HELP BOX (PINNED SAFETY BANNER AT TOP OF PORTAL)
+          1. SLIM STICKY URGENT-HELP BAR + WARNING SIGNS DRAWER
       ========================================================================= */}
       <section
-        aria-label="When to get urgent help"
-        className="border-2 border-[#FF2A1A] bg-[#04130A] p-4 sm:p-5 shadow-sm"
+        id="urgent-help-bar"
+        aria-label="Urgent medical assistance"
+        className="sticky top-0 z-30 border border-[#FF2A1A]/70 bg-[#020A05]/95 backdrop-blur-sm p-3 shadow-md"
       >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center space-x-2">
-              <span className="px-2 py-0.5 text-[11px] font-mono font-bold uppercase bg-[#FF2A1A] text-white">
-                WHEN TO GET URGENT HELP
-              </span>
-              <span className="text-xs font-mono uppercase text-[#FF2A1A] font-semibold">
-                ALWAYS VISIBLE SAFETY GUIDE
-              </span>
-            </div>
-            <p className="text-sm font-semibold text-[#B6FFCC]">
-              Get urgent medical help right away if you have any of these warning signs:
-            </p>
-            <ul className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-[#75FFA5] pt-1">
-              <li className="border border-[#FF2A1A]/40 bg-[#020A05] p-2.5">
-                <strong className="text-[#FF2A1A] block uppercase font-mono text-[11px]">
-                  1. Trouble Speaking or Breathing
-                </strong>
-                You are gasping for air, cannot speak a full sentence in one breath, or feel chest/neck skin pulling in tightly.
-              </li>
-              <li className="border border-[#FF2A1A]/40 bg-[#020A05] p-2.5">
-                <strong className="text-[#FF2A1A] block uppercase font-mono text-[11px]">
-                  2. Rescue Inhaler Not Helping
-                </strong>
-                Your quick-relief rescue inhaler ({patient.rescueMedication}) does not ease your breathing within 15–20 minutes.
-              </li>
-              <li className="border border-[#FF2A1A]/40 bg-[#020A05] p-2.5">
-                <strong className="text-[#FF2A1A] block uppercase font-mono text-[11px]">
-                  3. Severe Warning Signs
-                </strong>
-                Your lips or fingernails look pale or bluish, or you feel dizzy, confused, or exhausted from breathing.
-              </li>
-            </ul>
-          </div>
-
-          <div className="flex sm:flex-row lg:flex-col gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
             <a
               href="tel:112"
-              className="px-4 py-2.5 bg-[#FF2A1A] text-white font-mono font-bold text-xs uppercase tracking-wider text-center hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#FF2A1A] text-white font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity"
             >
-              CALL EMERGENCY (112 / 108)
+              <span>🚨 CALL EMERGENCY (112 / 108)</span>
             </a>
-            <a
-              href="#care-plan-section"
-              className="px-4 py-2 border border-[#FF2A1A] text-[#FF2A1A] font-mono font-bold text-xs uppercase tracking-wider text-center hover:bg-[#FF2A1A] hover:text-white transition-colors"
-            >
-              VIEW MY ACTION PLAN &darr;
-            </a>
+            <span className="text-[#FFA49C] hidden sm:inline font-medium">
+              Free 24/7 medical response across India
+            </span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsUrgentDrawerOpen(!isUrgentDrawerOpen)}
+            aria-expanded={isUrgentDrawerOpen}
+            className="flex items-center gap-1.5 px-2.5 py-1 border border-[#FF2A1A]/60 text-[#FF9A8F] hover:text-white hover:border-[#FF2A1A] font-mono text-xs uppercase transition-colors cursor-pointer"
+          >
+            <span>When to get help</span>
+            <span className="font-bold">{isUrgentDrawerOpen ? '▲ Hide' : '▼ View 3 signs'}</span>
+          </button>
         </div>
+
+        {/* Collapsible drawer holding the 3 warning signs */}
+        {isUrgentDrawerOpen && (
+          <div className="mt-3 pt-3 border-t border-[#FF2A1A]/40 grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+            <div className="border border-[#FF2A1A]/30 bg-[#061C0E] p-2.5">
+              <div className="text-[#FF2A1A] font-mono font-bold uppercase text-[11px] flex items-center gap-1">
+                <span>▲ 1. Trouble Speaking or Breathing</span>
+              </div>
+              <p className="text-[#B6FFCC] mt-1 leading-snug">
+                Gasping for air, unable to speak full sentences, or neck and chest skin pulling in tightly.
+              </p>
+            </div>
+
+            <div className="border border-[#FF2A1A]/30 bg-[#061C0E] p-2.5">
+              <div className="text-[#FF2A1A] font-mono font-bold uppercase text-[11px] flex items-center gap-1">
+                <span>▲ 2. Inhaler Not Helping</span>
+              </div>
+              <p className="text-[#B6FFCC] mt-1 leading-snug">
+                Your rescue inhaler ({patient.rescueMedication}) brings no relief within 15–20 minutes.
+              </p>
+            </div>
+
+            <div className="border border-[#FF2A1A]/30 bg-[#061C0E] p-2.5">
+              <div className="text-[#FF2A1A] font-mono font-bold uppercase text-[11px] flex items-center gap-1">
+                <span>▲ 3. Severe Warning Signs</span>
+              </div>
+              <p className="text-[#B6FFCC] mt-1 leading-snug">
+                Lips or nails turning pale or blue, or feeling confused, dizzy, or exhausted from breathing.
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* =========================================================================
-          MODULE 1 & MODULE 3: TODAY'S STATUS (PLAIN LANGUAGE) + AIR QUALITY NOW & LATER
+          2. HERO ROW: RISK METER (LEFT) + AIR QUALITY & 24H DAY BAR (RIGHT)
       ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Module 1: Today's Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left: Risk Meter Card */}
         <section
-          aria-labelledby="todays-status-heading"
-          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-6 flex flex-col justify-between space-y-5"
+          aria-labelledby="hero-risk-heading"
+          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-5 flex flex-col justify-between space-y-4"
         >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-3">
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-                  {'// 01 • TODAY’S STATUS'}
-                </div>
-                <h1
-                  id="todays-status-heading"
-                  className="text-xl sm:text-2xl font-bold text-[#B6FFCC] mt-0.5"
-                >
-                  Your Asthma Outlook Today
-                </h1>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-2">
+              <h1 id="hero-risk-heading" className="text-lg font-bold text-[#B6FFCC]">
+                Today&apos;s Asthma Risk
+              </h1>
+              <div className={`px-2.5 py-0.5 border text-xs font-mono font-bold uppercase ${getBandBadgeClass(effectiveRiskBand)}`}>
+                {getRiskIcon(effectiveRiskBand)} {effectiveRiskBand}
+                {isWhatIfActive && effectiveRiskBand !== todayPlainRisk && (
+                  <span className="ml-1.5 opacity-80">(Reduced)</span>
+                )}
               </div>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-[#12612F] text-[#2FBF63]">
-                PLAIN-LANGUAGE VIEW
-              </span>
             </div>
 
-            {/* Single Plain-Language Risk Level (Low / Watch / High) */}
-            <div className="border border-[#12612F] bg-[#020A05] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-mono uppercase tracking-wider text-[#2FBF63]">
-                  TODAY’S RISK LEVEL
-                </div>
+            {/* Visual Risk Meter */}
+            <div className="space-y-1.5 pt-1">
+              <div className="relative h-4 bg-[#020A05] border border-[#12612F] p-0.5 flex">
+                <div className="flex-1 bg-[#4CFF8A]/30 border-r border-[#020A05] flex items-center justify-center" />
+                <div className="flex-1 bg-[#FFE14A]/30 border-r border-[#020A05] flex items-center justify-center" />
+                <div className="flex-1 bg-[#FF2A1A]/30 flex items-center justify-center" />
+
+                {/* Marker Needle */}
                 <div
-                  className={`text-4xl sm:text-5xl font-bold uppercase tracking-tight mt-1 ${
-                    todayPlainRisk === 'High'
-                      ? 'text-[#FF2A1A]'
-                      : todayPlainRisk === 'Watch'
-                      ? 'text-[#FFE14A]'
-                      : 'text-[#4CFF8A]'
-                  }`}
+                  className="absolute -top-1.5 w-3.5 h-7 transition-all duration-300 pointer-events-none -ml-[7px]"
+                  style={{
+                    left:
+                      effectiveRiskBand === 'Low'
+                        ? '16.6%'
+                        : effectiveRiskBand === 'Watch'
+                        ? '50%'
+                        : '83.3%',
+                  }}
                 >
-                  {todayPlainRisk}
+                  <div
+                    className={`w-3.5 h-3.5 rotate-45 border-2 shadow-sm ${
+                      effectiveRiskBand === 'High'
+                        ? 'bg-[#FF2A1A] border-white'
+                        : effectiveRiskBand === 'Watch'
+                        ? 'bg-[#FFE14A] border-white'
+                        : 'bg-[#4CFF8A] border-white'
+                    }`}
+                  />
                 </div>
               </div>
 
-              <div className={`px-4 py-2 border font-mono text-xs font-bold uppercase ${getBandBadgeClasses(todayPlainRisk)}`}>
-                {todayPlainRisk === 'High'
-                  ? '▲ HIGH — TAKE EXTRA CARE TODAY'
-                  : todayPlainRisk === 'Watch'
-                  ? '◆ WATCH — BE MINDFUL OF TRIGGERS'
-                  : '● LOW — STEADY & CALM TODAY'}
+              <div className="flex justify-between text-[11px] font-mono text-[#2FBF63] pt-0.5">
+                <span className={effectiveRiskBand === 'Low' ? 'text-[#4CFF8A] font-bold' : ''}>
+                  ● Low
+                </span>
+                <span className={effectiveRiskBand === 'Watch' ? 'text-[#FFE14A] font-bold' : ''}>
+                  ◆ Watch
+                </span>
+                <span className={effectiveRiskBand === 'High' ? 'text-[#FF2A1A] font-bold' : ''}>
+                  ▲ High
+                </span>
               </div>
             </div>
 
-            {/* Plain-language short reason */}
-            <div className="space-y-1.5">
-              <div className="text-xs font-mono uppercase tracking-wider text-[#2FBF63]">
-                WHY YOUR STATUS IS {todayPlainRisk.toUpperCase()} TODAY:
-              </div>
-              <p className="text-base sm:text-lg font-medium text-[#B6FFCC] leading-relaxed border-l-2 border-[#4CFF8A] pl-4 py-1">
+            {/* Plain-Language Reason (Single sentence) */}
+            <div className="border-l-2 border-[#4CFF8A] pl-3 py-1">
+              <p className="text-sm sm:text-base font-medium text-[#B6FFCC] leading-relaxed">
                 &ldquo;{todayShortReason}&rdquo;
               </p>
             </div>
           </div>
 
-          <div className="border-t border-[#12612F]/40 pt-3 flex items-center justify-between text-xs text-[#2FBF63]">
-            <span>Updated from your wearable signals &amp; {patient.city} air monitor</span>
-            <span className="font-mono uppercase">NO RAW PROBABILITIES</span>
+          <div className="border-t border-[#12612F]/40 pt-2.5 flex items-center justify-between text-[11px] text-[#2FBF63]">
+            <span>Wearables &amp; {patient.city} air feed</span>
+            <span className="font-mono">Updated today, 8:00 AM</span>
           </div>
         </section>
 
-        {/* Module 3: Air Quality Now and Later */}
+        {/* Right: Air Quality Card with 24-Hour Day Bar */}
         <section
-          aria-labelledby="air-quality-heading"
-          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-6 flex flex-col justify-between space-y-5"
+          aria-labelledby="hero-air-heading"
+          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-5 flex flex-col justify-between space-y-4"
         >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-3">
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-                  {`// 02 • AIR QUALITY NOW & LATER (${patient.city.toUpperCase()})`}
-                </div>
-                <h2
-                  id="air-quality-heading"
-                  className="text-xl sm:text-2xl font-bold text-[#B6FFCC] mt-0.5"
-                >
-                  Outdoor Air Around You
-                </h2>
-              </div>
-              <span className="px-2.5 py-1 text-xs font-mono font-bold border border-[#FFE14A] bg-[#020A05] text-[#FFE14A]">
-                {patient.currentAirQuality.aqiCategory.toUpperCase()} AIR (AQI {patient.currentAirQuality.aqi})
+          <div className="space-y-3">
+            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-2">
+              <h2 id="hero-air-heading" className="text-lg font-bold text-[#B6FFCC]">
+                Air Quality • {patient.city}
+              </h2>
+              <span className="text-xs font-mono text-[#75FFA5]">
+                PM2.5: {patient.currentAirQuality.pm25} µg/m³
               </span>
             </div>
 
-            {/* Plain words summary of current AQI / PM2.5 */}
-            <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-1.5">
-              <div className="text-xs font-mono uppercase text-[#2FBF63]">
-                AIR QUALITY RIGHT NOW ({patient.station})
-              </div>
-              <p className="text-sm sm:text-base text-[#B6FFCC] leading-relaxed">
-                {patient.currentAirQuality.aqi >= 300
-                  ? `Outdoor air is Severe right now (AQI ${patient.currentAirQuality.aqi}, fine dust PM2.5 at ${patient.currentAirQuality.pm25} µg/m³). In plain words: the air outside is heavy with smoke and fine particles that can quickly irritate your lungs.`
-                  : patient.currentAirQuality.aqi >= 200
-                  ? `Outdoor air is Poor right now (AQI ${patient.currentAirQuality.aqi}, fine dust PM2.5 at ${patient.currentAirQuality.pm25} µg/m³). In plain words: there is noticeable haze and traffic dust outside that can make breathing feel tighter.`
-                  : `Outdoor air is Moderate right now (AQI ${patient.currentAirQuality.aqi}, fine dust PM2.5 at ${patient.currentAirQuality.pm25} µg/m³). Sensitive airways may still notice mild irritation near busy roads.`}
-              </p>
-            </div>
-
-            {/* Best and Worst Times of Day to be Outdoors */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="border border-[#4CFF8A] bg-[#061C0E] p-4 space-y-1.5">
-                <div className="font-mono font-bold uppercase text-[#4CFF8A] flex items-center justify-between">
-                  <span>✓ BEST TIME TO BE OUTDOORS</span>
-                  <span>CLEANER WINDOW</span>
-                </div>
-                <div className="text-base font-bold text-[#B6FFCC] font-mono">
-                  2:00 PM – 4:30 PM
-                </div>
-                <p className="text-[#75FFA5] leading-relaxed">
-                  Afternoon warmth lifts trapped ground smog. Plan short walks or errands during mid-afternoon.
-                </p>
+            {/* Large AQI Number & CPCB Band */}
+            <div className="flex items-baseline justify-between gap-4">
+              <div className="flex items-baseline gap-2">
+                <span className={`text-4xl sm:text-5xl font-bold font-mono tracking-tight ${getBandTextClass(todayPlainRisk)}`}>
+                  {patient.currentAirQuality.aqi}
+                </span>
+                <span className="text-xs font-mono uppercase text-[#2FBF63]">AQI</span>
               </div>
 
-              <div className="border border-[#FF2A1A] bg-[#020A05] p-4 space-y-1.5">
-                <div className="font-mono font-bold uppercase text-[#FF2A1A] flex items-center justify-between">
-                  <span>▲ WORST TIME TO BE OUTDOORS</span>
-                  <span>AVOID SMOG</span>
-                </div>
-                <div className="text-base font-bold text-[#B6FFCC] font-mono">
-                  6:30–9:30 AM &amp; 6:00–10:00 PM
-                </div>
-                <p className="text-[#75FFA5] leading-relaxed">
-                  Cool morning and evening air traps rush-hour traffic exhaust and smoke close to the ground.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-[#12612F]/40 pt-3 flex items-center justify-between text-xs text-[#2FBF63]">
-            <span>Temp: {patient.currentAirQuality.temp}°C • Humidity: {patient.currentAirQuality.humidity}%</span>
-            <span className="font-mono">SOURCE: LOCAL CPCB STATION</span>
-          </div>
-        </section>
-      </div>
-
-      {/* =========================================================================
-          MODULE 2: THE NEXT 48 HOURS (SIMPLE OUTLOOK STRIP + AIR QUALITY FORECAST)
-      ========================================================================= */}
-      <section
-        aria-labelledby="next-48h-heading"
-        className="border border-[#12612F] bg-[#04130A] p-6 space-y-4"
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-3">
-          <div>
-            <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 03 • THE NEXT 48 HOURS'}
-            </div>
-            <h2 id="next-48h-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-              48-Hour Personal Risk &amp; Air-Quality Outlook Strip
-            </h2>
-            <p className="text-xs text-[#75FFA5] mt-0.5">
-              Shows when your breathing risk is likely to rise side-by-side with the local air-quality forecast.
-            </p>
-          </div>
-          <div className="flex items-center space-x-3 text-xs font-mono">
-            <span className="px-2 py-0.5 border border-[#4CFF8A] text-[#4CFF8A]">LOW</span>
-            <span className="px-2 py-0.5 border border-[#FFE14A] text-[#FFE14A]">WATCH</span>
-            <span className="px-2 py-0.5 border border-[#FF2A1A] text-[#FF2A1A]">HIGH</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-          {outlook48hStrip.map((slot, idx) => (
-            <div
-              key={idx}
-              className={`border p-3.5 flex flex-col justify-between space-y-3 bg-[#020A05] ${
-                slot.riskBand === 'High'
-                  ? 'border-[#FF2A1A]'
-                  : slot.riskBand === 'Watch'
-                  ? 'border-[#FFE14A]'
-                  : 'border-[#12612F]'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between text-[10px] font-mono text-[#2FBF63] uppercase">
-                  <span>{slot.hours}</span>
-                  <span>STEP {idx + 1}</span>
-                </div>
-                <div className="text-sm font-bold text-[#B6FFCC] mt-0.5">{slot.window}</div>
-              </div>
-
-              <div className="space-y-2">
-                <div>
-                  <div className="text-[10px] font-mono uppercase text-[#2FBF63]">BREATHING RISK</div>
-                  <div
-                    className={`mt-0.5 inline-block px-2.5 py-0.5 text-xs font-mono font-bold uppercase border ${getBandBadgeClasses(
-                      slot.riskBand
-                    )}`}
-                  >
-                    {slot.riskBand}
-                  </div>
-                </div>
-
-                <div className="border-t border-[#12612F]/40 pt-2">
-                  <div className="text-[10px] font-mono uppercase text-[#2FBF63]">AIR FORECAST</div>
-                  <div className="text-xs font-semibold text-[#B6FFCC] mt-0.5">
-                    {slot.airForecast}
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-[#75FFA5] leading-snug">{slot.note}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          MODULE 4 & MODULE 5: SIMPLIFIED PERSONAL SIGNALS + DOCTOR-APPROVED ACTIONS
-      ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Module 4: Their Own Signals, Simplified */}
-        <section
-          aria-labelledby="simplified-signals-heading"
-          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-6 space-y-4"
-        >
-          <div className="border-b border-[#12612F]/60 pb-3">
-            <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 04 • YOUR OWN SIGNALS, SIMPLIFIED'}
-            </div>
-            <h2 id="simplified-signals-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-              How Your Body Compares to Your Usual
-            </h2>
-            <p className="text-xs text-[#75FFA5] mt-0.5">
-              Your wearable readings compared against your own personal baseline — shown in plain words instead of medical charts.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {simplifiedSignals.map((sig) => (
-              <div
-                key={sig.name}
-                className="border border-[#12612F] bg-[#020A05] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="space-y-1">
-                  <div className="text-sm font-bold text-[#B6FFCC]">{sig.name}</div>
-                  <p className="text-xs text-[#75FFA5] leading-relaxed">{sig.plainSummary}</p>
-                </div>
-
+              <div className="text-right">
                 <span
-                  className={`px-3 py-1.5 text-xs font-mono font-bold uppercase border shrink-0 self-start sm:self-center ${
-                    sig.isDifferent
+                  className={`px-3 py-1 border text-xs font-mono font-bold uppercase inline-block ${
+                    patient.currentAirQuality.aqi >= 300
+                      ? 'border-[#FF2A1A] bg-[#FF2A1A]/15 text-[#FF2A1A]'
+                      : patient.currentAirQuality.aqi >= 200
+                      ? 'border-[#FFA61F] bg-[#FFA61F]/15 text-[#FFA61F]'
+                      : patient.currentAirQuality.aqi >= 100
                       ? 'border-[#FFE14A] bg-[#FFE14A]/15 text-[#FFE14A]'
                       : 'border-[#4CFF8A] bg-[#4CFF8A]/15 text-[#4CFF8A]'
                   }`}
                 >
-                  {sig.isDifferent ? '◆ DIFFERENT FROM YOUR USUAL' : '✓ NORMAL FOR YOU'}
+                  {patient.currentAirQuality.aqiCategory} Air
                 </span>
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Module 5: Suggested Actions (Fixed, Doctor-Approved Set) */}
-        <section
-          aria-labelledby="suggested-actions-heading"
-          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-6 space-y-4"
-        >
-          <div className="border-b border-[#12612F]/60 pb-3">
-            <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 05 • SUGGESTED ACTIONS (FIXED DOCTOR-APPROVED SET)'}
             </div>
-            <h2 id="suggested-actions-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-              Steps That Help Protect Your Breathing Today
-            </h2>
-            <p className="text-xs text-[#75FFA5] mt-0.5">
-              Selected from your doctor’s approved everyday guidance, with a clear explanation of why each step helps.
-            </p>
+
+            {/* 24-Hour Day Bar (Shaded windows for Best & Worst times) */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#2FBF63]">
+                <span>24-Hour Day Timeline</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-[#4CFF8A]">✓ Best: 2–4:30 PM</span>
+                  <span className="text-[#FF2A1A]">▲ Worst: Morn/Eve</span>
+                </span>
+              </div>
+
+              {/* Day Track */}
+              <div className="relative h-7 bg-[#020A05] border border-[#12612F] overflow-hidden">
+                {/* Worst Window 1: Morning smog (6:30 - 9:30 AM -> 27% to 39.5%) */}
+                <div
+                  className="absolute top-0 bottom-0 left-[27%] w-[12.5%] bg-[#FF2A1A]/35 border-x border-[#FF2A1A]/70 flex items-center justify-center"
+                  title="Worst Air: 6:30 AM – 9:30 AM (Rush-hour smog)"
+                >
+                  <span className="text-[9px] font-mono text-white hidden sm:inline">Worst</span>
+                </div>
+
+                {/* Best Window: Afternoon cleaner air (2:00 - 4:30 PM -> 58.3% to 68.75%) */}
+                <div
+                  className="absolute top-0 bottom-0 left-[58.3%] w-[10.4%] bg-[#4CFF8A]/35 border-x border-[#4CFF8A]/80 flex items-center justify-center"
+                  title="Best Air: 2:00 PM – 4:30 PM (Cleaner window)"
+                >
+                  <span className="text-[9px] font-mono text-[#B6FFCC] hidden sm:inline">Best</span>
+                </div>
+
+                {/* Worst Window 2: Evening traffic (6:00 - 10:00 PM -> 75% to 91.7%) */}
+                <div
+                  className="absolute top-0 bottom-0 left-[75%] w-[16.7%] bg-[#FF2A1A]/35 border-x border-[#FF2A1A]/70 flex items-center justify-center"
+                  title="Worst Air: 6:00 PM – 10:00 PM (Trapped fumes)"
+                >
+                  <span className="text-[9px] font-mono text-white hidden sm:inline">Worst</span>
+                </div>
+
+                {/* Time tick lines */}
+                <div className="absolute left-[25%] top-0 bottom-0 w-[1px] bg-[#12612F]/40" />
+                <div className="absolute left-[50%] top-0 bottom-0 w-[1px] bg-[#12612F]/40" />
+                <div className="absolute left-[75%] top-0 bottom-0 w-[1px] bg-[#12612F]/40" />
+              </div>
+
+              {/* Time tick labels */}
+              <div className="flex justify-between text-[10px] font-mono text-[#2FBF63]">
+                <span>12 AM</span>
+                <span>6 AM</span>
+                <span>12 PM</span>
+                <span>6 PM</span>
+                <span>12 AM</span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {doctorApprovedActions.map((act, index) => (
-              <div
-                key={act.id}
-                className="border border-[#12612F] bg-[#020A05] p-3.5 space-y-1"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-bold text-[#B6FFCC]">
-                    {index + 1}. {act.title}
-                  </div>
-                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-[#4CFF8A] text-[#4CFF8A]">
-                    {act.badge}
-                  </span>
-                </div>
-                <p className="text-xs text-[#75FFA5] leading-relaxed">
-                  <strong className="text-[#4CFF8A]">Why it helps:</strong> {act.whyItHelps}
-                </p>
-              </div>
-            ))}
+          {/* Temperature, humidity and source as single small line */}
+          <div className="border-t border-[#12612F]/40 pt-2.5 text-[11px] text-[#2FBF63] flex flex-wrap items-center justify-between gap-2">
+            <span>
+              {patient.currentAirQuality.temp}°C • {patient.currentAirQuality.humidity}% humidity
+            </span>
+            <span className="font-mono">Station: {patient.station} (CPCB)</span>
           </div>
         </section>
       </div>
 
       {/* =========================================================================
-          MODULE 6 & MODULE 7: SIMPLE NON-MEDICATION WHAT-IF + DAILY SYMPTOM/INHALER LOG
+          3. 48-HOUR STRIP: HORIZONTAL TIMELINE OF SIX PERIODS
       ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Module 6: Simple What-If (Non-Medication Only) */}
-        <section
-          aria-labelledby="simple-what-if-heading"
-          className="lg:col-span-6 border border-[#4CFF8A] bg-[#04130A] p-6 flex flex-col justify-between space-y-5"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-3">
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-                  {'// 06 • SIMPLE WHAT-IF (NON-MEDICATION ONLY)'}
-                </div>
-                <h2 id="simple-what-if-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-                  See How Everyday Choices Change Your Outlook
-                </h2>
-              </div>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-[#4CFF8A] text-[#4CFF8A]">
-                NO TREATMENT CHANGES
-              </span>
-            </div>
+      <section
+        aria-labelledby="strip-48h-heading"
+        className="border border-[#12612F] bg-[#04130A] p-5 space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-2">
+          <div className="flex items-center space-x-2">
+            <h2 id="strip-48h-heading" className="text-base font-bold text-[#B6FFCC]">
+              48-Hour Breathing &amp; Air Outlook
+            </h2>
+            <span className="text-[11px] text-[#2FBF63] font-mono">Tap any time block</span>
+          </div>
+          <div className="flex items-center space-x-2 text-[11px] font-mono">
+            <span className="text-[#4CFF8A]">● Low</span>
+            <span className="text-[#FFE14A]">◆ Watch</span>
+            <span className="text-[#FF2A1A]">▲ High</span>
+          </div>
+        </div>
 
-            <p className="text-xs text-[#75FFA5] leading-relaxed">
-              Try toggling clean-air habits below to see how your digital twin responds over the next 48 hours. Medication settings are locked to your doctor’s plan so you never have to guess or experiment with treatment.
+        {/* 6-segment horizontal timeline */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {outlook48hStrip.map((slot, idx) => {
+            const isSelected = selectedStripIndex === idx;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedStripIndex(idx)}
+                className={`p-3 text-left border transition-colors cursor-pointer flex flex-col justify-between space-y-2 ${
+                  isSelected
+                    ? 'border-[#4CFF8A] bg-[#061C0E] shadow-sm'
+                    : slot.riskBand === 'High'
+                    ? 'border-[#FF2A1A]/50 bg-[#020A05] hover:border-[#FF2A1A]'
+                    : slot.riskBand === 'Watch'
+                    ? 'border-[#FFE14A]/50 bg-[#020A05] hover:border-[#FFE14A]'
+                    : 'border-[#12612F] bg-[#020A05] hover:border-[#4CFF8A]'
+                }`}
+              >
+                <div>
+                  <div className="text-[10px] font-mono text-[#2FBF63] uppercase">{slot.hours}</div>
+                  <div className="text-xs font-bold text-[#B6FFCC] truncate mt-0.5">{slot.window}</div>
+                </div>
+
+                <div className="space-y-1.5 pt-1 border-t border-[#12612F]/40">
+                  <div className={`text-xs font-mono font-bold uppercase flex items-center gap-1 ${getBandTextClass(slot.riskBand)}`}>
+                    <span>{getRiskIcon(slot.riskBand)}</span>
+                    <span>{slot.riskBand}</span>
+                  </div>
+
+                  <div className="text-[10px] font-mono text-[#75FFA5] flex items-center gap-1">
+                    {slot.airIcon === 'sun' && <span>☀️</span>}
+                    {slot.airIcon === 'cloud' && <span>☁️</span>}
+                    {slot.airIcon === 'smog' && <span>🌫️</span>}
+                    <span className="truncate">{slot.airForecast}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected period note (One sentence) */}
+        <div className="border border-[#12612F] bg-[#020A05] px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs">
+          <div className="text-[#B6FFCC]">
+            <strong className="text-[#4CFF8A] font-mono uppercase mr-1.5">
+              {outlook48hStrip[selectedStripIndex].window} ({outlook48hStrip[selectedStripIndex].hours}):
+            </strong>
+            {outlook48hStrip[selectedStripIndex].note}
+          </div>
+          <span className="text-[10px] font-mono text-[#2FBF63] shrink-0">
+            Air: {outlook48hStrip[selectedStripIndex].airForecast}
+          </span>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          4. BODY VS USUAL: RANGE BARS & PROGRESSIVE DISCLOSURE
+      ========================================================================= */}
+      <section
+        aria-labelledby="body-vs-usual-heading"
+        className="border border-[#12612F] bg-[#04130A] p-5 space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-2">
+          <div>
+            <h2 id="body-vs-usual-heading" className="text-base font-bold text-[#B6FFCC]">
+              Body Signals vs Your Usual
+            </h2>
+            <p className="text-xs text-[#75FFA5]">
+              Compared against your personal resting baseline — not generic averages.
             </p>
-
-            {/* Non-medication toggles */}
-            <div className="space-y-2.5">
-              <button
-                type="button"
-                onClick={() => setStayIndoorsEvening((prev) => !prev)}
-                className={`w-full p-3.5 border text-left flex items-center justify-between transition-colors cursor-pointer ${
-                  stayIndoorsEvening
-                    ? 'border-[#4CFF8A] bg-[#061C0E]'
-                    : 'border-[#12612F] bg-[#020A05]'
-                }`}
-              >
-                <div>
-                  <div className="text-sm font-bold text-[#B6FFCC]">
-                    Stay indoors this evening (avoid 6 PM – 10 PM smog peak)
-                  </div>
-                  <div className="text-xs text-[#75FFA5]">
-                    Keeps you out of heavy evening traffic fumes and trapped ground haze.
-                  </div>
-                </div>
-                <span className="font-mono text-xs font-bold px-3 py-1 border border-[#4CFF8A] text-[#4CFF8A] shrink-0 ml-3">
-                  {stayIndoorsEvening ? '[ ✓ ON ]' : '[ OFF ]'}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setWearMaskOutdoors((prev) => !prev)}
-                className={`w-full p-3.5 border text-left flex items-center justify-between transition-colors cursor-pointer ${
-                  wearMaskOutdoors
-                    ? 'border-[#4CFF8A] bg-[#061C0E]'
-                    : 'border-[#12612F] bg-[#020A05]'
-                }`}
-              >
-                <div>
-                  <div className="text-sm font-bold text-[#B6FFCC]">
-                    Wear a fitted N95 mask when stepping outdoors
-                  </div>
-                  <div className="text-xs text-[#75FFA5]">
-                    Blocks fine dust and smoke particles during your commute.
-                  </div>
-                </div>
-                <span className="font-mono text-xs font-bold px-3 py-1 border border-[#4CFF8A] text-[#4CFF8A] shrink-0 ml-3">
-                  {wearMaskOutdoors ? '[ ✓ ON ]' : '[ OFF ]'}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setUseBedroomPurifier((prev) => !prev)}
-                className={`w-full p-3.5 border text-left flex items-center justify-between transition-colors cursor-pointer ${
-                  useBedroomPurifier
-                    ? 'border-[#4CFF8A] bg-[#061C0E]'
-                    : 'border-[#12612F] bg-[#020A05]'
-                }`}
-              >
-                <div>
-                  <div className="text-sm font-bold text-[#B6FFCC]">
-                    Run bedroom air purifier tonight (or keep windows closed)
-                  </div>
-                  <div className="text-xs text-[#75FFA5]">
-                    Gives your lungs clean indoor air while you sleep.
-                  </div>
-                </div>
-                <span className="font-mono text-xs font-bold px-3 py-1 border border-[#4CFF8A] text-[#4CFF8A] shrink-0 ml-3">
-                  {useBedroomPurifier ? '[ ✓ ON ]' : '[ OFF ]'}
-                </span>
-              </button>
-            </div>
-
-            {/* Plain-Language What-If Result Box */}
-            <div className="border-2 border-[#4CFF8A] bg-[#020A05] p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono text-[#2FBF63]">
-                <span>DIGITAL TWIN WHAT-IF OUTCOME</span>
-                <span>{isSimulatingWhatIf ? 'UPDATING TWIN...' : 'LIVE TWIN RESULT'}</span>
-              </div>
-              <p className="text-base sm:text-lg font-bold text-[#B6FFCC] leading-relaxed">
-                &ldquo;{whatIfSentence}&rdquo;
-              </p>
-              <div className="flex items-center space-x-3 pt-1 text-xs font-mono">
-                <span className="text-[#2FBF63]">TODAY:</span>
-                <span className={`px-2 py-0.5 border font-bold uppercase ${getBandBadgeClasses(todayPlainRisk)}`}>
-                  {todayPlainRisk}
-                </span>
-                <span className="text-[#4CFF8A] font-bold">&rarr;</span>
-                <span className="text-[#2FBF63]">WITH THIS CHOICE:</span>
-                <span className={`px-2 py-0.5 border font-bold uppercase ${getBandBadgeClasses(whatIfBand)}`}>
-                  {whatIfBand}
-                </span>
-              </div>
-            </div>
           </div>
+          {normalSignals.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowNormalSignals(!showNormalSignals)}
+              className="text-xs font-mono text-[#4CFF8A] hover:underline cursor-pointer"
+            >
+              {showNormalSignals
+                ? '− Hide normal signals'
+                : `+ ${normalSignals.length} more are normal`}
+            </button>
+          )}
+        </div>
 
-          <div className="border-t border-[#12612F]/40 pt-3 text-[11px] text-[#2FBF63] font-mono">
-            SAFETY RULE: Non-medication simulation only. Never change your inhaler dose without talking to your doctor.
-          </div>
-        </section>
-
-        {/* Module 7: A Log (Quick Entry for Symptoms, Rescue Inhaler, Controller Meds) */}
-        <section
-          aria-labelledby="daily-log-heading"
-          className="lg:col-span-6 border border-[#12612F] bg-[#04130A] p-6 flex flex-col justify-between space-y-4"
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-3">
-              <div>
-                <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-                  {'// 07 • DAILY CHECK-IN LOG'}
-                </div>
-                <h2 id="daily-log-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-                  Log Your Symptoms &amp; Inhaler Use
-                </h2>
-                <p className="text-xs text-[#75FFA5] mt-0.5">
-                  Quick daily entry so your digital twin and your doctor have an accurate picture of how you feel.
-                </p>
-              </div>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-[#12612F] text-[#4CFF8A]">
-                FEEDS YOUR TWIN
-              </span>
+        {/* Signal rows: Showing differing signals first */}
+        <div className="space-y-2.5">
+          {differingSignals.length === 0 && !showNormalSignals && (
+            <div className="border border-[#4CFF8A]/40 bg-[#020A05] p-3 text-xs text-[#4CFF8A] flex items-center justify-between">
+              <span>✓ All 4 body signals are within your usual personal baseline today.</span>
+              <button
+                type="button"
+                onClick={() => setShowNormalSignals(true)}
+                className="underline font-mono"
+              >
+                View signals
+              </button>
             </div>
+          )}
 
-            <form onSubmit={handleLogSubmit} className="space-y-3.5 text-xs">
-              {/* 1. Did you take your controller medication? */}
-              <div className="border border-[#12612F] bg-[#020A05] p-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="font-bold text-[#B6FFCC] text-sm">
-                    1. Controller Medication Today
+          {differingSignals.map((sig) => {
+            const pct = Math.max(0, Math.min(100, ((sig.currentVal - sig.min) / (sig.max - sig.min)) * 100));
+            const usualLeft = Math.max(0, Math.min(100, ((sig.usualMin - sig.min) / (sig.max - sig.min)) * 100));
+            const usualWidth = Math.max(
+              4,
+              Math.min(100 - usualLeft, ((sig.usualMax - sig.usualMin) / (sig.max - sig.min)) * 100)
+            );
+
+            return (
+              <div key={sig.id} className="border border-[#FFE14A]/40 bg-[#020A05] p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-[#B6FFCC]">{sig.name}</span>
+                    <span className="text-xs font-mono text-[#FFA61F] font-bold">
+                      {sig.currentDisplay}
+                    </span>
+                    <span className="text-[11px] text-[#2FBF63] font-mono">
+                      (Usual: {sig.usualDisplay})
+                    </span>
                   </div>
-                  <div className="text-[11px] text-[#75FFA5]">
-                    {patient.controllerMedication}
+
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-[#FFE14A] bg-[#FFE14A]/15 text-[#FFE14A]">
+                      ◆ Different
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSignalWhy(sig.id)}
+                      className="text-[11px] font-mono text-[#2FBF63] hover:text-[#B6FFCC] underline cursor-pointer"
+                    >
+                      {expandedSignalWhy[sig.id] ? 'Less' : 'Why?'}
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 font-mono">
-                  <button
-                    type="button"
-                    onClick={() => setControllerTaken(true)}
-                    className={`px-3 py-1.5 border font-bold uppercase cursor-pointer ${
-                      controllerTaken
-                        ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
-                        : 'border-[#12612F] text-[#2FBF63]'
-                    }`}
-                  >
-                    ✓ Yes, Taken
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setControllerTaken(false)}
-                    className={`px-3 py-1.5 border font-bold uppercase cursor-pointer ${
-                      !controllerTaken
-                        ? 'border-[#FFE14A] bg-[#FFE14A] text-[#020A05]'
-                        : 'border-[#12612F] text-[#2FBF63]'
-                    }`}
-                  >
-                    Not Yet
-                  </button>
+
+                {/* Range bar */}
+                <div className="relative h-2 bg-[#061C0E] border border-[#12612F]">
+                  {/* Usual shaded band */}
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#4CFF8A]/35"
+                    style={{ left: `${usualLeft}%`, width: `${usualWidth}%` }}
+                    title={`Usual: ${sig.usualDisplay}`}
+                  />
+                  {/* Patient dot */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#FFE14A] border border-[#020A05] shadow -ml-1.5"
+                    style={{ left: `${pct}%` }}
+                    title={`Current: ${sig.currentDisplay}`}
+                  />
                 </div>
+
+                {expandedSignalWhy[sig.id] && (
+                  <p className="text-xs text-[#75FFA5] pt-1 border-t border-[#12612F]/30 leading-snug">
+                    {sig.sentence}
+                  </p>
+                )}
               </div>
+            );
+          })}
 
-              {/* 2. Rescue Inhaler Use */}
-              <div className="border border-[#12612F] bg-[#020A05] p-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <div className="font-bold text-[#B6FFCC] text-sm">
-                    2. Rescue-Inhaler Puffs Used Today
-                  </div>
-                  <div className="text-[11px] text-[#75FFA5]">
-                    {patient.rescueMedication}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 font-mono">
-                  <button
-                    type="button"
-                    onClick={() => setRescuePuffs((p) => Math.max(0, p - 1))}
-                    className="w-8 h-8 border border-[#12612F] bg-[#061C0E] text-[#4CFF8A] font-bold cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <span className="px-3 py-1 border border-[#12612F] bg-[#04130A] text-sm font-bold text-[#B6FFCC] min-w-[70px] text-center">
-                    {rescuePuffs} {rescuePuffs === 1 ? 'puff' : 'puffs'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setRescuePuffs((p) => Math.min(20, p + 1))}
-                    className="w-8 h-8 border border-[#12612F] bg-[#061C0E] text-[#4CFF8A] font-bold cursor-pointer"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+          {/* Normal Signals (Collapsed by default) */}
+          {showNormalSignals &&
+            normalSignals.map((sig) => {
+              const pct = Math.max(0, Math.min(100, ((sig.currentVal - sig.min) / (sig.max - sig.min)) * 100));
+              const usualLeft = Math.max(0, Math.min(100, ((sig.usualMin - sig.min) / (sig.max - sig.min)) * 100));
+              const usualWidth = Math.max(
+                4,
+                Math.min(100 - usualLeft, ((sig.usualMax - sig.usualMin) / (sig.max - sig.min)) * 100)
+              );
 
-              {/* 3. Symptoms Today */}
-              <div className="border border-[#12612F] bg-[#020A05] p-3 space-y-2.5">
-                <div className="font-bold text-[#B6FFCC] text-sm">
-                  3. How Are Your Symptoms Today?
-                </div>
-                {[
-                  { label: 'Cough', val: coughScore, setter: setCoughScore },
-                  { label: 'Wheezing', val: wheezingScore, setter: setWheezingScore },
-                  { label: 'Chest Tightness', val: tightnessScore, setter: setTightnessScore },
-                  { label: 'Shortness of Breath', val: breathlessnessScore, setter: setBreathlessnessScore },
-                ].map((sym) => (
-                  <div key={sym.label} className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-[#75FFA5] font-medium">{sym.label}</span>
-                    <div className="flex items-center space-x-1 font-mono text-[11px]">
-                      {['None', 'Mild', 'Moderate', 'Severe'].map((lvl, idx) => (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => sym.setter(idx)}
-                          className={`px-2 py-1 border cursor-pointer ${
-                            sym.val === idx
-                              ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-bold'
-                              : 'border-[#12612F] text-[#2FBF63]'
-                          }`}
-                        >
-                          {lvl}
-                        </button>
-                      ))}
+              return (
+                <div key={sig.id} className="border border-[#12612F] bg-[#020A05] p-3 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-bold text-[#B6FFCC]">{sig.name}</span>
+                      <span className="text-xs font-mono text-[#4CFF8A] font-bold">
+                        {sig.currentDisplay}
+                      </span>
+                      <span className="text-[11px] text-[#2FBF63] font-mono">
+                        (Usual: {sig.usualDisplay})
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase border border-[#4CFF8A] bg-[#4CFF8A]/15 text-[#4CFF8A]">
+                        ✓ Usual
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleSignalWhy(sig.id)}
+                        className="text-[11px] font-mono text-[#2FBF63] hover:text-[#B6FFCC] underline cursor-pointer"
+                      >
+                        {expandedSignalWhy[sig.id] ? 'Less' : 'Why?'}
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Optional Note & Submit */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  placeholder="Optional note (e.g., commute dust, woke up coughing)..."
-                  value={logNotes}
-                  onChange={(e) => setLogNotes(e.target.value)}
-                  className="flex-1 bg-[#061C0E] border border-[#12612F] text-[#B6FFCC] px-3 py-2 text-xs font-mono"
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmittingLog}
-                  className="px-5 py-2.5 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-mono font-bold text-xs uppercase tracking-wider cursor-pointer shrink-0"
-                >
-                  {isSubmittingLog ? 'SAVING...' : 'SAVE TODAY’S LOG'}
-                </button>
-              </div>
-
-              {logSuccessMessage && (
-                <div className="border border-[#4CFF8A] bg-[#061C0E] p-2.5 text-xs text-[#4CFF8A] font-mono">
-                  ✓ {logSuccessMessage}
-                </div>
-              )}
-            </form>
-          </div>
-
-          {/* Recent Check-Ins Feed */}
-          <div className="border-t border-[#12612F]/40 pt-3 space-y-1.5 text-xs">
-            <div className="font-mono text-[10px] uppercase text-[#2FBF63]">
-              RECENT CHECK-INS SENT TO YOUR TWIN ({recentLogs.length})
-            </div>
-            {recentLogs.length === 0 ? (
-              <p className="text-[11px] text-[#75FFA5]">
-                No check-ins logged yet today. Save your first entry above to update your digital twin.
-              </p>
-            ) : (
-              <div className="space-y-1 max-h-24 overflow-y-auto">
-                {recentLogs.slice(0, 3).map((item, i) => (
-                  <div
-                    key={item.id || i}
-                    className="flex items-center justify-between text-[11px] font-mono border border-[#12612F]/40 bg-[#020A05] px-2.5 py-1"
-                  >
-                    <span className="text-[#B6FFCC]">
-                      Controller: {item.controller_taken ? 'Taken' : 'Missed'} • Rescue: {item.rescue_puffs}p
-                    </span>
-                    <span className="text-[#2FBF63]">
-                      Cough: {item.cough_score}/3 • Tightness: {item.chest_tightness_score}/3
-                    </span>
+                  {/* Range bar */}
+                  <div className="relative h-2 bg-[#061C0E] border border-[#12612F]">
+                    <div
+                      className="absolute top-0 bottom-0 bg-[#4CFF8A]/35"
+                      style={{ left: `${usualLeft}%`, width: `${usualWidth}%` }}
+                    />
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#4CFF8A] border border-[#020A05] shadow -ml-1.5"
+                      style={{ left: `${pct}%` }}
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
+
+                  {expandedSignalWhy[sig.id] && (
+                    <p className="text-xs text-[#75FFA5] pt-1 border-t border-[#12612F]/30 leading-snug">
+                      {sig.sentence}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      </section>
 
       {/* =========================================================================
-          MODULE 8: PATIENT COPILOT REPORT (PERSONALIZED AI CLINICAL SUMMARY)
+          5. WHAT TO DO TODAY (MERGED SUGGESTED ACTIONS & WHAT-IF TOGGLES)
+      ========================================================================= */}
+      <section
+        aria-labelledby="what-to-do-heading"
+        className="border border-[#4CFF8A]/60 bg-[#04130A] p-5 space-y-4"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-2">
+          <div>
+            <h2 id="what-to-do-heading" className="text-base font-bold text-[#B6FFCC]">
+              What to Do Today
+            </h2>
+            <p className="text-xs text-[#75FFA5]">
+              Doctor-approved habits. Toggle each chip to test how your twin responds.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowActionWhy(!showActionWhy)}
+            className="text-xs font-mono text-[#4CFF8A] hover:underline cursor-pointer"
+          >
+            {showActionWhy ? '− Hide why it helps' : '▾ Why it helps'}
+          </button>
+        </div>
+
+        {/* Three Action Chips (Interactive What-If Toggles) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Chip 1: Limit outdoors */}
+          <button
+            type="button"
+            onClick={() => setStayIndoorsEvening(!stayIndoorsEvening)}
+            className={`p-3 text-left border transition-colors cursor-pointer flex flex-col justify-between space-y-2 ${
+              stayIndoorsEvening
+                ? 'border-[#4CFF8A] bg-[#061C0E]'
+                : 'border-[#12612F] bg-[#020A05] opacity-75'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-[#B6FFCC] flex items-center gap-1.5">
+                <span>🏡</span>
+                <span>Limit time outdoors</span>
+              </span>
+              <span className="font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 border border-[#4CFF8A] text-[#4CFF8A]">
+                {stayIndoorsEvening ? '✓ ON' : 'OFF'}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#75FFA5]">Avoid peak 6–10 PM smog</p>
+          </button>
+
+          {/* Chip 2: N95 Mask */}
+          <button
+            type="button"
+            onClick={() => setWearMaskOutdoors(!wearMaskOutdoors)}
+            className={`p-3 text-left border transition-colors cursor-pointer flex flex-col justify-between space-y-2 ${
+              wearMaskOutdoors
+                ? 'border-[#4CFF8A] bg-[#061C0E]'
+                : 'border-[#12612F] bg-[#020A05] opacity-75'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-[#B6FFCC] flex items-center gap-1.5">
+                <span>😷</span>
+                <span>Wear an N95 mask</span>
+              </span>
+              <span className="font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 border border-[#4CFF8A] text-[#4CFF8A]">
+                {wearMaskOutdoors ? '✓ ON' : 'OFF'}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#75FFA5]">Blocks fine dust while commuting</p>
+          </button>
+
+          {/* Chip 3: Air Purifier */}
+          <button
+            type="button"
+            onClick={() => setUseBedroomPurifier(!useBedroomPurifier)}
+            className={`p-3 text-left border transition-colors cursor-pointer flex flex-col justify-between space-y-2 ${
+              useBedroomPurifier
+                ? 'border-[#4CFF8A] bg-[#061C0E]'
+                : 'border-[#12612F] bg-[#020A05] opacity-75'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-[#B6FFCC] flex items-center gap-1.5">
+                <span>🌀</span>
+                <span>Run air purifier</span>
+              </span>
+              <span className="font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 border border-[#4CFF8A] text-[#4CFF8A]">
+                {useBedroomPurifier ? '✓ ON' : 'OFF'}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#75FFA5]">Clean air in bedroom overnight</p>
+          </button>
+        </div>
+
+        {/* Live outcome banner */}
+        <div className="border border-[#4CFF8A]/60 bg-[#020A05] p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="space-y-0.5">
+            <span className="font-mono text-[10px] text-[#2FBF63] uppercase block">
+              {isSimulatingWhatIf ? 'UPDATING TWIN OUTCOME...' : 'LIVE TWIN RESULT'}
+            </span>
+            <p className="text-sm font-semibold text-[#B6FFCC]">&ldquo;{whatIfSentence}&rdquo;</p>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <span className={`px-2 py-0.5 border uppercase ${getBandBadgeClass(todayPlainRisk)}`}>
+              {todayPlainRisk}
+            </span>
+            <span className="text-[#4CFF8A] font-bold">&rarr;</span>
+            <span className={`px-2 py-0.5 border uppercase font-bold ${getBandBadgeClass(whatIfBand)}`}>
+              {whatIfBand}
+            </span>
+          </div>
+        </div>
+
+        {/* "Why it helps" expander */}
+        {showActionWhy && (
+          <div className="border border-[#12612F] bg-[#020A05] p-3 space-y-2 text-xs text-[#75FFA5]">
+            <div>
+              <strong className="text-[#B6FFCC]">1. Limit time outdoors:</strong> Reduces smoky air and fine road dust breathed in during peak pollution hours, keeping airway swelling down.
+            </div>
+            <div>
+              <strong className="text-[#B6FFCC]">2. Wear an N95 mask:</strong> A snug N95 mask filters out most fine dust and traffic smoke particles during commutes.
+            </div>
+            <div>
+              <strong className="text-[#B6FFCC]">3. Run bedroom air purifier:</strong> Cleans indoor air and protects resting airways from fine particles while you sleep.
+            </div>
+          </div>
+        )}
+
+        <div className="text-[11px] text-[#2FBF63] font-mono border-t border-[#12612F]/40 pt-2">
+          SAFETY RULE: Non-medication simulation only. Never change your inhaler dose without talking to your doctor.
+        </div>
+      </section>
+
+      {/* =========================================================================
+          6. DAILY CHECK-IN AS A QUICK-TAP ROW
+      ========================================================================= */}
+      <section
+        aria-labelledby="daily-checkin-heading"
+        className="border border-[#12612F] bg-[#04130A] p-5 space-y-3"
+      >
+        <div className="flex items-center justify-between border-b border-[#12612F]/60 pb-2">
+          <div>
+            <h2 id="daily-checkin-heading" className="text-base font-bold text-[#B6FFCC]">
+              Daily Check-In
+            </h2>
+            <p className="text-xs text-[#75FFA5]">Feeds your digital twin and clinical record.</p>
+          </div>
+          <span className="text-[10px] font-mono uppercase px-2 py-0.5 border border-[#12612F] text-[#4CFF8A]">
+            Quick Entry
+          </span>
+        </div>
+
+        <form onSubmit={handleLogSubmit} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+            {/* Controller taken (tick) */}
+            <div className="border border-[#12612F] bg-[#020A05] p-2.5 flex flex-col justify-between space-y-1">
+              <span className="text-[10px] font-mono text-[#2FBF63] uppercase truncate">
+                Controller Med
+              </span>
+              <button
+                type="button"
+                onClick={() => setControllerTaken(!controllerTaken)}
+                className={`w-full py-1.5 px-2 border font-mono font-bold text-xs uppercase cursor-pointer transition-colors ${
+                  controllerTaken
+                    ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05]'
+                    : 'border-[#12612F] text-[#2FBF63]'
+                }`}
+              >
+                {controllerTaken ? '✓ Taken' : 'Not Yet'}
+              </button>
+            </div>
+
+            {/* Rescue puffs (stepper) */}
+            <div className="border border-[#12612F] bg-[#020A05] p-2.5 flex flex-col justify-between space-y-1">
+              <span className="text-[10px] font-mono text-[#2FBF63] uppercase">Rescue Puffs</span>
+              <div className="flex items-center justify-between font-mono">
+                <button
+                  type="button"
+                  onClick={() => setRescuePuffs((p) => Math.max(0, p - 1))}
+                  className="w-7 h-7 border border-[#12612F] bg-[#061C0E] text-[#4CFF8A] font-bold cursor-pointer"
+                  aria-label="Decrease puffs"
+                >
+                  −
+                </button>
+                <span className="text-xs font-bold text-[#B6FFCC]">{rescuePuffs}</span>
+                <button
+                  type="button"
+                  onClick={() => setRescuePuffs((p) => Math.min(20, p + 1))}
+                  className="w-7 h-7 border border-[#12612F] bg-[#061C0E] text-[#4CFF8A] font-bold cursor-pointer"
+                  aria-label="Increase puffs"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Symptoms as compact 4-step selectors */}
+            {[
+              { label: 'Cough', val: coughScore, setter: setCoughScore },
+              { label: 'Wheeze', val: wheezingScore, setter: setWheezingScore },
+              { label: 'Tightness', val: tightnessScore, setter: setTightnessScore },
+              { label: 'Breath', val: breathlessnessScore, setter: setBreathlessnessScore },
+            ].map((sym) => (
+              <div
+                key={sym.label}
+                className="border border-[#12612F] bg-[#020A05] p-2.5 flex flex-col justify-between space-y-1"
+              >
+                <span className="text-[10px] font-mono text-[#2FBF63] uppercase">{sym.label}</span>
+                <div className="grid grid-cols-4 gap-0.5 font-mono text-[10px]">
+                  {['0', '1', '2', '3'].map((lvl, idx) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => sym.setter(idx)}
+                      className={`py-1 border cursor-pointer text-center ${
+                        sym.val === idx
+                          ? 'border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-bold'
+                          : 'border-[#12612F] text-[#2FBF63]'
+                      }`}
+                      title={idx === 0 ? 'None' : idx === 1 ? 'Mild' : idx === 2 ? 'Moderate' : 'Severe'}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Collapsible note input & Save button */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setShowNoteInput(!showNoteInput)}
+                className="font-mono text-[#2FBF63] hover:text-[#B6FFCC] text-xs cursor-pointer"
+              >
+                {showNoteInput ? '− Hide note' : '+ Add optional note'}
+              </button>
+              {logSuccessMessage && (
+                <span className="text-[#4CFF8A] font-mono">✓ {logSuccessMessage}</span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmittingLog}
+              className="px-5 py-2 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+            >
+              {isSubmittingLog ? 'Saving...' : 'Save Check-In'}
+            </button>
+          </div>
+
+          {showNoteInput && (
+            <input
+              type="text"
+              placeholder="e.g. commute dust, woke up coughing..."
+              value={logNotes}
+              onChange={(e) => setLogNotes(e.target.value)}
+              className="w-full bg-[#061C0E] border border-[#12612F] text-[#B6FFCC] px-3 py-1.5 text-xs font-mono"
+            />
+          )}
+
+          {recentLogs.length > 0 && (
+            <div className="text-[10px] font-mono text-[#2FBF63] pt-1.5 border-t border-[#12612F]/30 flex flex-wrap items-center justify-between gap-1">
+              <span>
+                Last log: {recentLogs[0].controller_taken ? 'Controller taken' : 'Missed'} •{' '}
+                {recentLogs[0].rescue_puffs} {recentLogs[0].rescue_puffs === 1 ? 'puff' : 'puffs'}
+              </span>
+              <span>{recentLogs.length} total check-ins</span>
+            </div>
+          )}
+        </form>
+      </section>
+
+      {/* =========================================================================
+          7. COPILOT SUMMARY (UNTOUCHED PER INSTRUCTIONS)
+          // 08 • PATIENT COPILOT REPORT
       ========================================================================= */}
       <section
         aria-labelledby="copilot-report-heading"
@@ -1290,85 +1445,81 @@ function PatientPortalContent() {
       </section>
 
       {/* =========================================================================
-          MODULE 9: THEIR CARE PLAN AND CONTACT
+          8. CARE PLAN AND CONTACT: ONE COMPACT CARD
       ========================================================================= */}
       <section
         id="care-plan-section"
         aria-labelledby="care-plan-heading"
-        className="border border-[#12612F] bg-[#04130A] p-6 space-y-5"
+        className="border border-[#12612F] bg-[#04130A] p-5 space-y-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-3">
-          <div>
-            <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 09 • YOUR CARE PLAN & CLINIC CONTACT'}
-            </div>
-            <h2 id="care-plan-heading" className="text-xl font-bold text-[#B6FFCC] mt-0.5">
-              Doctor’s Asthma Action Plan &amp; Next Visit
-            </h2>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#12612F]/60 pb-2">
+          <h2 id="care-plan-heading" className="text-base font-bold text-[#B6FFCC]">
+            Care Plan &amp; Clinic Contact
+          </h2>
           <span className="text-xs font-mono text-[#4CFF8A]">
-            TREATING PHYSICIAN: DR. VIKRAM MEHTA, MD (PULMONOLOGY)
+            Dr. Vikram Mehta, MD (Pulmonology)
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          {/* Card 1: Doctor's Daily Action Plan */}
-          <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          {/* Action Plan */}
+          <div className="border border-[#12612F] bg-[#020A05] p-3.5 space-y-1.5">
             <div className="text-[10px] font-mono uppercase text-[#2FBF63] font-bold">
-              DAILY CONTROLLER &amp; RELIEVER PLAN
+              Current Plan
             </div>
             <div className="text-sm font-bold text-[#B6FFCC]">
-              Daily Controller: {patient.controllerMedication}
+              {patient.controllerMedication}
             </div>
             <div className="text-xs text-[#75FFA5]">
-              Quick-Relief Rescue: {patient.rescueMedication} (keep with you for sudden symptoms).
+              Rescue: {patient.rescueMedication}
             </div>
-            <p className="text-[11px] text-[#2FBF63] pt-1 border-t border-[#12612F]/40">
-              Known Triggers to Avoid: {patient.allergens.join(', ')}
-            </p>
+            <div className="text-[11px] text-[#2FBF63] pt-1 border-t border-[#12612F]/40 truncate">
+              Triggers: {patient.allergens.join(', ')}
+            </div>
           </div>
 
-          {/* Card 2: Next Clinic Visit */}
-          <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2">
+          {/* Next Visit */}
+          <div className="border border-[#12612F] bg-[#020A05] p-3.5 space-y-1.5">
             <div className="text-[10px] font-mono uppercase text-[#2FBF63] font-bold">
-              NEXT SCHEDULED CLINIC VISIT
+              Next Clinic Visit
             </div>
             <div className="text-sm font-bold text-[#B6FFCC] font-mono">
-              Tuesday, Oct 27, 2026 • 10:30 AM
+              Tue, Oct 27, 2026 • 10:30 AM
             </div>
             <div className="text-xs text-[#75FFA5]">
-              Respiratory &amp; Pulmonology Outpatient Clinic ({patient.city} Center)
+              Pulmonology Outpatient Clinic ({patient.city})
             </div>
-            <p className="text-[11px] text-[#4CFF8A] pt-1 border-t border-[#12612F]/40 font-mono">
-              ✓ Your daily twin logs will be shared with Dr. Mehta before your visit.
-            </p>
+            <div className="text-[11px] text-[#4CFF8A] pt-1 border-t border-[#12612F]/40 font-mono">
+              ✓ Daily logs shared with physician
+            </div>
           </div>
 
-          {/* Card 3: Care Team Contact */}
-          <div className="border border-[#12612F] bg-[#020A05] p-4 space-y-2 flex flex-col justify-between">
-            <div className="space-y-1.5">
+          {/* Clinic Contact */}
+          <div className="border border-[#12612F] bg-[#020A05] p-3.5 space-y-2 flex flex-col justify-between">
+            <div className="space-y-1">
               <div className="text-[10px] font-mono uppercase text-[#2FBF63] font-bold">
-                CLINIC &amp; URGENT TRIAGE CONTACT
+                Clinic Line
               </div>
               <div className="text-sm font-bold text-[#B6FFCC]">
-                BreathTwin Pulmonology Care Desk
+                BreathTwin Pulmonology Desk
               </div>
               <div className="text-xs text-[#75FFA5] font-mono">
-                Clinic Line: +91 11-2658-8821 • Emergency: 112 / 108
+                +91 11-2658-8821 (9 AM – 5 PM)
               </div>
             </div>
-            <div className="flex gap-2 pt-2">
+
+            <div className="flex gap-2 pt-1">
               <a
                 href="tel:+911126588821"
-                className="flex-1 py-2 border border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05] font-mono font-bold text-center uppercase text-[11px] transition-colors"
+                className="flex-1 py-1.5 border border-[#4CFF8A] text-[#4CFF8A] hover:bg-[#4CFF8A] hover:text-[#020A05] font-mono font-bold text-center uppercase text-[11px] transition-colors"
               >
                 Call Clinic
               </a>
               <a
-                href="tel:112"
-                className="flex-1 py-2 border border-[#FF2A1A] text-[#FF2A1A] hover:bg-[#FF2A1A] hover:text-white font-mono font-bold text-center uppercase text-[11px] transition-colors"
+                href="#urgent-help-bar"
+                className="py-1.5 px-3 border border-[#12612F] text-[#75FFA5] hover:text-[#B6FFCC] font-mono text-center uppercase text-[11px] transition-colors"
               >
-                Urgent Help (112)
+                Emergency ↑
               </a>
             </div>
           </div>
