@@ -10,7 +10,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-sm">
           <div className="space-y-1.5 max-w-2xl">
             <div className="text-white font-bold tracking-wider uppercase text-sm">
-              BREATHTWIN // CLINICAL DIGITAL TWIN
+              BREATHTWIN
             </div>
             <p className="text-[#75FFA5] text-xs sm:text-sm leading-relaxed">
               Hybrid mechanistic-neural digital twin for 48-hour asthma flare-up risk forecasting, fusing longitudinal EHR, wearable physiology, and ambient CPCB air quality.
@@ -34,7 +34,7 @@ export default function Footer() {
 
         <div className="border-t border-[#12612F]/50 pt-4 flex flex-col sm:flex-row items-center justify-between text-xs tracking-wider uppercase text-[#75FFA5]">
           <div>
-            &copy; 2026 BREATHTWIN &middot; ASTHMA DIGITAL TWIN
+            &copy; 2026 BREATHTWIN
           </div>
         </div>
       </div>

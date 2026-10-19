@@ -1,0 +1,195 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam defaultTextAlignment left
+skinparam arrowColor #1E3A8A
+skinparam arrowThickness 1.3
+
+skinparam packageBackgroundColor #F8FAFC
+skinparam packageBorderColor #64748B
+skinparam packageFontColor #0F172A
+skinparam packageFontStyle bold
+skinparam packageFontSize 12
+
+skinparam cardBackgroundColor #FFFFFF
+skinparam cardBorderColor #3B82F6
+skinparam cardFontColor #0F172A
+skinparam cardFontSize 11
+
+skinparam databaseBackgroundColor #EFF6FF
+skinparam databaseBorderColor #1D4ED8
+skinparam databaseFontColor #0F172A
+skinparam databaseFontSize 11
+
+top to bottom direction
+
+package "01. Multimodal Data Ingestion & Storage" as P1 {
+  card EHR #F0FDF4 [
+    <b>Stream 01: Static EHR</b>
+    ====
+    * 60 Clinical Baseline Features
+    * Spirometry: FEV1%, FEV1/FVC, PEF
+    * Prescribed Controller Regimen & ICU History
+    * Location: aasthma/dataset/data/static/
+  ]
+
+  card WEAR #F0FDF4 [
+    <b>Stream 02: Wearable Telemetry</b>
+    ====
+    * 20 Continuous Channels (12h Lookback Window)
+    * SpO2, Heart Rate, HRV (rMSSD), Respiratory Rate
+    * Nocturnal Awakenings & SABA Inhaler Puffs
+    * Cough, Wheeze, Chest Tightness, Dyspnea Scores
+    * Location: aasthma/dataset/data/dynamic/
+  ]
+
+  card AQI #F0FDF4 [
+    <b>Stream 03: Environment (AQI)</b>
+    ====
+    * Ambient PM2.5, PM10, AQI Index
+    * 70+ Indian CPCB Monitoring Stations & Open-Meteo
+    * Simulation Replay Clock (t = 12h to 239h)
+    * Location: aasthma/simulation/clock.py
+  ]
+
+  database DB #EFF6FF [
+    <b>PostgreSQL 16 Relational Storage</b>
+    ====
+    * patients & patient_history tables
+    * timeseries_telemetry (indexed by hour)
+    * clinical_events & severity labels
+    * patient_daily_logs (PRO check-ins)
+    * user_accounts (Doctor & Patient RBAC)
+    * Location: aasthma/database/models.py
+  ]
+
+  EHR -[hidden]right-> WEAR
+  WEAR -[hidden]right-> AQI
+  AQI -[hidden]right-> DB
+
+  EHR .down.> DB : Persists
+  WEAR .down.> DB : Persists
+  AQI .down.> DB : Persists
+}
+
+package "02. Hybrid Digital Twin Engine" as P2 {
+  package "Stage 1: Base Predictors" as S1 {
+    card TCN #EFF6FF [
+      <b>Stage 1A: Dilated TCN Fusion Model</b>
+      ====
+      * StaticMLPEncoder (60D -> 64D Embedding)
+      * Conv1DDynamicEncoder (20 channels x 12h)
+      * 3 Dilated Conv1D Blocks (d = 1, 2, 4)
+      * Multi-Head: P(24h), P(48h), Severity (Grade 0 to 3)
+      * Artifact: aasthma/training/model1/digital_twin_model.pt
+    ]
+
+    card XGB #EFF6FF [
+      <b>Stage 1B: XGBoost Multi-Target Suite</b>
+      ====
+      * Tabular Gradient-Boosted Decision Trees
+      * Rolling Window Statistics (mean, std, min, max, delta)
+      * Temporal Lag Shifts (t-2, t-1, t, t+1, t+2)
+      * Multi-Head: P(24h), P(48h), Severity (Grade 0 to 3)
+      * Artifact: aasthma/training/model2/gb_digital_twin_models.pkl
+    ]
+
+    TCN -[hidden]right-> XGB
+  }
+
+  card ODE #FEF3C7 [
+    <b>Mechanistic Airway Simulator (Latent ODE)</b>
+    ====
+    * dI/dt = -k*I(t) + a*Dose_PM(t) + b*Trigger(t) + d_sys - c*Controller(t) + sigma*xi(t)
+    * Euler-Maruyama Numerical ODE Integration (dt = 1.0h)
+    * Continuous Airway Mucosal Inflammation State: I(t) in [0.05, 1.0]
+    * Counterfactual What-If Sandbox: Stay Indoors, N95 Mask, HEPA, ICS Step-Up
+    * Re-scores Counterfactual Trajectories with Latency < 65 ms
+    * Location: aasthma/simulation/mechanistic_simulator.py
+  ]
+
+  card META #FEF9C3 [
+    <b>Stage 2: Stacking MLP Meta-Learner</b>
+    ====
+    * RespiTwinMLPMetaLearner (12D -> 32D -> 16D -> 3 Output Heads)
+    * Calibrates 12D Probabilities: [tcn_24h, xgb_24h, tcn_48h, xgb_48h, tcn_sev_0..3, xgb_sev_0..3]
+    * 90% Conformal Risk Prediction Intervals & SHAP Feature Attributions
+    * <b>Held-Out Test Results: 24h ROC-AUC = 0.940 | 48h ROC-AUC = 0.943 | Severity F1 = 0.844</b>
+    * Location: aasthma/training/ensemble.py (meta_ensemble_model.pt)
+  ]
+
+  card LLM #F3E8FF [
+    <b>Stage 3: LLM Clinical Extractor & Retraining Pipeline</b>
+    ====
+    * Converts free-text clinical notes (Typhoid, Dengue, Dehydration) into ODE & vital deltas
+    * Doctor-verified clinical outliers saved into PostgreSQL Experience Replay Buffer
+    * Continual Retraining: Elastic Weight Consolidation (EWC) updates Meta-Learner without forgetting
+    * Generates Pydantic-validated Copilot Reports (precautions, triggers, breathing exercises)
+    * Location: aasthma/llm/clinical_extractor.py & aasthma/llm/llm.py
+  ]
+
+  S1 -[hidden]down-> META
+  ODE -[hidden]right-> META
+  META -[hidden]right-> LLM
+}
+
+package "03. Service Gateway & User Interfaces" as P3 {
+  card API #F1F5F9 [
+    <b>FastAPI Service Layer (:8000)</b>
+    ====
+    * REST Endpoints: /api/patients, /api/what-if, /api/clock
+    * Note Adaptation & Continual Retrain: /api/patients/{id}/clinical-note, /api/model/adapt-outliers
+    * Copilot Report Delivery: /api/patients/{id}/copilot-report
+    * PostgreSQL Dual-Role RBAC Authentication: /api/auth/login, signup, verify
+    * Location: aasthma/server.py
+  ]
+
+  package "Next.js 16 Web Applications (:3000)" as CLIENTS {
+    card DOC #ECFDF5 [
+      <b>Treating Doctor Portal</b>
+      ====
+      * /patients: Cohort Risk Triage Roster & 240h Simulation Replay Clock
+      * /patients/[id]: 3D GLB Anatomical Lung & GLSL Thermal Inflammation Viewer
+      * /patients/[id]/forecast: 24h & 48h Conformal Fan Chart & SHAP Drivers
+      * /patients/[id]/what-if: Interactive Counterfactual Intervention Sandbox
+      * /patients/[id]/adaptation: Free-Text Note Parser & EWC Model Retraining
+      * /benchmarks & /assumptions: Physiological Ablations & Auditable Citations
+    ]
+
+    card PAT #ECFDF5 [
+      <b>Asthma Patient Portal</b>
+      ====
+      * /patient-portal: Personal 24h & 48h Risk Guidance Card
+      * Real-Time Local CPCB Station AQI & Smog Inversion Advisories
+      * Daily Self-Reported Outcomes (PRO): SABA Puffs & Symptom Check-ins
+      * Clinician-Verified Copilot Report Access (Precautions & Breathing Plans)
+      * Role-Isolated Patient Authentication (PT-8821, PT-4409, PT-1923)
+    ]
+
+    DOC -[hidden]right-> PAT
+  }
+}
+
+EHR -down-> S1 : Static EHR (60D)
+WEAR -down-> S1 : Telemetry (20ch)
+WEAR -down-> ODE : Wearable Vitals
+AQI -down-> ODE : Ambient PM2.5 Dose
+
+TCN -down-> META : 6D TCN Probs
+XGB -down-> META : 6D XGB Probs
+
+META <-left-> ODE : Counterfactual Rescoring
+LLM -down-> ODE : ODE Modifiers
+LLM -left-> META : EWC Retraining
+
+META -down-> API : Calibrated Forecast
+ODE -down-> API : Inflammation State I(t)
+LLM -down-> API : Copilot Reports
+
+API -down-> DOC : Clinician Data Stream
+API -down-> PAT : Patient Data Stream
+
+@enduml
