@@ -1,0 +1,23 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.4.0 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.30:3000
+✓ Ready in 1202ms
+✓ Running next.config.ts took 204ms
+
+ GET / 200 in 1101ms (next.js: 485ms, application-code: 616ms)
+ GET /login 200 in 71ms (next.js: 21ms, application-code: 50ms)
+ GET /patients 200 in 48ms (next.js: 15ms, application-code: 33ms)
+ GET /patients/PATIENT_0007 200 in 1139ms (next.js: 25ms, generate-params: 871ms, application-code: 243ms)
+ GET /patients 200 in 48ms (next.js: 6ms, application-code: 43ms)
+ GET /patients/PT-3118 200 in 186ms (next.js: 5ms, generate-params: 15ms, application-code: 166ms)
+ GET /patients 200 in 55ms (next.js: 4ms, application-code: 51ms)
+ GET /patients 200 in 108ms (next.js: 2ms, application-code: 106ms)
+ GET /patients/PT-1923 200 in 210ms (next.js: 5ms, generate-params: 21ms, application-code: 184ms)
+✓ Compiled in 186ms
+ GET /patients/PT-1923 200 in 89ms (next.js: 7ms, generate-params: 19ms, application-code: 63ms)
+✓ Compiled in 30ms
+ GET / 200 in 113ms (next.js: 3ms, application-code: 110ms)

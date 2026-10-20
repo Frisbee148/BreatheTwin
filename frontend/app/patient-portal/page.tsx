@@ -1310,7 +1310,7 @@ function PatientPortalContent() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#12612F]/60 pb-3">
           <div>
             <div className="text-[11px] font-mono uppercase tracking-[0.08em] text-[#2FBF63]">
-              {'// 08 • PATIENT COPILOT REPORT'}
+              {'◈ 08 • PATIENT COPILOT REPORT'}
             </div>
             <h2 id="copilot-report-heading" className="text-xl sm:text-2xl font-bold text-[#B6FFCC] mt-0.5">
               Personalized Copilot Health Summary

@@ -1,0 +1,66 @@
+INFO:     Started server process [12032]
+INFO:     Waiting for application startup.
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [14:45:36] WARNING: /__w/xgboost/xgboost/src/gbm/gbtree.cc:439: Changing updater from `grow_gpu_hist` to `grow_quantile_histmaker`.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [14:45:36] WARNING: /__w/xgboost/xgboost/src/context.cc:55: No visible GPU is found, setting device to CPU.
+  self.gb_models = pickle.load(f)
+/home/casp1an/Code/DigiTwin/aasthma/inference/inference_engine.py:330: UserWarning: [14:45:36] WARNING: /__w/xgboost/xgboost/src/context.cc:218: Device is changed from GPU to CPU as we couldn't find any available GPU on the system.
+  self.gb_models = pickle.load(f)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[BreathTwin API] Initializing neural digital twin model and preprocessors...
+[BreathTwin API] Model loaded successfully. Service ready on port 8000.
+INFO:     127.0.0.1:39370 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39378 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39370 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39378 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39394 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39394 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39370 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39378 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46382 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46382 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46392 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46410 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46382 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46398 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41640 - "GET /api/patients/PATIENT_0007 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41680 - "GET /api/patients/PATIENT_0007/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41704 - "GET /api/patients/PATIENT_0007/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41664 - "GET /api/patients/PATIENT_0007 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41696 - "GET /api/patients/PATIENT_0007 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41656 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41692 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34388 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34408 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34384 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34400 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "OPTIONS /api/clock/step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "POST /api/clock/step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "GET /api/patients?limit=12&hour=180 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "POST /api/clock/step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "GET /api/patients?limit=12&hour=204 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "POST /api/clock/step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33612 - "GET /api/patients?limit=12&hour=192 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44158 - "GET /api/patients/PT-3118 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44202 - "GET /api/patients/PT-3118/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44228 - "GET /api/patients/PT-3118/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44186 - "GET /api/patients/PT-3118 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44218 - "GET /api/patients/PT-3118 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44172 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44208 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50850 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50874 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50834 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50860 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50890 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50908 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50894 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50884 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53530 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53538 - "GET /api/patients/PT-1923/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53558 - "GET /api/patients/PT-1923/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50884 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53552 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50894 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53548 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK

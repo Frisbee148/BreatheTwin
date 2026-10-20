@@ -1,4 +1,4 @@
-# RespiTwin / BreathTwin // Next Steps Architecture & Implementation Roadmap
+# RespiTwin / BreathTwin ◈ Next Steps Architecture & Implementation Roadmap
 
 > **Document Status**: Approved Engineering Specification  
 > **Target Version**: v2.0 (Stacking Ensemble + Open-Source Hugging Face Clinical Copilot)  

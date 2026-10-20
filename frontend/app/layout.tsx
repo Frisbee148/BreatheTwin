@@ -13,7 +13,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'BreathTwin // Asthma Flare-Up Digital Twin',
+  title: 'BreathTwin',
   description:
     'A multi-stream digital twin predicting asthma flare-ups 24–48 hours ahead by fusing EHR, continuous wearables, and real Indian ambient air quality.',
 };

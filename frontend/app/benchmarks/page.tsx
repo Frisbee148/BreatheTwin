@@ -42,7 +42,7 @@ function BenchmarksAndAssumptionsContent() {
       <div className="border-b border-[#12612F] pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
-            {`// CLINICAL VALIDATION & MODEL AUDIT • PRD SECTIONS 8 & 12`}
+            {`◈ CLINICAL VALIDATION & MODEL AUDIT • PRD SECTIONS 8 & 12`}
           </div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[#B6FFCC] tracking-wide mt-1">
             Benchmarks &amp; Physiological Assumptions
@@ -205,7 +205,7 @@ function BenchmarksAndAssumptionsContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-3 text-xs">
               <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider border-b border-[#12612F]/40 pb-2 font-mono">
-                {`// KEY ABLATION INSIGHTS`}
+                {`◈ KEY ABLATION INSIGHTS`}
               </div>
               <div className="space-y-3 pt-1">
                 <div className="border-l-2 border-[#FFE14A] pl-3 py-1 bg-[#061C0E]">
@@ -233,7 +233,7 @@ function BenchmarksAndAssumptionsContent() {
 
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-3 text-xs">
               <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider border-b border-[#12612F]/40 pb-2 font-mono">
-                {`// CONFORMAL CALIBRATION & RELIABILITY`}
+                {`◈ CONFORMAL CALIBRATION & RELIABILITY`}
               </div>
               <p className="text-xs text-[#2FBF63] leading-relaxed">
                 BreathTwin applies split conformal prediction over held-out calibration cohorts to guarantee that 90% prediction intervals maintain empirical validity:
@@ -278,7 +278,7 @@ function BenchmarksAndAssumptionsContent() {
           <div className="border border-[#12612F] bg-[#04130A] p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-[#12612F]/40 pb-2">
               <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">
-                {`// LATENT AIRWAY INFLAMMATION DIFFERENTIAL SYSTEM`}
+                {`◈ LATENT AIRWAY INFLAMMATION DIFFERENTIAL SYSTEM`}
               </span>
               <span className="text-[10px] font-mono text-[#B6FFCC]">PRD SECTION 8</span>
             </div>
@@ -340,7 +340,7 @@ function BenchmarksAndAssumptionsContent() {
           {/* Indian Epidemiological Context Card */}
           <div className="border border-[#12612F] bg-[#061C0E] p-6 space-y-3">
             <div className="text-xs font-semibold text-[#B6FFCC] uppercase tracking-wider font-mono">
-              {`// EPIDEMIOLOGICAL CONTEXT &bull; ASTHMA IN URBAN INDIA (PRD SECTION 2)`}
+              {`◈ EPIDEMIOLOGICAL CONTEXT &bull; ASTHMA IN URBAN INDIA (PRD SECTION 2)`}
             </div>
             <p className="text-xs text-[#2FBF63] leading-relaxed">
               India accounts for approximately 37.9 million individuals living with bronchial asthma (~13% of the global burden) and over 42% of global asthma deaths (Lancet Global Burden of Disease). Severe winter temperature inversions in Indo-Gangetic plain cities trap PM2.5 at concentrations often exceeding 150–250 µg/m³, which directly triggers airway cytokine hyper-expression. BreathTwin models this specific Indian urban exposure profile.

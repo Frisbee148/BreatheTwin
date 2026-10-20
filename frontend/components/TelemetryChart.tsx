@@ -35,28 +35,9 @@ export default function TelemetryChart({
   onStepChange
 }: TelemetryChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const [localStep, setLocalStep] = useState<number | null>(null);
-  const [isLocalAnimating, setIsLocalAnimating] = useState(false);
 
   // Active step (from parent replay controller or local fallback)
-  const currentStep = controlledStep !== undefined ? controlledStep : (localStep !== undefined && localStep !== null ? localStep : data.length - 1);
-
-  // Per-chart quick replay animation
-  useEffect(() => {
-    if (!isLocalAnimating) return;
-    let step = 0;
-    setLocalStep(0);
-    const interval = setInterval(() => {
-      step += 1;
-      if (step >= data.length) {
-        clearInterval(interval);
-        setIsLocalAnimating(false);
-      } else {
-        setLocalStep(step);
-      }
-    }, 450);
-    return () => clearInterval(interval);
-  }, [isLocalAnimating, data.length]);
+  const currentStep = controlledStep !== undefined ? controlledStep : data.length - 1;
 
   if (!data || data.length === 0) return null;
 
@@ -157,18 +138,8 @@ export default function TelemetryChart({
           )}
         </div>
 
-        {/* Live Value & Quick Replay Button */}
+        {/* Live Value Display */}
         <div className="flex items-center space-x-3 shrink-0 ml-auto">
-          <button
-            type="button"
-            onClick={() => setIsLocalAnimating(true)}
-            title="Replay this chart animation"
-            className="text-[10px] font-mono border border-[#0E793C]/40 dark:border-[#12612F] bg-[#EAF8EF] dark:bg-[#061C0E] text-[#0A602F] dark:text-[#2FBF63] hover:text-[#0E793C] dark:hover:text-[#4CFF8A] px-2 py-1 transition-all cursor-pointer flex items-center space-x-1"
-          >
-            <span>↺</span>
-            <span className="hidden sm:inline">ANIMATE</span>
-          </button>
-
           <div className="text-right">
             <span className="text-[10px] font-mono text-[#4A755A] dark:text-[#2FBF63] mr-1.5 uppercase font-semibold">
               {inspectedPoint.label} :

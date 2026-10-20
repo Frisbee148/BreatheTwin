@@ -117,7 +117,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
           {/* Latent State I(t) Panel */}
           <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 text-xs space-y-4 shadow-sm dark:shadow-none transition-colors">
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-2">
-              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63]">{`// LATENT AIRWAY STATE I(t)`}</span>
+              <span className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63]">{`◈ LATENT AIRWAY STATE I(t)`}</span>
               <span className="text-[10px] font-mono text-[#0A602F] dark:text-[#B6FFCC] border border-[#0E793C]/40 dark:border-[#12612F] px-1.5 py-0.5 bg-[#EAF8EF] dark:bg-transparent">
                 KALMAN ESTIMATED
               </span>
@@ -172,7 +172,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
 
           {/* Quick EHR & Air Quality Snapshot */}
           <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-4 text-xs space-y-3 shadow-sm dark:shadow-none transition-colors">
-            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63] border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-2">{`// CURRENT AMBIENT & RESCUE METRICS`}</div>
+            <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#0E793C] dark:text-[#2FBF63] border-b border-[#B4E3C5]/60 dark:border-[#12612F]/40 pb-2">{`◈ CURRENT AMBIENT & RESCUE METRICS`}</div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="border border-[#B4E3C5]/40 dark:border-[#12612F]/40 p-2.5 bg-[#F6FBF7] dark:bg-[#061C0E]">
@@ -213,7 +213,7 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#B4E3C5] dark:border-[#12612F] pb-3">
           <div>
             <h2 className="text-xl font-bold text-[#0E793C] dark:text-[#B6FFCC] tracking-wide">
-              {`// Dynamic Sensor Telemetry (7-Day Replay)`}
+              {`◈ Dynamic Sensor Telemetry (7-Day Replay)`}
             </h2>
             <div className="text-xs text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
               Continuous vital streams with zero-collision reference margins. Play or scrub through the timeline to inspect signal trajectory.

@@ -85,20 +85,12 @@ export default function PatientsTriagePage() {
   const highRiskCount = patients.filter(p => p.riskLevel === 'HIGH RISK').length;
   const avgRisk = Math.round(patients.reduce((sum, p) => sum + p.risk48h, 0) / (totalMonitored || 1));
 
-  const maxAQIPatient = patients.length > 0 
-    ? patients.reduce((prev, curr) => (curr.currentAirQuality?.aqi || 0) > (prev.currentAirQuality?.aqi || 0) ? curr : prev, patients[0])
-    : null;
-  const peakAQI = maxAQIPatient?.currentAirQuality?.aqi || 0;
-  const peakAQICategory = maxAQIPatient?.currentAirQuality?.aqiCategory || 'Moderate';
-  const peakPM25 = maxAQIPatient?.currentAirQuality?.pm25 || 0;
-  const peakCity = maxAQIPatient?.city || 'Delhi';
-
   return (
     <div className="space-y-8">
       {/* Page Title Header */}
       <div className="border-b border-[#12612F] pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`// CLINICAL TRIAGE &bull; COHORT LEVEL MONITOR`}</div>
+          <div className="text-[11px] font-medium tracking-[0.08em] uppercase text-[#2FBF63]">{`◈ CLINICAL TRIAGE &bull; COHORT LEVEL MONITOR`}</div>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[#B6FFCC] tracking-wide mt-1">
             Asthma Patient Cohort Roster
           </h1>
@@ -152,7 +144,7 @@ export default function PatientsTriagePage() {
       </div>
 
       {/* KPI Summary Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="border border-[#12612F] bg-[#04130A] p-4">
           <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">TOTAL MONITORED</div>
           <div className="text-2xl font-bold font-mono text-[#B6FFCC] tabular-nums mt-1">{totalMonitored}</div>
@@ -169,12 +161,6 @@ export default function PatientsTriagePage() {
           <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">MEAN 48H RISK</div>
           <div className="text-2xl font-bold font-mono text-[#FFE14A] tabular-nums mt-1">{avgRisk}%</div>
           <div className="text-[11px] text-[#2FBF63]">Cohort population mean</div>
-        </div>
-
-        <div className="border border-[#12612F] bg-[#04130A] p-4">
-          <div className="text-[10px] uppercase tracking-widest text-[#2FBF63]">{peakCity.toUpperCase()} AQI PEAK</div>
-          <div className="text-2xl font-bold font-mono text-[#FF2A1A] tabular-nums mt-1">{peakAQI}</div>
-          <div className="text-[11px] text-[#FF2A1A]">{peakAQICategory} &bull; PM2.5 {peakPM25} µg/m³</div>
         </div>
       </div>
 

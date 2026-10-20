@@ -20,7 +20,7 @@ All mandatory items required by the repository submission form are included and 
 | 8 | **15–20 Minute Unlisted YouTube Demo Video** | Placeholder Added | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) |
 | 9 | **Open-Source License Details** | Included (MIT) | [Section 9: Open-Source License Details](#9-open-source-license-details) • [`LICENSE`](LICENSE) |
 | 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf) |
-| 11 | **Presentation in PDF/PPT Format** | Included (PDF) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) |
+| 11 | **Presentation in PDF/PPT Format** | Included (PDF & PPTX) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) • [`docs/Project_Presentation.pptx`](docs/Project_Presentation.pptx) |
 | 12 | **Public Accessibility Verification** | Verified | [Section 12: Public Access and Reproducibility](#12-public-access-and-reproducibility) |
 
 ---
@@ -87,6 +87,7 @@ BreathTwin converts outpatient asthma care from reactive emergency triage to pro
 * **Direct Clinical Navigation**: One-click deep link to individual digital twins, forecasts, sandbox counterfactuals, and note adaptation.
 
 #### Page 2: Physiological Digital Twin Viewport (`/patients/[id]`)
+* **State Estimator Header (`MODEL: KALMAN MECHANISTIC STATE ESTIMATOR I(t) • REALISTIC ANATOMY`)**: Displays the active twin modeling mode—signifying continuous estimation of latent inflammation $I(t)$ from noisy vitals mapped onto a 3D anatomical respiratory mesh.
 * **Interactive 3D Pulmonary Visualization**: Renders an anatomical 3D lung model using Three.js and WebGL with responsive orbit controls.
 * **Thermal Inflammation Shader Overlay**: Dynamic GLSL thermal color maps visualize localized bronchial mucosal swelling based on latent $I(t)$.
 * **Continuous Latent Airway State $I(t)$**: Plots continuous inflammatory trajectory derived from the Euler-Maruyama ODE solver ($[0.05, 1.0]$).
@@ -107,7 +108,7 @@ BreathTwin converts outpatient asthma care from reactive emergency triage to pro
 * **Intervention 04 — ICS Controller Step-Up**: Simulates 100% adherence to inhaled corticosteroid therapy, computing accelerated mucosal recovery rate.
 * **Real-Time Delta Comparison**: Computes before-versus-after trajectory overlays, delta risk percentage reduction, and expected $\text{FEV}_1$ stabilization.
 
-#### Page 5: Clinical Note Adaptation & Model Retraining (`/patients/[id]/adaptation`)
+#### Page 5: Clinical Note Adaptation & Model Retraining (`/patients/[id]/adapt`)
 * **Unstructured Doctor Free-Text Ingestion**: Accepts natural language clinical observations (e.g., concurrent typhoid fever, dengue, acute dehydration, beta-blocker introduction).
 * **Stage-3 LLM Physiological Feature Extraction**: Automatically extracts quantitative physiological perturbations ($\Delta T$, $\Delta \text{HR}$, $\Delta \text{RR}$, $\Delta \text{SpO}_2$) and mechanistic ODE modifiers ($\delta_{\text{systemic}}$, $\beta_{\text{AHR}}$, $\eta_{\text{absorption}}$).
 * **Dynamic Parameter Override**: Directly injects extracted perturbations into the patient's runtime digital twin without database schema migrations.
@@ -159,13 +160,19 @@ BreathTwin uses a **Hybrid Three-Stage Multimodal Architecture** coupled with a 
 ### 7.1 Mechanistic Airway Inflammation State Estimator (Latent ODE)
 Implemented in [`aasthma/simulation/mechanistic_simulator.py`](aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state $I(t) \in [0.05, 1.0]$ governed by the stochastic differential equation:
 
-$$\frac{dI}{dt} = -k \cdot I(t) + a \cdot \text{Dose}_{\text{PM}}(t) + b \cdot \text{Trigger}(t) + \delta_{\text{systemic}} - c \cdot \eta_{\text{absorption}} \cdot \text{Controller}(t) + \sigma \cdot \xi(t)$$
+$$
+\frac{dI}{dt} = -k \cdot I(t) + a \cdot \text{Dose}_{\text{PM}}(t) + b \cdot \text{Trigger}(t) + \delta_{\text{systemic}} - c \cdot \eta_{\text{absorption}} \cdot \text{Controller}(t) + \sigma \cdot \xi(t)
+$$
 
 - $k = 0.08\text{ h}^{-1}$: Intrinsic bronchial mucosal recovery decay rate.
 - $a = 0.0009\text{ }(\mu\text{g/m}^3)^{-1}$: Particulate alveolar deposition coefficient scaled by airway hyperresponsiveness ($\beta_{\text{AHR}}$).
 - $b = 0.02$: Acute symptom and meteorological trigger weight (cough, wheeze, rescue inhaler actuations).
 - $\delta_{\text{systemic}}$: Systemic cytokine spillover load extracted from concurrent febrile infections.
 - $c = 0.10$: Inhaled corticosteroid (`ICS`) anti-inflammatory clearance rate scaled by absorption efficiency ($\eta_{\text{absorption}}$) and adherence ratio.
+
+> **Simplified Interpretation (`MODEL: KALMAN MECHANISTIC STATE ESTIMATOR I(t) • REALISTIC ANATOMY`)**:
+> - **Kalman State Estimator**: Internal airway mucosal inflammation cannot be directly measured by consumer wearables. Operating like a Kalman filter / state observer, the engine continuously infers the hidden biological state $I(t)$ by filtering noisy, delayed surface observations ($\text{SpO}_2$, heart rate, respiratory rate, nocturnal dips) against physics-based particulate exposure models.
+> - **Realistic Anatomy**: Instead of showing an abstract scalar, the estimated state $I(t)$ is mapped in real time onto an anatomical 3D lung mesh (`realistic_human_lungs.glb`), projecting localized inflammation scores and airway resistance onto anatomical structures (such as the mainstem tracheobronchial junction and lobar segments) for intuitive clinical inspection.
 
 ### 7.2 Stage 1A: Multimodal Dilated Temporal Convolutional Network (`DigitalTwinFusionModel`)
 Implemented in [`aasthma/models/digital_twin_model.py`](aasthma/models/digital_twin_model.py) and trained in [`aasthma/training/model1/tcn.py`](aasthma/training/model1/tcn.py) (checkpoint: `aasthma/training/model1/digital_twin_model.pt`):

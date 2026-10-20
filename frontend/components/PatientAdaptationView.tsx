@@ -235,7 +235,7 @@ export default function PatientAdaptationView({
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3 mb-3">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
-                  PATIENT PORTAL FEED // DAILY CHECK-INS &amp; SYMPTOMS
+                  PATIENT PORTAL FEED ◈ DAILY CHECK-INS &amp; SYMPTOMS
                 </div>
                 <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono">
                   PATIENT SELF-REPORTED NOTES ({patient.id})
@@ -343,7 +343,7 @@ export default function PatientAdaptationView({
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3 mb-4">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
-                  STEP 1 // NATURAL LANGUAGE CLINICAL INPUT
+                  STEP 1 ◈ NATURAL LANGUAGE CLINICAL INPUT
                 </div>
                 <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono">
                   ENTER OUTLIER CONDITION OR SYMPTOM NOTE
@@ -428,7 +428,7 @@ export default function PatientAdaptationView({
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3 mb-4">
               <div>
                 <div className="text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
-                  STEP 2 // CONTINUAL LEARNING &amp; MODEL RETRAINING
+                  STEP 2 ◈ CONTINUAL LEARNING &amp; MODEL RETRAINING
                 </div>
                 <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono">
                   ADAPT STAGE-2 META-LEARNER WITH EWC GUARDRAILS
@@ -742,7 +742,7 @@ export default function PatientAdaptationView({
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3 mb-4">
             <div>
               <div className="text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
-                MULTI-FEATURE CASCADE // LLM-DERIVED BIOMARKER &amp; ODE PERTURBATIONS
+                MULTI-FEATURE CASCADE ◈ LLM-DERIVED BIOMARKER &amp; ODE PERTURBATIONS
               </div>
               <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono">
                 CALCULATED FEATURE DELTAS FED INTO TCN + XGBOOST + MECHANISTIC ODE ({simResult.derivedFeatures.length}{' '}

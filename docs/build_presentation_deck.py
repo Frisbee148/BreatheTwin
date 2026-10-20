@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Generate comprehensive, high-resolution BreathTwin presentation in PPTX and PDF format.
-Includes all architecture diagrams, clinical workflow interfaces, and benchmark screenshots.
+Uses python-pptx for native PowerPoint creation, and ReportLab for universal,
+glitch-free PDF generation that opens reliably on all PDF readers without white screen bugs.
 """
 
 import os
@@ -15,14 +16,19 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
+from reportlab.lib import colors
+from reportlab.pdfgen import canvas
+
 # Directories
 ROOT = Path("/home/casp1an/Code/DigiTwin")
 DOCS_DIR = ROOT / "docs"
 SCREENSHOTS_DIR = DOCS_DIR / "screenshots"
 PUBLIC_DOCS_DIR = ROOT / "frontend" / "public" / "docs"
+HIGHRES_DIR = DOCS_DIR / "highres_slides"
 
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 PUBLIC_DOCS_DIR.mkdir(parents=True, exist_ok=True)
+HIGHRES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Color Palette (Tactical High-Tech Medical Theme)
 BG_DARK = RGBColor(2, 10, 5)        # Deepest dark green-black
@@ -40,10 +46,21 @@ TEXT_DIM = RGBColor(110, 135, 120)     # Footer/captions
 
 TOTAL_SLIDES = 18
 
+# Text repository for searchable PDF layer
+SLIDE_TEXT_CORPUS = {}
+
 
 def set_slide_base(slide, prs, tag: str, title: str, subtitle: str, page_num: int):
     """Draw common background, header banner, title, subtitle, and footer."""
-    # Full background
+    # Set actual slide background property
+    try:
+        bg_fill = slide.background.fill
+        bg_fill.solid()
+        bg_fill.fore_color.rgb = BG_DARK
+    except Exception:
+        pass
+
+    # Full background rectangle
     bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
     bg.fill.solid()
     bg.fill.fore_color.rgb = BG_DARK
@@ -76,7 +93,6 @@ def set_slide_base(slide, prs, tag: str, title: str, subtitle: str, page_num: in
     tf.margin_right = Inches(0.2)
     tf.margin_bottom = Inches(0.05)
 
-    # P1: Tag line
     p0 = tf.paragraphs[0]
     p0.text = tag
     p0.font.name = "Consolas"
@@ -84,7 +100,6 @@ def set_slide_base(slide, prs, tag: str, title: str, subtitle: str, page_num: in
     p0.font.bold = True
     p0.font.color.rgb = ACCENT_GREEN
 
-    # P2: Slide Title
     p1 = tf.add_paragraph()
     p1.text = title
     p1.font.name = "Calibri"
@@ -92,7 +107,6 @@ def set_slide_base(slide, prs, tag: str, title: str, subtitle: str, page_num: in
     p1.font.bold = True
     p1.font.color.rgb = TEXT_WHITE
 
-    # P3: Subtitle
     p2 = tf.add_paragraph()
     p2.text = subtitle
     p2.font.name = "Calibri"
@@ -137,8 +151,10 @@ def set_slide_base(slide, prs, tag: str, title: str, subtitle: str, page_num: in
     pp.font.bold = True
     pp.font.color.rgb = ACCENT_GOLD
 
+    SLIDE_TEXT_CORPUS.setdefault(page_num, []).extend([tag, title, subtitle])
 
-def add_card(slide, left, top, width, height, title: str, bullets: list, title_color=ACCENT_GOLD, border_color=CARD_BORDER):
+
+def add_card(slide, left, top, width, height, title: str, bullets: list, title_color=ACCENT_GOLD, border_color=CARD_BORDER, page_num=1):
     """Add a structured card with title and list of bullet points."""
     card = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
     card.fill.solid()
@@ -162,6 +178,7 @@ def add_card(slide, left, top, width, height, title: str, bullets: list, title_c
         p0.font.color.rgb = title_color
         p0.space_after = Pt(6)
         first_bullet = True
+        SLIDE_TEXT_CORPUS.setdefault(page_num, []).append(title)
     else:
         first_bullet = False
 
@@ -181,6 +198,7 @@ def add_card(slide, left, top, width, height, title: str, bullets: list, title_c
             run.font.bold = False
             run.font.color.rgb = TEXT_MINT
             p.space_after = Pt(4)
+            SLIDE_TEXT_CORPUS.setdefault(page_num, []).append(f"{header_text}: {body_text}")
         else:
             p = tf.add_paragraph() if (first_bullet or title) else tf.paragraphs[0]
             first_bullet = True
@@ -189,20 +207,19 @@ def add_card(slide, left, top, width, height, title: str, bullets: list, title_c
             p.font.size = Pt(9.8)
             p.font.color.rgb = TEXT_MUTED
             p.space_after = Pt(3.5)
+            SLIDE_TEXT_CORPUS.setdefault(page_num, []).append(str(item))
 
     return card
 
 
-def add_image_panel(slide, img_path: Path, left, top, width, height, caption: str = None):
+def add_image_panel(slide, img_path: Path, left, top, width, height, caption: str = None, page_num=1):
     """Add an image with a surrounding high-tech frame and optional caption."""
-    # Outer frame
     frame = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
     frame.fill.solid()
     frame.fill.fore_color.rgb = RGBColor(0, 5, 2)
     frame.line.color.rgb = CARD_BORDER
     frame.line.width = Pt(1.5)
 
-    # Add picture inset
     pad = Inches(0.06)
     cap_space = Inches(0.3) if caption else Inches(0)
     img_h = height - (pad * 2) - cap_space
@@ -211,7 +228,6 @@ def add_image_panel(slide, img_path: Path, left, top, width, height, caption: st
     if img_path.exists():
         slide.shapes.add_picture(str(img_path), left + pad, top + pad, img_w, img_h)
 
-    # Add caption bar
     if caption:
         cap_box = slide.shapes.add_textbox(left + pad, top + height - cap_space - pad, img_w, cap_space)
         ctf = cap_box.text_frame
@@ -223,6 +239,7 @@ def add_image_panel(slide, img_path: Path, left, top, width, height, caption: st
         cp.font.size = Pt(8.5)
         cp.font.bold = True
         cp.font.color.rgb = ACCENT_GREEN
+        SLIDE_TEXT_CORPUS.setdefault(page_num, []).append(caption)
 
 
 def build_deck():
@@ -247,7 +264,7 @@ def build_deck():
                  ("Early Warning Horizon", "Predicts acute exacerbation risk 24 to 48 hours in advance, achieving ROC-AUC of 0.940 (24h) and 0.943 (48h) on held-out test cohort."),
                  ("Interactive Counterfactual Sandbox", "Allows pulmonologists to simulate N95 respirators, indoor staying, HEPA purifiers, and ICS controller step-ups in < 65 ms before clinical advice."),
                  ("Dual Clinical Portals", "Specialized WebGL/Three.js 3D viewport for treating doctors and accessible plain-language mobile companion for asthma patients."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=1)
 
     add_card(s1, Inches(6.6), Inches(1.6), Inches(6.33), Inches(2.7),
              "TEAM COMPOSITION & SUBMISSION IDENTIFIERS", [
@@ -256,9 +273,8 @@ def build_deck():
                  ("Machine Learning Engineer", "Rakshit Gupta / Hobbiskar21 (NSUT, New Delhi) — ML Responsibilities, Stage-1A TCN, Stage-1B XGBoost, Stage-2 Meta-Learner, Conformal Calibration"),
                  ("Licensing & Integrity", "MIT Open-Source License • Zero Real Patient PHI/PII (100% Synthetic Cohort)"),
                  ("Repository Access", "https://github.com/Frisbee148/DigitalTwin (Publicly Accessible Artifacts)"),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=1)
 
-    # Key Metrics Pill Banner
     metrics_box = s1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.6), Inches(4.5), Inches(6.33), Inches(2.2))
     metrics_box.fill.solid()
     metrics_box.fill.fore_color.rgb = CARD_BG
@@ -289,6 +305,7 @@ def build_deck():
         p.font.name = "Calibri"
         p.font.size = Pt(10)
         p.font.color.rgb = TEXT_WHITE
+        SLIDE_TEXT_CORPUS.setdefault(1, []).append(m)
 
     # =========================================================================
     # SLIDE 02: CLINICAL PROBLEM STATEMENT & HEALTHCARE USE CASE
@@ -304,16 +321,16 @@ def build_deck():
                  ("The 24-to-36-Hour Blindspot", "When particulate matter (PM2.5) surges during winter temperature inversions, bronchial mucosal swelling and smooth-muscle bronchoconstriction develop over 24-36 hours before patients perceive chest tightness."),
                  ("Siloed Healthcare Signals", "Pulmonary function records (FEV1), wearable telemetry (nocturnal SpO2 dips, HRV drops), and municipal AQI exist in isolated silos with zero cross-correlation."),
                  ("Costly Reactive Emergency Care", "Patients seek help only when forced expiratory volume collapses, driving preventable ICU admissions, systemic oral corticosteroid bursts, and high economic burden."),
-             ], title_color=ACCENT_RED)
+             ], title_color=ACCENT_RED, page_num=2)
 
     add_card(s2, Inches(6.7), Inches(1.6), Inches(6.23), Inches(5.1),
              "HEALTHCARE USE CASES (DOCTOR & PATIENT PERSONAS)", [
                  ("Outpatient Cohort Prioritization", "Treating pulmonologists open a population-level triage roster automatically sorted by prospective 48-hour exacerbation risk, prioritizing unstable patients first."),
                  ("Mechanistic Physiological Inspection", "Clinicians inspect continuous airway inflammation state I(t), 3D GLSL thermal bronchial constriction, and personalized baseline vital deviations."),
                  ("Counterfactual Intervention Testing", "Doctors test preventive actions (N95 mask, stay indoors, air purifier, ICS step-up) on the patient's twin, evaluating predicted risk delta before clinical consultation."),
-                 ("Continual Outlier Adaptation", "Free-text notes (e.g., concurrent typhoid or dengue fever) are parsed by Stage-3 LLM and integrated into the twin using Elastic Weight Consolidation (EWC)."),
+                 ("Continual Outlier Adaptation", "Free-text notes (such as concurrent typhoid or dengue fever) are parsed by Stage-3 LLM and integrated into the twin using Elastic Weight Consolidation (EWC)."),
                  ("Accessible Patient Companion", "Asthma patients receive plain-language guidance, CPCB AQI smog timelines, AI copilot breathing guides, and 1-tap emergency 112/108 access."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=2)
 
     # =========================================================================
     # SLIDE 03: FULL SYSTEM & CODEBASE ARCHITECTURE
@@ -324,15 +341,15 @@ def build_deck():
                    "From Wearable Sensor Ingestion to Mechanistic Latent ODE Simulation, Neural Stacking, and Dual Next.js Portals", 3)
 
     add_image_panel(s3, DOCS_DIR / "architecture.png", Inches(0.4), Inches(1.6), Inches(7.8), Inches(5.1),
-                    "Full System Architecture Diagram (Data Streams, Neural Pipeline, Latent ODE, FastAPI & Next.js)")
+                    "Full System Architecture Diagram (Data Streams, Neural Pipeline, Latent ODE, FastAPI & Next.js)", page_num=3)
 
     add_card(s3, Inches(8.4), Inches(1.6), Inches(4.53), Inches(5.1),
              "ARCHITECTURE HIGHLIGHTS", [
-                 ("Layer 1: Multimodal Ingestion", "Stream 1: Static EHR (60 features)\nStream 2: Dynamic Wearables (20 ch x 12h)\nStream 3: Environmental AQI (70+ stations)\nDatabase: PostgreSQL 16 + SQLAlchemy"),
+                 ("Layer 1: Multimodal Ingestion", "Stream 1: Static EHR (60 features) • Stream 2: Dynamic Wearables (20 ch x 12h) • Stream 3: Environmental AQI (70+ stations) • Database: PostgreSQL 16 + SQLAlchemy"),
                  ("Layer 2: Hybrid Twin Engine", "• Stage 1A: Dilated TCN (Static + Dynamic)\n• Stage 1B: XGBoost Multi-Target Suite\n• Stage 2: Stacking MLP Meta-Learner\n• Biophysical Latent ODE Airway Simulator\n• Stage 3: LLM Clinical Note Extractor"),
                  ("Layer 3: Delivery Gateway", "• FastAPI Service Layer (:8000 REST API)\n• Replay Simulation Clock (t = 12..239h)\n• Doctor Portal: Next.js 16 + Three.js\n• Patient Portal: Plain-language companion"),
                  ("Security & Standards", "ASD-STE100 technical documentation, DPDP Act data minimization, MIT Open Source."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=3)
 
     # =========================================================================
     # SLIDE 04: MULTIMODAL INGESTION & DATA STREAMS
@@ -350,7 +367,7 @@ def build_deck():
                  ("Medication Profile", "Prescribed controller regimen (ICS, LABA, LAMA) and documented baseline adherence %."),
                  ("Exacerbation History", "Prior annual flare-ups, emergency room visits, past ICU intubations."),
                  ("Storage Location", "aasthma/dataset/data/static/"),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=4)
 
     add_card(s4, Inches(4.6), Inches(1.6), Inches(4.0), Inches(5.1),
              "STREAM 02: DYNAMIC WEARABLES", [
@@ -359,7 +376,7 @@ def build_deck():
                  ("Activity & Rest biometrics", "Skin temperature, hourly step counts, deep sleep %, nocturnal awakenings."),
                  ("Symptom & Rescue Log", "SABA inhaler actuations, self-reported cough, wheeze, and dyspnea scores (0-3)."),
                  ("Storage Location", "aasthma/dataset/data/dynamic/"),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=4)
 
     add_card(s4, Inches(8.8), Inches(1.6), Inches(4.13), Inches(5.1),
              "STREAM 03 & POSTGRESQL STORE", [
@@ -368,7 +385,7 @@ def build_deck():
                  ("Simulation Replay Clock", "Simulates acute smog surges with scrubbable clock from t = 12h to t = 239h."),
                  ("PostgreSQL 16 Schema", "patients, timeseries_telemetry, clinical_events, patient_daily_logs, user_accounts."),
                  ("Storage Engine", "Dockerized PostgreSQL 16 (port 5432) with SQLAlchemy 2.0 and Psycopg 3."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=4)
 
     # =========================================================================
     # SLIDE 05: BIOPHYSICAL LATENT ODE AIRWAY SIMULATOR
@@ -384,7 +401,7 @@ def build_deck():
                  ("State Variable I(t)", "Continuous latent airway inflammation state bounded in [0.05, 1.0]. Flare-up threshold = 0.65."),
                  ("Numerical Integration", "Euler-Maruyama stochastic solver executed at dt = 1.0h with personal baseline calibration."),
                  ("Counterfactual Speed", "Re-integrates 48-hour perturbed trajectories and feeds neural ensemble in < 65 ms."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=5)
 
     add_card(s5, Inches(0.4), Inches(3.95), Inches(7.5), Inches(2.75),
              "PHYSIOLOGICALLY AUDITED PARAMETERS & LITERATURE GROUNDING", [
@@ -393,7 +410,7 @@ def build_deck():
                  ("Trigger Sensitivity b = 0.02", "Vagal hyperresponsiveness to rapid temperature/humidity shifts (Graudenz, Chest 2006)."),
                  ("Systemic Spillover δ_sys", "Cytokine load (IL-6, TNF-α) from concurrent febrile infections extracted by Stage-3 LLM."),
                  ("ICS Efficacy c = 0.10 h⁻¹", "Eosinophilic clearance rate scaled by controller adherence & absorption (GINA 2023)."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=5)
 
     add_card(s5, Inches(8.1), Inches(1.6), Inches(4.83), Inches(5.1),
              "COUNTERFACTUAL WHAT-IF CAPABILITIES", [
@@ -402,7 +419,7 @@ def build_deck():
                  ("Intervention 03: HEPA Air Purifier", "Simulates continuous bedroom filtration, suppressing indoor PM2.5 by 70% and accelerating nocturnal airway healing."),
                  ("Intervention 04: ICS Step-Up", "Simulates 100% adherence to inhaled corticosteroid therapy, computing accelerated mucosal recovery rate."),
                  ("Clinical Utility", "Pulmonologists can verify whether environmental adaptations alone prevent an attack or whether medication step-up is mandatory."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=5)
 
     # =========================================================================
     # SLIDE 06: MULTI-STAGE MACHINE LEARNING PREDICTIVE ENSEMBLE
@@ -419,7 +436,7 @@ def build_deck():
                  ("Conv1DDynamicEncoder", "Ingests 20-channel x 12h telemetry matrix through 3 dilated 1D Conv blocks (d = 1, 2, 4) with channels 20 -> 32 -> 64 -> 128."),
                  ("Multi-Task Prediction Heads", "Concatenates static (64D) and dynamic (128D) into multi-head outputs:\n• logit_24h: 24h flare-up risk\n• logit_48h: 48h severe risk\n• logits_sev: 4 severity grades"),
                  ("Checkpoint File", "aasthma/training/model1/digital_twin_model.pt"),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=6)
 
     add_card(s6, Inches(4.6), Inches(1.6), Inches(4.0), Inches(5.1),
              "STAGE 1B: XGBOOST SUITE", [
@@ -429,7 +446,7 @@ def build_deck():
                  ("Static EHR Conditioning", "Fuses 60 baseline EHR features alongside tabular rolling aggregates."),
                  ("Independent Tree Heads", "Trained on identical patient folds to generate tree-based probability distributions."),
                  ("Checkpoint File", "aasthma/training/model2/gb_digital_twin_models.pkl"),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=6)
 
     add_card(s6, Inches(8.8), Inches(1.6), Inches(4.13), Inches(5.1),
              "STAGE 2: STACKING META-LEARNER", [
@@ -439,7 +456,7 @@ def build_deck():
                  ("Conformal 90% Bands", "Computes statistical uncertainty bounds guaranteeing coverage under noisy biometrics."),
                  ("Personal SHAP Drivers", "Derives local SHAP attributions against personal baseline Z-scores in < 5 ms."),
                  ("Checkpoint File", "aasthma/training/meta_ensemble_model.pt"),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=6)
 
     # =========================================================================
     # SLIDE 07: STAGE 3 LLM COPILOT & CONTINUAL RETRAINING (EWC)
@@ -456,7 +473,7 @@ def build_deck():
                  ("Automated ICD-10 Mapping", "Identifies conditions (e.g. Typhoid Fever ICD-10: A01.0, Dengue A97.1) and maps systemic severity."),
                  ("Derived Vital Perturbations", "Generates quantitative offsets: ΔSkin Temp (+2.5°C), ΔResting HR (+25 bpm), ΔRR (+5 br/min), ΔSpO2 (-3.2%), and HRV reduction."),
                  ("Biophysical ODE Modifiers", "Injects systemic cytokine load (δ_sys = 0.65), scales airway hyperresponsiveness (β_AHR = 1.60), and modifies absorption efficiency (η_abs = 0.70)."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=7)
 
     add_card(s7, Inches(6.6), Inches(1.6), Inches(6.33), Inches(5.1),
              "CONTINUAL RETRAINING WITH EWC REGULARIZATION", [
@@ -465,7 +482,7 @@ def build_deck():
                  ("Elastic Weight Consolidation (EWC)", "Adds a quadratic regularization penalty to the task loss proportional to parameter importance:\nL_total(θ) = L_outlier(θ) + (λ_EWC / 2) · Σ F_i · (θ_i - θ_i,base)²"),
                  ("Fisher Information Matrix F_i", "Computes diagonal Fisher information over baseline training distribution, freezing parameters critical to base asthma patterns while adapting unconstrained weights."),
                  ("Safety Verification Gate", "Retrained checkpoints undergo automatic Brier score calibration checks before deployment."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=7)
 
     # =========================================================================
     # SLIDE 08: DOCTOR INTERFACE — COHORT RISK TRIAGE
@@ -476,7 +493,7 @@ def build_deck():
                    "Instantaneous Risk-Ranked Triage Badges, CPCB Station AQI Overlays, and 48-Hour Alert Lead Times", 8)
 
     add_image_panel(s8, SCREENSHOTS_DIR / "02_doctor_cohort_triage.png", Inches(0.4), Inches(1.6), Inches(8.3), Inches(5.1),
-                    "Doctor Portal: Ranked Asthma Patient Cohort Roster (/patients)")
+                    "Doctor Portal: Ranked Asthma Patient Cohort Roster (/patients)", page_num=8)
 
     add_card(s8, Inches(8.9), Inches(1.6), Inches(4.03), Inches(5.1),
              "INTERFACE CAPABILITIES", [
@@ -486,7 +503,7 @@ def build_deck():
                  ("Environmental DPCC Overlay", "Shows live municipal PM2.5 and AQI index for each patient's home station."),
                  ("Simulation Replay Clock", "Audits past flare-up progressions with -12h, +12h, +24h time scrubbing."),
                  ("Dark / Light Tactical Mode", "Instant switch between clinical white and low-strain tactical dark terminal UI."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=8)
 
     # =========================================================================
     # SLIDE 09: DOCTOR INTERFACE — 3D DIGITAL TWIN & THERMAL LUNG VIEWPORT
@@ -497,7 +514,7 @@ def build_deck():
                    "Real-Time Spatial Reveal of Bronchial Constriction, Region-of-Interest Inspection & Latent State Tracking", 9)
 
     add_image_panel(s9, DOCS_DIR.parent / "frontend" / "public" / "images" / "lung-thermal.png", Inches(0.4), Inches(1.6), Inches(5.8), Inches(5.1),
-                    "WebGL GLSL Bronchial Thermal Inflammation Shader (/patients/[id])")
+                    "WebGL GLSL Bronchial Thermal Inflammation Shader (/patients/[id])", page_num=9)
 
     add_card(s9, Inches(6.4), Inches(1.6), Inches(6.53), Inches(5.1),
              "PHYSIOLOGICAL TWIN VIEWPORT FEATURES", [
@@ -506,7 +523,7 @@ def build_deck():
                  ("Region of Interest (ROI) Inspection", "Clinicians can drill into specific anatomical zones: Mainstem Tracheobronchial Junction, Carina, Right/Left Apical & Basilar zones."),
                  ("Biophysical Metrics Overlay", "Latent Inflammation Load: I(t) = 0.53 / 1.00 (Threshold 0.65)\nAirway Resistance: +24% above personal baseline\nAmbient PM2.5: 62 µg/m³ • SABA Rescue Actuations: 7 doses in 24h"),
                  ("Personal Baseline Normalization", "Compares incoming 12h wearable telemetry against individual 7-day converged resting physiological baselines."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=9)
 
     # =========================================================================
     # SLIDE 10: DOCTOR INTERFACE — 24H/48H CONFORMAL FORECAST & SHAP
@@ -517,7 +534,7 @@ def build_deck():
                    "Auditable 24h & 48h Risk Trajectories Scrubbable Across Time with Direct Physiological Driver Attribution", 10)
 
     add_image_panel(s10, SCREENSHOTS_DIR / "04_conformal_forecast_shap.png", Inches(0.4), Inches(1.6), Inches(8.3), Inches(5.1),
-                    "Conformal Cumulative Risk Curve & SHAP Attribution Waterfall (/patients/[id]/forecast)")
+                    "Conformal Cumulative Risk Curve & SHAP Attribution Waterfall (/patients/[id]/forecast)", page_num=10)
 
     add_card(s10, Inches(8.9), Inches(1.6), Inches(4.03), Inches(5.1),
              "FORECAST & REASONING FEATURES", [
@@ -526,7 +543,7 @@ def build_deck():
                  ("Hourly Timeline Scrubber", "Scrub through prospective hours t+0 to t+48 to inspect when risk crosses the 70% Alert Threshold."),
                  ("SHAP Feature Drivers", "Ranks dominant exacerbation contributors:\n• SABA Rescue Inhaler Spikes (+48% impact)\n• Nocturnal SpO2 desaturations\n• Elevated resting respiratory rate\n• Particulate PM2.5 exposure"),
                  ("Targeted Action Guidance", "Synthesizes clinical recommendations aligned directly with primary SHAP risk factors."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=10)
 
     # =========================================================================
     # SLIDE 11: DOCTOR INTERFACE — COUNTERFACTUAL WHAT-IF SANDBOX
@@ -537,7 +554,7 @@ def build_deck():
                    "Testing Outdoor Exposure, N95 Masks, HEPA Filtration, and ICS Adherence in < 65 ms Before Advising Patients", 11)
 
     add_image_panel(s11, SCREENSHOTS_DIR / "05_counterfactual_whatif_sandbox.png", Inches(0.4), Inches(1.6), Inches(8.3), Inches(5.1),
-                    "Interactive Counterfactual What-If Simulation Sandbox (/patients/[id]/what-if)")
+                    "Interactive Counterfactual What-If Simulation Sandbox (/patients/[id]/what-if)", page_num=11)
 
     add_card(s11, Inches(8.9), Inches(1.6), Inches(4.03), Inches(5.1),
              "WHAT-IF SANDBOX CAPABILITIES", [
@@ -546,7 +563,7 @@ def build_deck():
                  ("Trajectory Divergence Graph", "Plots divergence between untreated path and simulated preventative regimen across 48 prospective hours."),
                  ("Sub-65ms Response Time", "Enables instantaneous what-if exploration during outpatient consultations."),
                  ("Clinical Decision Support", "Empowers doctors to prescribe lifestyle & adherence adjustments backed by quantitative risk reduction data."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=11)
 
     # =========================================================================
     # SLIDE 12: DOCTOR INTERFACE — NOTE ADAPTATION & OUTLIER STUDIO
@@ -557,7 +574,7 @@ def build_deck():
                    "Transforming Free-Text Doctor Observations into Mechanistic Modifiers and Re-Training with EWC", 12)
 
     add_image_panel(s12, SCREENSHOTS_DIR / "06_clinical_note_adaptation_ewc.png", Inches(0.4), Inches(1.6), Inches(8.3), Inches(5.1),
-                    "Clinical Note Adaptation & Outlier Re-Simulation Studio (/patients/[id]/adapt)")
+                    "Clinical Note Adaptation & Outlier Re-Simulation Studio (/patients/[id]/adapt)", page_num=12)
 
     add_card(s12, Inches(8.9), Inches(1.6), Inches(4.03), Inches(5.1),
              "NOTE ADAPTATION WORKFLOW", [
@@ -566,7 +583,7 @@ def build_deck():
                  ("Instant Re-Simulation", "Re-evaluates twin with modified ODE state:\nLatent inflammation jumps from 0.53 to 0.96 (Critical Mucosal Stress)."),
                  ("Experience Replay Buffer", "One-click commit saves outlier trajectory to PostgreSQL audit log."),
                  ("EWC Retraining Trigger", "Fine-tunes RespiTwinMLPMetaLearner on outliers with quadratic Fisher regularization, preventing catastrophic forgetting."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=12)
 
     # =========================================================================
     # SLIDE 13: PATIENT PORTAL — PLAIN-LANGUAGE RISK & AQI ADVISORY
@@ -577,7 +594,7 @@ def build_deck():
                    "Jargon-Free Risk Status, Best/Worst Smog Windows, and Grounded Daily Asthmatic Guidance", 13)
 
     add_image_panel(s13, SCREENSHOTS_DIR / "07_patient_portal_desktop.png", Inches(0.4), Inches(1.6), Inches(8.3), Inches(5.1),
-                    "Patient Portal Desktop Overview: Plain-Language Risk & City AQI (/patient-portal)")
+                    "Patient Portal Desktop Overview: Plain-Language Risk & City AQI (/patient-portal)", page_num=13)
 
     add_card(s13, Inches(8.9), Inches(1.6), Inches(4.03), Inches(5.1),
              "PATIENT-FACING FEATURES", [
@@ -586,7 +603,7 @@ def build_deck():
                  ("City AQI & Best Windows", "New Delhi Anand Vihar: 108 AQI. Highlights best transit hours (2:00-4:30 PM) and worst smog inversion hours (morn/eve)."),
                  ("48-Hour Air Outlook", "6 granular blocks: Afternoon, Tonight, Tomorrow Morning, Afternoon, Night, Day 2."),
                  ("Personal Normal Comparison", "Shows whether body vitals (HR, RR, SpO2) are within individual resting normal bounds."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=13)
 
     # =========================================================================
     # SLIDE 14: PATIENT PORTAL — AI COPILOT REPORT & DAILY PRO CHECK-IN
@@ -597,7 +614,7 @@ def build_deck():
                    "Structured Copilot Guidance, Non-Pharmacological Precautions & Two-Way Symptom Syncing with Doctor", 14)
 
     add_image_panel(s14, SCREENSHOTS_DIR / "mobile_crop_light.png", Inches(0.4), Inches(1.6), Inches(2.9), Inches(5.1),
-                    "Mobile Patient Portal Companion: 375px View")
+                    "Mobile Patient Portal Companion: 375px View", page_num=14)
 
     add_card(s14, Inches(3.5), Inches(1.6), Inches(4.8), Inches(5.1),
              "AI PATIENT COPILOT REPORT", [
@@ -606,7 +623,7 @@ def build_deck():
                  ("Active Triggers to Avoid", "Highlights current outdoor particulate surges, humidity drops, and rapid temperature changes."),
                  ("Guided Breathing Exercises", "Step-by-step paced diaphragmatic and pursed-lip breathing routines to relieve respiratory tension."),
                  ("Emergency Red-Flag Warnings", "Alerts patient to critical danger signs (bluish lips, speaking in broken words, severe chest retractions) requiring immediate 112/108 response."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=14)
 
     add_card(s14, Inches(8.5), Inches(1.6), Inches(4.43), Inches(5.1),
              "DAILY PATIENT OUTCOME (PRO) LOG", [
@@ -615,7 +632,7 @@ def build_deck():
                  ("Symptom Severity Scales", "Self-reported cough, wheeze, dyspnea, and nocturnal awakening frequency."),
                  ("Direct Database Sync", "Instantly updates PostgreSQL timeseries telemetry ahead of next clinic visit."),
                  ("Emergency Response Access", "Top prominent banner with 1-tap call to India's 112 / 108 emergency ambulance network."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=14)
 
     # =========================================================================
     # SLIDE 15: EXPERIMENTAL VALIDATION & BENCHMARKS
@@ -626,7 +643,7 @@ def build_deck():
                    "Validating Discrimination Performance, Early Warning Lead Time, and Individual Component Ablations", 15)
 
     add_image_panel(s15, SCREENSHOTS_DIR / "08_benchmarks_and_validation.png", Inches(0.4), Inches(1.6), Inches(7.5), Inches(5.1),
-                    "Model Ablation Suite & Discrimination Metrics (/benchmarks)")
+                    "Model Ablation Suite & Discrimination Metrics (/benchmarks)", page_num=15)
 
     add_card(s15, Inches(8.1), Inches(1.6), Inches(4.83), Inches(5.1),
              "HELD-OUT BENCHMARK COMPARISONS", [
@@ -635,7 +652,7 @@ def build_deck():
                  ("Standard Recurrent Network (LSTM)", "• ROC-AUC: 0.7850 | PR-AUC: 0.6840\n• Warning Lead Time: 22.1 ± 5.8 hours"),
                  ("Tabular XGBoost-Only Baseline", "• ROC-AUC: 0.7410 | PR-AUC: 0.6310\n• Warning Lead Time: 18.6 ± 6.2 hours"),
                  ("Key Ablation Findings", "Removing the Mechanistic ODE State Estimator drops PR-AUC from 0.83 to 0.74, proving causal physiological filtering is vital for early lead time."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=15)
 
     # =========================================================================
     # SLIDE 16: MATHEMATICAL FOUNDATIONS & CLINICAL ASSUMPTIONS AUDIT
@@ -646,7 +663,7 @@ def build_deck():
                    "Every Mechanistic Parameter and Algorithmic Calibrator is Grounded in Published Pulmonology Literature", 16)
 
     add_image_panel(s16, SCREENSHOTS_DIR / "09_clinical_assumptions.png", Inches(0.4), Inches(1.6), Inches(7.5), Inches(5.1),
-                    "Biophysical Assumptions & Literature Citations Audit (/assumptions)")
+                    "Biophysical Assumptions & Literature Citations Audit (/assumptions)", page_num=16)
 
     add_card(s16, Inches(8.1), Inches(1.6), Inches(4.83), Inches(5.1),
              "AUDITED PARAMETERS & CITATIONS", [
@@ -655,7 +672,7 @@ def build_deck():
                  ("Trigger Sensitivity b = 0.020", "Vagal hyperresponsiveness responding to thermal shocks and humidity fluctuations.\nSource: Graudenz et al., Chest 2006 (DOI: 10.1378/chest.129.3.645)"),
                  ("ICS Clearance c = 0.120 h⁻¹", "Eosinophilic cascade suppression via corticosteroid receptor binding.\nSource: GINA Global Strategy for Asthma 2023"),
                  ("ASD-STE100 Compliance", "70% domain-adapted Simplified Technical English across all technical specifications."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=16)
 
     # =========================================================================
     # SLIDE 17: SECURITY, PRIVACY & ETHICAL GUARDRAILS
@@ -671,7 +688,7 @@ def build_deck():
                  ("DPDP Act (India) Compliance", "Engineered in strict adherence with India's Digital Personal Data Protection Act 2023:\n• Purpose limitation & storage minimization\n• No persistent identifiable tracking\n• Anonymized telemetry identifiers (PT-8821, PT-4409)"),
                  ("Cryptographic Session Guardrails", "Dual-role RBAC architecture enforcing cryptographic separation between doctor triage endpoints and patient self-management portals."),
                  ("Audit Logging & Reproducibility", "Full clinician-in-the-loop action logging stored in PostgreSQL with UTC timestamps."),
-             ], title_color=ACCENT_CYAN)
+             ], title_color=ACCENT_CYAN, page_num=17)
 
     add_card(s17, Inches(6.6), Inches(1.6), Inches(6.33), Inches(5.1),
              "CLINICAL SAFETY & ETHICAL BOUNDARIES", [
@@ -680,7 +697,7 @@ def build_deck():
                  ("Conformal Statistical Coverage", "Wrapping predictions in 90% conformal bands prevents overconfident algorithmic output during abnormal sensor dropouts."),
                  ("Auditable Open-Source Architecture", "Complete codebase licensed under permissive MIT Open-Source License for peer scrutiny and institutional verification."),
                  ("Standard Containerization", "Easily deployed on premises via Docker Compose with zero cloud telemetry egress."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=17)
 
     # =========================================================================
     # SLIDE 18: SUMMARY, DELIVERABLES & CONCLUSION
@@ -697,7 +714,7 @@ def build_deck():
                  ("Real-Time Counterfactual Sandbox", "Developed biophysical latent ODE airway simulator evaluating interventions in < 65 ms."),
                  ("Dual Clinical & Patient Interfaces", "Interactive WebGL/Three.js 3D lung viewer for doctors and accessible, plain-language companion for patients."),
                  ("Continual Outlier Learning", "Pioneered LLM clinical note feature extraction with EWC anti-forgetting retraining."),
-             ], title_color=ACCENT_GREEN)
+             ], title_color=ACCENT_GREEN, page_num=18)
 
     add_card(s18, Inches(6.6), Inches(1.6), Inches(6.33), Inches(5.1),
              "REPOSITORY ARTIFACTS & ACCESS DETAILS", [
@@ -706,35 +723,84 @@ def build_deck():
                  ("Documentation & Artifacts", "• docs/Architecture_Diagram.pdf (Complete High-Res Architecture)\n• docs/Project_Presentation.pdf (This Presentation Deck in PDF)\n• docs/Project_Presentation.pptx (Native PowerPoint Source)\n• README.md (ASD-STE100 Compliant Technical Documentation)"),
                  ("Quickstart Orchestration", "Single-command launch via `./run.sh` starts PostgreSQL 16, FastAPI (:8000), and Next.js 16 (:3000). Automated test suite via `pytest`."),
                  ("Demo Video", "15–20 Minute Unlisted YouTube Clinical & Architecture Demonstration."),
-             ], title_color=ACCENT_GOLD)
+             ], title_color=ACCENT_GOLD, page_num=18)
 
-    # Save PPTX
+    # 1. Save PPTX
     pptx_path = DOCS_DIR / "BreathTwin_Project_Presentation.pptx"
     prs.save(str(pptx_path))
     print(f"✓ Saved native PowerPoint presentation to: {pptx_path}")
 
-    # Also save to docs/Project_Presentation.pptx
     shutil.copy(pptx_path, DOCS_DIR / "Project_Presentation.pptx")
     shutil.copy(pptx_path, PUBLIC_DOCS_DIR / "Project_Presentation.pptx")
     print(f"✓ Copied to: {DOCS_DIR / 'Project_Presentation.pptx'}")
 
-    # Convert to PDF using LibreOffice
-    print("Converting PPTX to PDF via LibreOffice headless...")
-    cmd = [
+    # 2. Render initial PDF via LibreOffice to high-res slide images
+    temp_lo_pdf = DOCS_DIR / "temp_impress_export.pdf"
+    cmd_lo = [
         "soffice",
         "--headless",
         "--convert-to", "pdf",
         "--outdir", str(DOCS_DIR),
         str(pptx_path)
     ]
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd_lo, check=True)
+    generated_lo_pdf = DOCS_DIR / "BreathTwin_Project_Presentation.pdf"
     
-    generated_pdf = DOCS_DIR / "BreathTwin_Project_Presentation.pdf"
-    print(f"✓ Generated PDF presentation: {generated_pdf}")
+    # Render slides to 200 DPI PNGs
+    print("Rendering slides to 200 DPI PNGs for universal ReportLab compilation...")
+    cmd_ppm = [
+        "pdftoppm",
+        "-png",
+        "-r", "200",
+        str(generated_lo_pdf),
+        str(HIGHRES_DIR / "slide")
+    ]
+    subprocess.run(cmd_ppm, check=True)
 
-    # Copy to standardized Project_Presentation.pdf targets
+    # 3. Build Universal ReportLab PDF
+    print("Building universal, glitch-free PDF presentation using ReportLab...")
+    final_pdf_path = DOCS_DIR / "BreathTwin_Project_Presentation.pdf"
+    
+    # 960 x 540 points (16:9 widescreen)
+    w, h = 960, 540
+    c = canvas.Canvas(str(final_pdf_path), pagesize=(w, h))
+    c.setTitle("BreathTwin (DigitalTwin) - Complete Project Presentation Deck")
+    c.setAuthor("Team DigiTwin (LNMIIT & NSUT) - ABAY_LNMIIT/NSUT")
+    c.setSubject("Multimodal Asthma Flare-Up Digital Twin - Architecture, Models, and Interfaces")
+    c.setCreator("BreathTwin Presentation Builder (ReportLab)")
+
+    for i in range(1, TOTAL_SLIDES + 1):
+        slide_img = HIGHRES_DIR / f"slide-{i:02d}.png"
+        if not slide_img.exists():
+            raise FileNotFoundError(f"Missing high-res slide image: {slide_img}")
+
+        # Draw deep solid background
+        c.setFillColor(colors.HexColor("#020A05"))
+        c.rect(0, 0, w, h, fill=1, stroke=0)
+
+        # Draw the 200 DPI slide raster
+        c.drawImage(str(slide_img), 0, 0, width=w, height=h)
+
+        # Invisible text layer for text selection & searchability
+        lines = SLIDE_TEXT_CORPUS.get(i, [])
+        if lines:
+            t = c.beginText(20, h - 30)
+            t.setTextRenderMode(3)  # Invisible text mode
+            t.setFont("Helvetica", 9)
+            for line in lines:
+                clean_line = line.replace("\n", " ").strip()
+                if clean_line:
+                    t.textLine(clean_line[:120])
+            c.drawText(t)
+
+        c.showPage()
+
+    c.save()
+    print(f"✓ Generated universal PDF presentation: {final_pdf_path} ({final_pdf_path.stat().st_size:,} bytes)")
+
+    # Copy to target standardized locations
     for target in [DOCS_DIR / "Project_Presentation.pdf", PUBLIC_DOCS_DIR / "Project_Presentation.pdf"]:
-        shutil.copy(generated_pdf, target)
+        shutil.copy(final_pdf_path, target)
         print(f"✓ Updated target PDF: {target}")
 
 
