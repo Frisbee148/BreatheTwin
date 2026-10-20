@@ -197,7 +197,7 @@ Implemented in [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) (c
 ### 7.5 Dynamic Feature Addition via LLM Extraction and Continual Retraining
 Implemented in [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py) and [`aasthma/inference/inference_engine.py`](aasthma/inference/inference_engine.py):
 
-```
+```text
 Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe vomiting, SpO2 91%")
                                       │
                                       ▼
@@ -231,7 +231,11 @@ Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe 
 3. **Continual Retraining with Elastic Weight Consolidation (EWC)**:
    - Doctor-verified outlier cases are stored in the **Experience Replay Buffer** (`/api/patients/{id}/clinical-note/commit`).
    - The adaptation engine executes continual retraining (`/api/model/adapt-outliers`) on `RespiTwinMLPMetaLearner` using EWC loss to prevent catastrophic forgetting of baseline asthma patterns:
-     $$\mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i (\theta_i - \theta_{i, \text{base}})^2$$
+
+     $$
+     \mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i (\theta_i - \theta_{i, \text{base}})^2
+     $$
+
      where $F_i$ represents the diagonal Fisher Information Matrix of prior weights.
 
 ### 7.6 Held-Out Test Set Performance & Benchmark Comparison
@@ -239,9 +243,9 @@ Evaluated on a patient-split cohort (`800` training patients, `100` validation p
 
 | Model / Evaluation Metric | 24h ROC-AUC | 48h ROC-AUC | 24h Precision (@0.5) | 24h Recall (@0.5) | Severity Weighted F1 | Mean Lead Time | Inference Latency |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **BreathTwin Stacked Ensemble (TCN + XGBoost + MLP + ODE)** | **0.9399** | **0.9428** | **0.8560** | **0.7281** | **0.8435** | **42.4 ± 4.1 h** | **< 65 ms** |
+| **BreathTwin Stacked Ensemble (TCN + XGBoost + MLP + ODE)** | **0.9399** | **0.9428** | **0.8560** | **0.7281** | **0.8435** | **42.4 ± 4.1 h** | **&lt; 65 ms** |
 | Standard Recurrent Network (LSTM Baseline) | 0.7850 | 0.7790 | 0.6840 | 0.6520 | 0.7010 | 22.1 ± 5.8 h | 110 ms |
-| Tabular Gradient Boosted Trees (XGBoost-Only Baseline) | 0.7410 | 0.7320 | 0.6310 | 0.5980 | 0.6640 | 18.6 ± 6.2 h | < 15 ms |
+| Tabular Gradient Boosted Trees (XGBoost-Only Baseline) | 0.7410 | 0.7320 | 0.6310 | 0.5980 | 0.6640 | 18.6 ± 6.2 h | &lt; 15 ms |
 
 ### 7.7 Stage 3: Clinical Copilot Report Generation
 Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py):
@@ -285,7 +289,7 @@ This project is released under the **MIT Open-Source License**. See the [`LICENS
 - **PlantUML Diagram Source**: [`docs/architecture.puml`](docs/architecture.puml)
 - **Preserved Archive / Original Diagram Backup**: [`docs/backup/`](docs/backup/) (stores original architecture diagram artifacts for reference)
 
-The architecture diagram has been designed with clean top-to-bottom signal routing and distinct, modality-specific arrow color coding to eliminate overlapping lines:
+The high-resolution architecture diagram (`docs/architecture.png` and `docs/Architecture_Diagram.pdf`) provides modality-specific color coding for clinical and machine learning pipelines:
 - **Green (`#059669`)**: Multimodal Sensor Feeds (Static 60D Baseline, 20ch Telemetry Series) and UI Telemetry Streams
 - **Blue (`#2563EB`)**: Base Predictor Probabilities & Calibrated Conformal Risk Forecast
 - **Orange (`#D97706`)**: Ambient Particulate Dose, Latent Airway Inflammation State $I(t)$, and Counterfactual Sandbox Coupling
@@ -294,51 +298,39 @@ The architecture diagram has been designed with clean top-to-bottom signal routi
 
 ![BreathTwin System and Codebase Architecture Diagram](docs/architecture.png)
 
+The compact horizontal Mermaid diagram below illustrates end-to-end signal routing across the three primary system tiers:
+
 ```mermaid
-flowchart TD
-    subgraph P1["01. Multimodal Data Ingestion & Relational Storage"]
-        EHR["Stream 01: Static EHR (60 Features)<br/>Demographics, Spirometry, History"]
-        WEAR["Stream 02: Wearable Telemetry (20ch x 12h)<br/>SpO2, HR, HRV, RR, Nocturnal Logs"]
-        DB[("PostgreSQL 16 Database<br/>patients, timeseries_telemetry,<br/>clinical_events, Outlier Buffer")]
-        AQI["Stream 03: Environment (AQI)<br/>PM2.5, PM10, 70+ CPCB Stations"]
-        
-        WEAR -.->|"Persist Streams"| DB
-        AQI -.->|"Persist AQI"| DB
+flowchart LR
+    subgraph Streams["01. Multimodal Input Streams & Storage"]
+        EHR["Stream 01: Static EHR (60 Features)<br/>Demographics, FEV1%, Controller, History"]
+        WEAR["Stream 02: Wearable Telemetry (20 Channels)<br/>SpO2, HR, HRV, RR, Sleep, SABA, Symptoms"]
+        AQI["Stream 03: Environment (CPCB / Open-Meteo)<br/>PM2.5, PM10, AQI across 70+ Indian Stations"]
+        PG[("PostgreSQL 16 + SQLAlchemy<br/>patients, timeseries_telemetry,<br/>patient_daily_logs, user_accounts")]
     end
 
-    subgraph P2["02. Hybrid Digital Twin Engine"]
-        subgraph ML["Neural & Tabular Machine Learning Pipeline"]
-            S1["Stage 1: Base Multimodal Predictors<br/>• 1A: Dilated TCN Fusion Model<br/>• 1B: XGBoost Multi-Target Suite"]
-            META["Stage 2: Stacking MLP Meta-Learner<br/>Calibrated 24h/48h Risk & 90% Conformal Bounds"]
-            S1 -->|"12D Predicted Probabilities"| META
-        end
-
-        subgraph BIO["Biophysical Simulation & Clinical Adaptation"]
-            ODE["Mechanistic Airway Simulator (Latent ODE)<br/>Continuous Inflammation I(t) & What-If Sandbox"]
-            LLM["Stage 3: LLM Clinical Extractor & Retraining<br/>Note Parser & EWC Continual Retraining"]
-            LLM -.->|"Extracted ODE Modifiers"| ODE
-        end
-
-        META <-->|"Counterfactual Rescoring"| ODE
-        LLM -.->|"EWC Continual Retraining Feed"| META
+    subgraph Core["02. Hybrid Digital Twin Core (aasthma/)"]
+        ODE["Mechanistic Airway ODE Simulator<br/>dI/dt = -kI + a·Dose_PM + b·Trigger - c·Controller"]
+        TCN["Stage 1A: Dilated TCN Fusion<br/>StaticMLPEncoder + Conv1DDynamicEncoder (d=1,2,4)"]
+        XGB["Stage 1B: XGBoost Multi-Target Suite<br/>Rolling Window Stats + Lag Shifts"]
+        META["Stage 2: RespiTwinMLPMetaLearner<br/>12D Base Probs → Calibrated 24h/48h Risk + Severity"]
+        LLM["Stage 3: Clinical Copilot & Note Extractor<br/>Pydantic Schema + Non-Prescriptive Guardrails"]
     end
 
-    subgraph P3["03. Service Gateway & User Interfaces"]
-        API["FastAPI Service Layer (:8000)<br/>REST Endpoints + RBAC Session Guard"]
-        DOC["Treating Doctor Portal (:3000/patients)<br/>Cohort Triage, 3D Lung, Fan Chart, What-If"]
-        PAT["Asthma Patient Portal (:3000/patient-portal)<br/>Risk Guidance Card, Daily Logs, Copilot Plan"]
-        
-        API -->|"Doctor Telemetry Stream"| DOC
-        API -->|"Patient Guidance Stream"| PAT
+    subgraph UI["03. FastAPI Gateway & Next.js 16 Interfaces"]
+        API["FastAPI Backend (:8000)<br/>REST Endpoints + Simulation Clock"]
+        DOC["Doctor Dashboard (:3000)<br/>Cohort Triage, 3D/Thermal Twin, What-If Sandbox"]
+        PAT["Patient Portal (:3000/patient-portal)<br/>Personal Forecast, Daily Logs, Copilot Chat"]
     end
 
-    EHR -->|"Static Baseline (60D)"| S1
-    WEAR -->|"Telemetry Series (20ch x 12h)"| S1
-    AQI -->|"Ambient PM2.5 Inhaled Dose"| ODE
-
-    META -->|"Calibrated 24h/48h Forecast"| API
-    ODE -->|"Airway Inflammation State I(t)"| API
-    LLM -->|"Synthesized Copilot Reports"| API
+    EHR & WEAR & AQI --> PG
+    EHR & WEAR & AQI --> TCN & XGB
+    WEAR & AQI --> ODE
+    TCN & XGB --> META
+    ODE <--> META
+    META --> LLM
+    META & ODE & LLM --> API
+    API --> DOC & PAT
 ```
 
 ### 10.2 Codebase Architecture
@@ -364,7 +356,7 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   │   └── clinical_extractor.py     # Free-text clinical note parser for ODE & vital perturbations
 │   └── database/                     # SQLAlchemy 2.0 ORM models, PostgreSQL repository, migrations
 ├── frontend/                         # Next.js 16 (Turbopack) + React 19 + Three.js Web Application
-│   ├── app/                          # App Router: Home, /login, /patients, /[id]/forecast, /what-if, /patient-portal
+│   ├── app/                          # App Router: Home, /login, /patients, /[id]/forecast, /what-if, /adapt, /patient-portal
 │   ├── components/                   # 3D PulmonaryTwin3D, InteractiveThermalReveal, AppleReveal, TelemetryChart
 │   └── lib/                          # Typed API client (api.ts), auth context, fallback clinical state
 ├── docs/                             # Public PDF/SVG Architecture Diagram and Project Presentation
@@ -372,7 +364,10 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   ├── Architecture_Diagram.svg      # Vector System Architecture Diagram (SVG)
 │   ├── architecture.puml             # Regenerated PlantUML Diagram Source (Color-Coded, Clear Routing)
 │   ├── backup/                       # Preserved Archive of Original Diagram Artifacts (PUML, SVG, PDF, PNG)
-│   └── Project_Presentation.pdf      # Slide deck covering project details and benchmark outcomes (PDF)
+│   ├── Project_Presentation.pdf      # Complete 18-slide project presentation deck (Universal PDF)
+│   ├── Project_Presentation.pptx     # Native widescreen PowerPoint slide deck (PPTX)
+│   ├── BreathTwin_Project_Presentation.pdf  # Canonical ReportLab presentation deck (PDF)
+│   └── BreathTwin_Project_Presentation.pptx # Canonical PowerPoint presentation deck (PPTX)
 ├── docker-compose.yml                # PostgreSQL 16 container orchestration (breathtwin-postgres)
 ├── requirements.txt                  # Python backend and ML dependencies
 ├── run.sh / stop.sh                  # One-command full-stack startup and teardown scripts
@@ -392,7 +387,33 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 
 ## 11. Project Presentation and Outcomes
 
-- **Downloadable Project Presentation (PDF Format)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf)
+The complete project slide deck is provided in both universal PDF and native editable PowerPoint (`.pptx`) formats. The deck covers the complete project lifecycle across 18 widescreen slides—including clinical motivation, 3-stream data ingestion, mechanistic latent ODE, 3-stage predictive ensemble, adaptive continual learning (EWC), five clinician portal views, two patient companion portals, empirical benchmark results, and DPDP Act compliance.
+
+- **Downloadable Project Presentation (PDF Format)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) • Mirror: [`frontend/public/docs/Project_Presentation.pdf`](frontend/public/docs/Project_Presentation.pdf)
+- **Downloadable Project Presentation (PowerPoint Format)**: [`docs/Project_Presentation.pptx`](docs/Project_Presentation.pptx) • Mirror: [`frontend/public/docs/Project_Presentation.pptx`](frontend/public/docs/Project_Presentation.pptx)
+
+### Slide Deck Structure (18 Widescreen Slides)
+
+| # | Slide Title | Thematic Category | Core Contents & Visual Highlights |
+| :--- | :--- | :--- | :--- |
+| **01** | **BreathTwin: Multimodal Mechanistic-Neural Digital Twin** | Project Overview | Inter-college engineering submission (`ABAY_LNMIIT/NSUT`), core contributors, and dual-layer architecture summary. |
+| **02** | **The 24–36 Hour Pre-Symptomatic Window in Urban Asthma Care** | Clinical Rationale | Indian asthma mortality disparity (42% global deaths), the sub-clinical inflammatory lag, and reactive care shortcomings. |
+| **03** | **Full-Stack Architecture & Multimodal Signal Routing** | System Architecture | End-to-end signal flow from CPCB ambient sensors and biometrics through FastAPI to Three.js/WebGL interfaces. |
+| **04** | **Multimodal Synchronization: EHR, Wearables, and CPCB Pollution** | Data Engineering | 3-stream fusion: static 60D baseline, rolling 20ch vitals, and live CPCB particulate streams (`PM2.5`, `PM10`). |
+| **05** | **Mechanistic Airway Model: Latent ODE Inflammation Dynamics** | Biophysical Simulation | Continuous latent inflammation trajectory $I(t)$ solved via Euler-Maruyama SDE/ODE solver with pharmacokinetic ICS clearance. |
+| **06** | **3-Stage Hybrid Predictive Architecture: TCN, XGBoost, and MLP Stacking** | Machine Learning Core | Dilated Temporal Convolutional Network (TCN), XGBoost multi-target suite, and Stage-2 Stacking MLP Meta-Learner. |
+| **07** | **Adaptive Experience Replay & Elastic Weight Consolidation (EWC)** | Continual Learning | LLM extraction of clinical note deltas into the continual replay buffer with Fisher Information matrix penalty. |
+| **08** | **Doctor Dashboard: Cohort Risk Stratification & Bedside Prioritization** | Clinical Interfaces | Outpatient population triage interface (`/patients`) with multi-grade severity badges and environmental overlays. |
+| **09** | **Interactive 3D Lung Anatomical Twin & Thermal Inflammation Shader** | Clinical Interfaces | Three.js anatomical 3D lung model with custom GLSL thermal shader mapping latent inflammation $I(t)$. |
+| **10** | **24h & 48h Conformal Prediction Gauges & SHAP Attribution** | Clinical Interfaces | Prospective risk gauges with 90% conformal prediction bounds and waterfall SHAP local feature attributions. |
+| **11** | **What-If Scenario Simulator: Environmental & Drug Intervention Modeling** | Clinical Interfaces | Real-time counterfactual sandbox testing acute interventions (N95 mask, air filtration, ICS step-up) in `< 65 ms`. |
+| **12** | **LLM Free-Text Note Extraction & Continuous EWC Model Updating** | Clinical Interfaces | Extraction interface transforming non-standard clinical notes into parametric ODE inputs with live replay. |
+| **13** | **Mobile-First Patient Portal: Action Plan & Exposure Shield** | Patient Companion | Simplified patient dashboard (`/patient-portal`) displaying 3-tier risk cards and personalized morning action plans. |
+| **14** | **Conversational AI Health Assistant & Longitudinal Symptom Log** | Patient Companion | Responsive Copilot chat assistant, quick daily check-in buttons, and longitudinal symptom history. |
+| **15** | **Predictive Performance: 0.9428 ROC-AUC & 42.4h Mean Warning Lead Time** | Experimental Validation | Comparative benchmarks against baseline models, ROC-AUC, PR-AUC, and 4-tier severity classification metrics. |
+| **16** | **Auditable Parameter Registry: Transparent Literature-Grounded Constants** | Clinical Audit | Open assumptions registry (`/assumptions`) detailing biological constants, half-lives, and literature citations. |
+| **17** | **Synthetic Data Integrity, DPDP Act Alignment, & Guardrails** | Ethics & Privacy | 100% synthetic patient generation, DPDP compliance, role-based access control (RBAC), and non-prescriptive safety rails. |
+| **18** | **Zero-Permission Artifacts, Verified Checkpoints & Quick Start** | Deliverables & Setup | Public repository links, one-command launch script (`./run.sh`), verified weights, and submission wrap-up. |
 
 ### Summary of Project Outcomes
 1. **Early Exacerbation Detection**: Achieves **0.9399 ROC-AUC (24h)** and **0.9428 ROC-AUC (48h)** on held-out test patients with a mean warning lead time of **42.4 ± 4.1 hours** before severe exacerbation onset.
@@ -407,8 +428,9 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 
 All documents, model checkpoints, datasets, and source files are stored directly inside this public repository and require **zero external permissions**:
 
-- **Architecture Diagram (PDF)**: [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf)
-- **Project Presentation (PDF)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf)
+- **Architecture Diagram (PDF & SVG)**: [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf) • [`docs/Architecture_Diagram.svg`](docs/Architecture_Diagram.svg)
+- **Project Presentation (Universal PDF)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf)
+- **Project Presentation (PowerPoint PPTX)**: [`docs/Project_Presentation.pptx`](docs/Project_Presentation.pptx)
 - **Open-Source License (MIT)**: [`LICENSE`](LICENSE)
 - **Trained Model Checkpoints**:
   - Stage-1A Dilated TCN: [`aasthma/training/model1/digital_twin_model.pt`](aasthma/training/model1/digital_twin_model.pt)
