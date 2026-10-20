@@ -1,0 +1,42 @@
+# Environment variables and secrets
+.env
+.env*.local
+*.env
+!.env.example
+
+# Process IDs and logs
+*.log
+*.pid
+
+# Python & PyTest
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+env/
+venv/
+ENV/
+
+# Next.js & Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
