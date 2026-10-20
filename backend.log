@@ -276,3 +276,342 @@ User Access Token "Digitwin" is expired
 INFO:     127.0.0.1:35800 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
 INFO:     127.0.0.1:35796 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57568 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43084 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43096 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43116 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43116 - "GET /api/patients/PT-4409/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43130 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43146 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43158 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36574 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36604 - "GET /api/patients/PT-4409/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36592 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36592 - "GET /api/patients/PT-4409/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36604 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43104 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43136 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36606 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36588 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49544 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49550 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49568 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49568 - "GET /api/patients/PT-4409/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49556 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49572 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49580 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49552 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49570 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36398 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36434 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36414 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36420 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36434 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36418 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36404 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34016 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34058 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34044 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34044 - "GET /api/patients/PT-4409/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34036 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34044 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34036 - "OPTIONS /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34058 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34078 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa8-7818f26b46a2a61c51896697;01fe9ff2-c199-482a-b257-90bd8b427915)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa8-37fdb80e227433c73587d690;f85af863-1669-409a-8922-e626b50dd7c8)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa8-4e6fc0ed21fbf9972d138650;0ebf2513-2e33-4a5c-8e19-dd27cfefbc76)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:34044 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa9-64f8bc0e175592092f6893ba;e785008b-6bb0-4bec-ab09-5f4eacc8c2d6)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa9-78ad3c5561f012933d80b5e7;1f0f078d-ec0a-410a-9579-999843f50c71)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad73aa9-2b40ef93429164a51fcb0d09;c0e6e682-a14a-4642-a0ca-840c5ae1856b)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:34036 - "POST /api/patients/PT-4409/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34022 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34066 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47928 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47922 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47962 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47962 - "GET /api/patients/PT-4409/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47994 - "GET /api/patients/PT-4409/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47978 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47954 - "GET /api/patients/PT-4409 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47954 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47994 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47970 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47940 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47978 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48000 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54980 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55012 - "GET /api/patients/PT-1923/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55052 - "GET /api/patients/PT-1923/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54998 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55028 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54980 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55058 - "GET /api/patients/PT-1923/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55028 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55028 - "GET /api/patients/PT-1923/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54998 - "GET /api/patients/PT-1923/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55012 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55052 - "GET /api/patients/PT-1923/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54998 - "OPTIONS /api/patients/PT-1923/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55052 - "POST /api/patients/PT-1923/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55728 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55012 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54998 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55012 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54998 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55052 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55036 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40834 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40884 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40854 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40896 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40884 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40870 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40838 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40908 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53914 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53898 - "GET /api/patients/PT-1923 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53920 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53914 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53912 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53882 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50376 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50396 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50386 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42380 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50386 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42392 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42406 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42386 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50386 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42386 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39222 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39238 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42386 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39240 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42386 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50360 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39228 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45072 - "GET /api/patients/PT-8821/telemetry HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43622 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43638 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43650 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43666 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43680 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43686 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35798 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35800 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34786 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38346 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38354 - "GET /api/clock HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38366 - "OPTIONS /api/patients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38366 - "POST /api/patients HTTP/1.1" 201 Created
+INFO:     127.0.0.1:43088 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43092 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43092 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43112 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43092 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38366 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43106 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38350 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38332 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47160 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47188 - "GET /api/patients/PT-8866/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "GET /api/patients/PT-8866/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "OPTIONS /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "OPTIONS /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47182 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47188 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7406f-19cc4d9e326d42235d4f362f;f4e400d8-b00b-41ce-a6e3-f7ca9b9b19e0)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7406f-72d6a5ad2b61a904456b8358;933dbc45-efd0-44a6-936c-6205947ccce7)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74070-5d32dc072fd6c1e61d742e6c;40ee08b5-448a-4f56-9676-0011482afbc2)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:47180 - "POST /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74070-688b650e6d6380142dd77f3c;1341699a-5552-4f69-a6d2-ff865fabffbb)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74070-3df05bfb61d4b4910f901c4f;c40e9695-fc8f-4166-9596-589faf157b7c)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74071-17154470335935a91d87bbb4;33b1c48c-9c47-4e7e-b415-35b466931084)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:47182 - "POST /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47222 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47224 - "GET /api/patients/PT-8866/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47170 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47196 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47188 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47188 - "GET /api/patients/PT-8866/forecast/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47182 - "GET /api/patients/PT-8866/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47196 - "GET /api/patients/PT-8866/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47180 - "OPTIONS /api/patients/PT-8866/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47196 - "POST /api/patients/PT-8866/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47170 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47206 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53824 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53862 - "GET /api/patients/PT-8866/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53878 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53846 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53846 - "OPTIONS /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53846 - "OPTIONS /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53878 - "GET /api/patients/PT-8866/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53862 - "GET /api/model/adaptation-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53884 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407d-0582b82358dc52ea312f2091;354e1a51-d26a-4621-826e-a650313d8fe9)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407e-7c5f8ad5573ea95e6ce64b93;e2fc97ae-8166-4ef7-8fb1-99dde664d280)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407e-7eda8e7d1599aefa3370e239;55c8bb82-5fa6-45b1-bae0-a0752392c298)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:53846 - "POST /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+Hugging Face extraction with model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407e-7559abb852a840b360260baa;531a24f3-05a6-4bdd-95f8-9a9ecd228466)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407f-1298e1c36a5b4f242673e421;0e559459-eb4d-46b4-9797-b1880819ccd4)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face extraction with model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad7407f-512654f5338ecc762e84d21e;6d63171b-56c4-4708-93ab-77811058e90f)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:53878 - "POST /api/patients/PT-8866/clinical-note/simulate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53838 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53854 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34230 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34254 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34264 - "GET /api/patients/PT-8866 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34274 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34254 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34238 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34256 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34238 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50592 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50578 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50578 - "GET /api/patients/PT-8821/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50592 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+Inference model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-6e8f6bd04f51b2125d8ab535;c8b40e76-6fde-4b4a-a7f8-c57b29c89c47)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+INFO:     127.0.0.1:50614 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50592 - "POST /api/what-if HTTP/1.1" 200 OK
+Inference model meta-llama/Llama-3.1-8B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-3924650a2226813e41c61339;537be390-5448-4067-9113-ebaac9d86729)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Inference model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-3f0a092a400a861230a75748;0c04cfce-5b45-4a12-b1c7-93ac8f1d7951)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Inference model Qwen/Qwen2.5-72B-Instruct failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-7a9076905ad1b416746013a9;bf2b94b9-e242-4790-949e-6ed9d76b8f67)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Inference model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-17428d5b20482f103a0f30b6;65e5d4a4-1d99-49f1-900d-022a890c722b)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face copilot generation failed: Hugging Face LLM request failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-17428d5b20482f103a0f30b6;65e5d4a4-1d99-49f1-900d-022a890c722b)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired. Using grounded fallback.
+INFO:     127.0.0.1:50600 - "POST /api/patients/PT-8821/copilot-report HTTP/1.1" 200 OK
+Inference model google/gemma-2-2b-it failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-7e4b6a253b59122a696a5b3c;becf5b37-b798-4bda-ab46-f315aa3ca319)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired
+Hugging Face copilot generation failed: Hugging Face LLM request failed: Client error '401 Unauthorized' for url 'https://router.huggingface.co/v1/chat/completions' (Request ID: Root=1-6ad74113-7e4b6a253b59122a696a5b3c;becf5b37-b798-4bda-ab46-f315aa3ca319)
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+
+User Access Token "Digitwin" is expired. Using grounded fallback.
+INFO:     127.0.0.1:50578 - "POST /api/patients/PT-8821/copilot-report HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50592 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50566 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50616 - "GET /api/patients?limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49802 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49808 - "GET /api/patients/PT-8821 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49802 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49808 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40548 - "OPTIONS /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49808 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49802 - "POST /api/what-if HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40548 - "POST /api/what-if HTTP/1.1" 200 OK
