@@ -38,8 +38,8 @@ All mandatory items required by the repository submission form are included and 
 | 7 | **AI/ML Model or Framework Details** | Included | [Section 7: AI/ML Model and Framework Details](#7-aiml-model-and-framework-details) |
 | 8 | **15–20 Minute Unlisted YouTube Demo Video** | Included (Unlisted Video Link Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) • [YouTube Video](https://youtu.be/S4WMAG_yx4Y) |
 | 9 | **Open-Source License Details** | Included (MIT) | [Section 9: Open-Source License Details](#9-open-source-license-details) • [`LICENSE`](LICENSE) |
-| 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf) |
-| 11 | **Presentation in PDF/PPT Format** | Included (PDF, 15 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) |
+| 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.pdf) |
+| 11 | **Presentation in PDF/PPT Format** | Included (PDF, 15 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) |
 | 12 | **Public Accessibility Verification** | Verified | [Section 12: Public Access and Reproducibility](#12-public-access-and-reproducibility) |
 
 ---
@@ -176,7 +176,7 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 | **3D & Shader Visualization** | Three.js `0.186`, WebGL / GLSL Custom Shaders, `.glb` 3D Pulmonary Mesh | Interactive 3D lung anatomical viewer and thermal inflammation reveal | Standalone Local |
 | **Backend API Server** | Python 3.11+, FastAPI `0.110+`, Uvicorn, Pydantic `2.5+`, HTTPX | REST endpoints, simulation clock replay, schema validation, telemetry routing | Standalone Local |
 | **Deep Learning & Boosting** | PyTorch `2.0+`, XGBoost `2.0+`, scikit-learn `1.3+`, NumPy, Pandas | Stage-1A Dilated TCN, Stage-1B XGBoost Suite, Stage-2 Stacking MLP Meta-Learner | Standalone Local |
-| **Mechanistic Simulation** | Custom Euler-Maruyama SDE Solver ([`aasthma/simulation/mechanistic_simulator.py`](aasthma/simulation/mechanistic_simulator.py)) | Continuous airway inflammation state $I(t)$ integration and counterfactual What-If sandbox | Standalone Local |
+| **Mechanistic Simulation** | Custom Euler-Maruyama SDE Solver ([`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py)) | Continuous airway inflammation state $I(t)$ integration and counterfactual What-If sandbox | Standalone Local |
 | **Clinical Language & Copilot** | OpenAI API (`gpt-4o`) / Hugging Face (`Llama-3.1-8B` / `Qwen2.5`) + Deterministic Fallback Engine | Schema-validated clinical reports, unstructured clinical note perturbation extraction | External API (with Offline Fallback) |
 | **Continual Adaptation & EWC** | Elastic Weight Consolidation (EWC), Experience Replay Buffer, PyTorch | Fine-tuning Stage-2 Meta-Learner on clinician-verified outlier episodes | Standalone Local |
 | **Database & Persistence** | PostgreSQL 16 (`postgres:16-alpine`), SQLAlchemy 2.0, Psycopg 3 | Stores patients, telemetry, clinical events, daily logs, and RBAC accounts | Standalone Local (Containerized) |
@@ -238,7 +238,7 @@ BreathTwin combines a **Two-Stage Multi-Model Ensemble** (Stage 1A TCN + Stage 1
 
 ### 7.1 Mechanistic Airway Inflammation State Estimator (Latent SDE)
 
-Implemented in [`aasthma/simulation/mechanistic_simulator.py`](aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state $I(t) \in [0.08, 0.98]$ governed by the stochastic differential equation:
+Implemented in [`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state $I(t) \in [0.08, 0.98]$ governed by the stochastic differential equation:
 
 $$
 \frac{dI}{dt} = -k \cdot I(t) + a \cdot \beta_{\text{AHR}} \cdot \text{Dose}_{\text{PM}}(t) + b \cdot \text{Trigger}(t) + \delta_{\text{systemic}} - c \cdot \eta_{\text{absorption}} \cdot \text{Controller}(t) + \sigma \cdot \xi(t)
@@ -248,7 +248,7 @@ where $\xi(t) \sim \mathcal{N}(0, 1)$ represents standard Gaussian white noise. 
 
 #### Biological Parameter Registry & Literature Rationales
 
-All parameter values are grounded in published clinical and pharmacological literature, registered in [`aasthma/simulation/clinical_data.py`](aasthma/simulation/clinical_data.py), and auditable via the `/assumptions` endpoint:
+All parameter values are grounded in published clinical and pharmacological literature, registered in [`aasthma/simulation/clinical_data.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/clinical_data.py), and auditable via the `/assumptions` endpoint:
 
 | Parameter | Symbol | Calibrated Value | Units | Physiological Role & Rationale | Literature Citation & DOI |
 | :--- | :---: | :---: | :---: | :--- | :--- |
@@ -268,7 +268,7 @@ All parameter values are grounded in published clinical and pharmacological lite
 
 ### 7.2 Stage 1A: Multimodal Dilated Temporal Convolutional Network (`DigitalTwinFusionModel`)
 
-Implemented in [`aasthma/models/digital_twin_model.py`](aasthma/models/digital_twin_model.py) and trained in [`aasthma/training/model1/tcn.py`](aasthma/training/model1/tcn.py) (checkpoint: [`aasthma/training/model1/digital_twin_model.pt`](aasthma/training/model1/digital_twin_model.pt)):
+Implemented in [`aasthma/models/digital_twin_model.py`](ABAY_LNMIIT/NSUT/aasthma/models/digital_twin_model.py) and trained in [`aasthma/training/model1/tcn.py`](ABAY_LNMIIT/NSUT/aasthma/training/model1/tcn.py) (checkpoint: [`aasthma/training/model1/digital_twin_model.pt`](ABAY_LNMIIT/NSUT/aasthma/training/model1/digital_twin_model.pt)):
 
 1. **`StaticMLPEncoder`**: Encodes 60 normalized static EHR and clinical history features (`Linear(60, 128) -> BatchNorm1d -> ReLU -> Dropout(0.2) -> Linear(128, 64) -> BatchNorm1d -> ReLU`).
 2. **`Conv1DDynamicEncoder`**: Encodes the 20-channel, 12-hour sliding telemetry window through three hierarchical `TCNBlock` layers with exponentially increasing dilation factors (`dilation = 1, 2, 4`, `kernel_size = 3`, channels `20 -> 32 -> 64 -> 128`), followed by `AdaptiveAvgPool1d(1)` and linear projection.
@@ -281,7 +281,7 @@ Implemented in [`aasthma/models/digital_twin_model.py`](aasthma/models/digital_t
 
 ### 7.3 Stage 1B: Gradient-Boosted Decision Tree Suite (`XGBoost`)
 
-Implemented in [`aasthma/training/model2/gradient_boosting.py`](aasthma/training/model2/gradient_boosting.py) (checkpoint: [`aasthma/training/model2/gb_digital_twin_models.pkl`](aasthma/training/model2/gb_digital_twin_models.pkl)):
+Implemented in [`aasthma/training/model2/gradient_boosting.py`](ABAY_LNMIIT/NSUT/aasthma/training/model2/gradient_boosting.py) (checkpoint: [`aasthma/training/model2/gb_digital_twin_models.pkl`](ABAY_LNMIIT/NSUT/aasthma/training/model2/gb_digital_twin_models.pkl)):
 
 - Computes rolling statistical aggregations (`mean`, `std`, `min`, `max`, `delta`) and temporal lag shifts (`t-2`, `t-1`, `t`, `t+1`, `t+2`) across all 20 dynamic channels over the 12-hour window, fused with the 60 static EHR features.
 - Outputs independent base probabilities for 24-hour risk, 48-hour risk, and 4-class severity.
@@ -290,7 +290,7 @@ Implemented in [`aasthma/training/model2/gradient_boosting.py`](aasthma/training
 
 ### 7.4 Stage 2: Stacked MLP Meta-Learner (`RespiTwinMLPMetaLearner`)
 
-Implemented in [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) (checkpoint: [`aasthma/training/meta_ensemble_model.pt`](aasthma/training/meta_ensemble_model.pt), configuration: [`aasthma/training/meta_ensemble_config.json`](aasthma/training/meta_ensemble_config.json)):
+Implemented in [`aasthma/training/ensemble.py`](ABAY_LNMIIT/NSUT/aasthma/training/ensemble.py) (checkpoint: [`aasthma/training/meta_ensemble_model.pt`](ABAY_LNMIIT/NSUT/aasthma/training/meta_ensemble_model.pt), configuration: [`aasthma/training/meta_ensemble_config.json`](ABAY_LNMIIT/NSUT/aasthma/training/meta_ensemble_config.json)):
 
 - Ingests the 12-dimensional base probability vector:
   `[tcn_risk_24h, xgboost_risk_24h, tcn_risk_48h, xgboost_risk_48h, tcn_severity_0..3, xgboost_severity_0..3]`
@@ -302,7 +302,7 @@ Implemented in [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) (c
 
 The relationship between the neural ensemble and the mechanistic ODE simulator operates across two distinct pathways:
 
-1. **Real-Time State Blending for Visualization**: During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation $I_{\text{ODE}}$. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability $P_{48\text{h}}$ to produce the final estimated airway inflammation score:
+1. **Real-Time State Blending for Visualization**: During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](ABAY_LNMIIT/NSUT/aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation $I_{\text{ODE}}$. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability $P_{48\text{h}}$ to produce the final estimated airway inflammation score:
 
 $$
 \text{Estimated } I(t) = \text{clip}\left(0.55 \cdot I_{\text{ODE}} + 0.45 \cdot \left(0.92 \cdot P_{48\text{h}} + 0.06\right),\, 0.10,\, 0.95\right)
@@ -317,7 +317,7 @@ This combined metric drives the real-time GLSL thermal shader on the 3D pulmonar
 
 ### 7.6 Path A: Clinical Language & Note Adaptation Pipeline
 
-Implemented in [`aasthma/llm/clinical_extractor.py`](aasthma/llm/clinical_extractor.py) and [`aasthma/inference/inference_engine.py`](aasthma/inference/inference_engine.py):
+Implemented in [`aasthma/llm/clinical_extractor.py`](ABAY_LNMIIT/NSUT/aasthma/llm/clinical_extractor.py) and [`aasthma/inference/inference_engine.py`](ABAY_LNMIIT/NSUT/aasthma/inference/inference_engine.py):
 
 ```text
 Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe vomiting, SpO2 91%")
@@ -365,7 +365,7 @@ where $\mathcal{L}_{\text{outlier}}(\theta)$ is the task loss on the outlier epi
 
 ### 7.7 Path B: Patient Clinical Copilot Report Generation
 
-Implemented in [`aasthma/llm/llm.py`](aasthma/llm/llm.py):
+Implemented in [`aasthma/llm/llm.py`](ABAY_LNMIIT/NSUT/aasthma/llm/llm.py):
 
 - **Structured Patient-Facing Synthesis**: Ingests calibrated risk probabilities, ambient AQI readings, and top SHAP feature contributors to generate an empathetic, actionable report strictly adhering to the Pydantic `CopilotReport` schema.
 - **Provider Support**: Supports `OpenAI GPT-4o` and `Hugging Face InferenceClient` (`meta-llama/Llama-3.1-8B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`), with automated offline fallback to pre-structured templates if API keys are not supplied.
@@ -379,7 +379,7 @@ The quantitative evaluation was conducted on a patient-split cohort generated fr
 
 #### Evaluation Protocol and Dataset Details
 
-- **Cohort Generation**: 1,000 synthetic patient records (generated via [`aasthma/dataset/dataset.py`](aasthma/dataset/dataset.py)) spanning 240 continuous monitoring hours per patient, yielding 229 sliding 12-hour windows per patient.
+- **Cohort Generation**: 1,000 synthetic patient records (generated via [`aasthma/dataset/dataset.py`](ABAY_LNMIIT/NSUT/aasthma/dataset/dataset.py)) spanning 240 continuous monitoring hours per patient, yielding 229 sliding 12-hour windows per patient.
 - **Patient Split (Zero Data Leakage)**: Split strictly at the patient level using random seed `42`:
   - **Training Cohort**: 800 patients (80%, 183,200 telemetry windows).
   - **Validation Cohort**: 100 patients (10%, 22,900 telemetry windows).
@@ -438,11 +438,11 @@ This project is released under the **MIT Open-Source License**. See the [`LICENS
 
 ### 10.1 Architecture Diagram (PDF, SVG, and PlantUML)
 
-- **Downloadable Architecture Diagram (PDF Format)**: [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf)
-- **High-Resolution Architecture Diagram (PNG Format)**: [`docs/architecture.png`](docs/architecture.png) • [`frontend/public/architecture-diagram-v2.png`](frontend/public/architecture-diagram-v2.png)
-- **Vector Architecture Diagram (SVG Format)**: [`docs/Architecture_Diagram.svg`](docs/Architecture_Diagram.svg) • [`frontend/public/architecture-diagram-v2.svg`](frontend/public/architecture-diagram-v2.svg)
-- **PlantUML Diagram Source**: [`docs/architecture.puml`](docs/architecture.puml)
-- **Preserved Archive / Original Diagram Backup**: [`docs/backup/`](docs/backup/)
+- **Downloadable Architecture Diagram (PDF Format)**: [`docs/Architecture_Diagram.pdf`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.pdf)
+- **High-Resolution Architecture Diagram (PNG Format)**: [`docs/architecture.png`](ABAY_LNMIIT/NSUT/docs/architecture.png) • [`frontend/public/architecture-diagram-v2.png`](ABAY_LNMIIT/NSUT/frontend/public/architecture-diagram-v2.png)
+- **Vector Architecture Diagram (SVG Format)**: [`docs/Architecture_Diagram.svg`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.svg) • [`frontend/public/architecture-diagram-v2.svg`](ABAY_LNMIIT/NSUT/frontend/public/architecture-diagram-v2.svg)
+- **PlantUML Diagram Source**: [`docs/architecture.puml`](ABAY_LNMIIT/NSUT/docs/architecture.puml)
+- **Preserved Archive / Original Diagram Backup**: [`docs/backup/`](ABAY_LNMIIT/NSUT/docs/backup/)
 
 The high-resolution architecture diagram (`docs/architecture.png` and `docs/Architecture_Diagram.pdf`) provides modality-specific color coding for clinical and machine learning pipelines:
 - **Green (`#059669`)**: Multimodal Sensor Feeds (Static 60D Baseline, 20ch Telemetry Series) and UI Telemetry Streams
@@ -451,7 +451,7 @@ The high-resolution architecture diagram (`docs/architecture.png` and `docs/Arch
 - **Purple (`#7C3AED`)**: LLM Clinical Feature Extraction, EWC Continual Retraining Feed, and Synthesized Copilot Reports
 - **Dark Blue (`#1D4ED8`)**: Relational PostgreSQL Stream Persistence
 
-![BreathTwin System and Codebase Architecture Diagram](docs/architecture.png)
+![BreathTwin System and Codebase Architecture Diagram](ABAY_LNMIIT/NSUT/docs/architecture.png)
 
 The compact Mermaid diagram below illustrates end-to-end signal routing across the three primary system tiers:
 
@@ -464,7 +464,7 @@ flowchart LR
         PG[("PostgreSQL 16 + SQLAlchemy<br/>patients, timeseries_telemetry,<br/>patient_daily_logs, user_accounts")]
     end
 
-    subgraph Core["02. Hybrid Digital Twin Core (aasthma/)"]
+    subgraph Core["02. Hybrid Digital Twin Core (ABAY_LNMIIT/NSUT/aasthma/)"]
         ODE["Mechanistic Airway SDE Simulator<br/>dI/dt = -kI + a·Dose_PM + b·Trigger - c·Controller"]
         TCN["Stage 1A: Dilated TCN Fusion<br/>StaticMLPEncoder + Conv1DDynamicEncoder (d=1,2,4)"]
         XGB["Stage 1B: XGBoost Multi-Target Suite<br/>Rolling Window Stats + Lag Shifts"]
@@ -540,7 +540,7 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 
 The complete project presentation slide deck is provided in universal PDF format directly inside the repository. The presentation covers the project lifecycle across **15 widescreen slides**—including clinical motivation, 3-stream data ingestion, mechanistic latent SDE, 3-stage predictive ensemble, adaptive clinical note adaptation, clinician and patient portal experiences, empirical benchmark validation, and safety guardrails.
 
-- **Downloadable Project Presentation (PDF Format)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) • Mirror: [`frontend/public/docs/Project_Presentation.pdf`](frontend/public/docs/Project_Presentation.pdf)
+- **Downloadable Project Presentation (PDF Format)**: [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) • Mirror: [`frontend/public/docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/frontend/public/docs/Project_Presentation.pdf)
 
 ### Slide Deck Structure (15 Widescreen Slides)
 
@@ -568,13 +568,13 @@ The complete project presentation slide deck is provided in universal PDF format
 
 All documents, model checkpoints, datasets, and source files are stored directly inside this public repository and require **zero external permissions**:
 
-- **Architecture Diagram (PDF & SVG)**: [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf) • [`docs/Architecture_Diagram.svg`](docs/Architecture_Diagram.svg)
-- **Project Presentation (Universal PDF)**: [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf)
+- **Architecture Diagram (PDF & SVG)**: [`docs/Architecture_Diagram.pdf`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.pdf) • [`docs/Architecture_Diagram.svg`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.svg)
+- **Project Presentation (Universal PDF)**: [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf)
 - **Open-Source License (MIT)**: [`LICENSE`](LICENSE)
 - **Trained Model Checkpoints**:
-  - Stage-1A Dilated TCN: [`aasthma/training/model1/digital_twin_model.pt`](aasthma/training/model1/digital_twin_model.pt)
-  - Stage-1B XGBoost Suite: [`aasthma/training/model2/gb_digital_twin_models.pkl`](aasthma/training/model2/gb_digital_twin_models.pkl)
-  - Stage-2 MLP Meta-Learner: [`aasthma/training/meta_ensemble_model.pt`](aasthma/training/meta_ensemble_model.pt) & [`aasthma/training/meta_ensemble_config.json`](aasthma/training/meta_ensemble_config.json)
+  - Stage-1A Dilated TCN: [`aasthma/training/model1/digital_twin_model.pt`](ABAY_LNMIIT/NSUT/aasthma/training/model1/digital_twin_model.pt)
+  - Stage-1B XGBoost Suite: [`aasthma/training/model2/gb_digital_twin_models.pkl`](ABAY_LNMIIT/NSUT/aasthma/training/model2/gb_digital_twin_models.pkl)
+  - Stage-2 MLP Meta-Learner: [`aasthma/training/meta_ensemble_model.pt`](ABAY_LNMIIT/NSUT/aasthma/training/meta_ensemble_model.pt) & [`aasthma/training/meta_ensemble_config.json`](ABAY_LNMIIT/NSUT/aasthma/training/meta_ensemble_config.json)
 
 ---
 

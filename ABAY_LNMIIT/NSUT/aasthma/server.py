@@ -332,6 +332,52 @@ def get_patient_detail(
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
 
 
+class PredictPatientRequest(BaseModel):
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+@app.get("/api/predict/{patient_id}")
+@app.post("/api/predict/{patient_id}")
+def predict_patient_route(
+    patient_id: str,
+    req: Optional[PredictPatientRequest] = None,
+    hour: Optional[int] = Query(default=None, ge=12, le=239),
+):
+    """
+    Returns 24h & 48h risk prediction, severity tier, conformal intervals,
+    and ranked SHAP feature attributions for the specified patient.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    eval_hour = (req.hour if req and req.hour is not None else None) or hour or global_clock.current_hour
+    try:
+        raw_pred = engine.predict_patient(patient_id, end_hour=eval_hour)
+        return {
+            "patient_id": patient_id,
+            "hour": eval_hour,
+            "risk_24h": round(raw_pred.get("risk24h", 0.0), 1),
+            "risk_48h": round(raw_pred.get("risk48h", 0.0), 1),
+            "severity_grade": raw_pred.get("severityClass", 0),
+            "severity_label": raw_pred.get("riskLevel", "Moderate"),
+            "conformal_interval_24h": raw_pred.get("risk24hInterval", [0, 100]),
+            "conformal_interval_48h": raw_pred.get("risk48hInterval", [0, 100]),
+            "estimated_inflammation": round(raw_pred.get("estimatedInflammationState", 0.5), 2),
+            "top_shap_features": [
+                {
+                    "feature": s.get("feature"),
+                    "impactPercent": s.get("impactPercent"),
+                    "direction": s.get("direction", "up"),
+                }
+                for s in raw_pred.get("shapReasons", [])
+            ],
+            "raw": raw_pred,
+        }
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
+
 class PatientWhatIfForecastRequest(BaseModel):
     scenarioId: str = Field(default="custom")
     scenarioLabel: Optional[str] = Field(default=None)
