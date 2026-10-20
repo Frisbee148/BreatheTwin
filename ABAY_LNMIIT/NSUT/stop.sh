@@ -1,30 +1,36 @@
 #!/usr/bin/env bash
-# Stop the backend (FastAPI) and frontend (Next.js) services started by run.sh.
+# Stop the backend (FastAPI) and frontend (Next.js) services.
 
-# Helper to kill a process by PID file
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$DIR"
+
 kill_by_pid_file() {
   pid_file=$1
   if [ -f "$pid_file" ]; then
-    pid=$(cat "$pid_file")
-    if kill -0 $pid 2>/dev/null; then
-      echo "Killing process $pid (from $pid_file)"
-      kill $pid
-      # Wait briefly and force kill if still alive
-      sleep 2
-      if kill -0 $pid 2>/dev/null; then
-        echo "Process $pid still alive, forcing kill"
-        kill -9 $pid
+    pid=$(cat "$pid_file" 2>/dev/null || true)
+    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+      echo "Stopping process $pid (from $pid_file)..."
+      kill "$pid" 2>/dev/null || true
+      sleep 1
+      if kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" 2>/dev/null || true
       fi
-    else
-      echo "No running process found for PID $pid (from $pid_file)"
     fi
     rm -f "$pid_file"
-  else
-    echo "PID file $pid_file not found."
   fi
 }
 
 kill_by_pid_file backend.pid
 kill_by_pid_file frontend.pid
 
-echo "Both services stopped (if they were running)."
+# Fallback: kill any process listening on ports 8000 and 3000
+if command -v fuser >/dev/null 2>&1; then
+  fuser -k 8000/tcp >/dev/null 2>&1 || true
+  fuser -k 3000/tcp >/dev/null 2>&1 || true
+fi
+
+# Fallback pkill for uvicorn and next dev in this workspace
+pkill -f "uvicorn aasthma.server:app" >/dev/null 2>&1 || true
+pkill -f "next dev" >/dev/null 2>&1 || true
+
+echo "Both services stopped."
