@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from aasthma.inference.inference_engine import InferenceEngine
@@ -16,6 +16,7 @@ LOGGER = logging.getLogger(__name__)
 LLM_DIR = Path(__file__).resolve().parent
 DOTENV_PATH = LLM_DIR.parent / ".env"
 ROOT_DOTENV_PATH = LLM_DIR.parent.parent / ".env"
+PKG_DOTENV_PATH = LLM_DIR.parent.parent.parent / ".env"
 DEFAULT_MODEL = "gpt-4o"
 TELEMETRY_FIELDS = {
     "respiratory_rate": "breaths/min",

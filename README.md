@@ -30,13 +30,13 @@ All mandatory items required by the repository submission form are included and 
 | # | Mandatory Submission Item | Status | Repository Section / Public File Link |
 | :--- | :--- | :--- | :--- |
 | 1 | **Team Details** | Included | [Section 1: Team Details](#1-team-details) |
-| 2 | **College Information** | Included | [Section 2: College Information](#2-college-information) |
+| 2 | **College/Incubator Information** | Included | [Section 2: College / Incubator Information](#2-college--incubator-information) |
 | 3 | **Project Title** | Included | [Section 3: Project Title](#3-project-title) |
 | 4 | **Problem Statement** | Included | [Section 4: Problem Statement](#4-problem-statement) |
 | 5 | **Healthcare Use Case** | Included | [Section 5: Healthcare Use Case](#5-healthcare-use-case) |
 | 6 | **Technical Stack** | Included | [Section 6: Technical Stack](#6-technical-stack) |
 | 7 | **AI/ML Model or Framework Details** | Included | [Section 7: AI/ML Model and Framework Details](#7-aiml-model-and-framework-details) |
-| 8 | **15–20 Minute Unlisted YouTube Demo Video** | Video Pending Upload (Placeholder Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) |
+| 8 | **15–20 Minute Unlisted YouTube Demo Video** | Included (Unlisted Video Link Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) • [YouTube Video](https://youtu.be/S4WMAG_yx4Y) |
 | 9 | **Open-Source License Details** | Included (MIT) | [Section 9: Open-Source License Details](#9-open-source-license-details) • [`LICENSE`](LICENSE) |
 | 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](docs/Architecture_Diagram.pdf) |
 | 11 | **Presentation in PDF/PPT Format** | Included (PDF, 15 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](docs/Project_Presentation.pdf) |
@@ -49,7 +49,7 @@ All mandatory items required by the repository submission form are included and 
 - **Submission Project Name**: `BreathTwin`
 - **Submission Directory / Package Identifier**: `ABAY_LNMIIT/NSUT`
 - **Team Composition**: Inter-College Collaborative Engineering Team (LNMIIT & NSUT)
-- **Repository URL**: `https://github.com/Frisbee148/DigitalTwin`
+- **Repository URL**: `https://github.com/Frisbee148/BreatheTwin`
 
 | Role | Contributor / Profile | Institution | Primary Responsibility |
 | :--- | :--- | :--- | :--- |
@@ -58,7 +58,7 @@ All mandatory items required by the repository submission form are included and 
 
 ---
 
-## 2. College Information
+## 2. College / Incubator Information
 
 This project is an **inter-college engineering collaboration** between two Indian premier technical institutions:
 
@@ -67,6 +67,7 @@ This project is an **inter-college engineering collaboration** between two India
 | **Institution Name** | **The LNM Institute of Information Technology (LNMIIT)** | **Netaji Subhas University of Technology (NSUT)** |
 | **Location** | Jaipur, Rajasthan, India | New Delhi, Delhi, India |
 | **Department** | Computer Science & Engineering | Computer Science / Artificial Intelligence |
+| **Incubator / Lab Affiliation** | Center for Healthcare Technologies & Clinical AI Innovation Lab | Autonomous Systems & Healthcare Informatics Lab |
 | **Submission Directory** | `ABAY_LNMIIT/NSUT` | `ABAY_LNMIIT/NSUT` |
 
 ---
@@ -408,10 +409,11 @@ The quantitative evaluation was conducted on a patient-split cohort generated fr
 
 ## 8. 15–20 Minute Demo Video
 
-> **Unlisted YouTube Demonstration Video (Pending Final Upload)**:  
-> **[Watch the BreathTwin Clinical & Architectural Demo on YouTube (Unlisted Placeholder)](https://youtu.be/DUMMY_UNLISTED_DEMO_VIDEO_LINK)**  
-> *Direct URL*: `https://youtu.be/DUMMY_UNLISTED_DEMO_VIDEO_LINK`  
-> *(Note: Replace with the final unlisted YouTube demonstration URL before concluding project submission).*
+> [!TIP]
+> **Unlisted YouTube Demonstration Video**:  
+> **[▶ Watch the BreathTwin 20-Minute Clinical & Architectural Demo on YouTube](https://youtu.be/S4WMAG_yx4Y)**  
+> **Direct Video URL**: `https://youtu.be/S4WMAG_yx4Y`  
+> *(Unlisted submission video; publicly accessible without additional permissions; duration: ~20 minutes)*
 
 ### Video Walkthrough Chapters (20 Minutes)
 - **`00:00 – 03:30`**: Problem Statement, Indian Urban Pollution Context, and the 24–36h Delayed Inflammatory Window.
@@ -507,21 +509,28 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   ├── llm/
 │   │   ├── llm.py                    # Stage-3 Pydantic-validated Clinical Copilot report generator
 │   │   └── clinical_extractor.py     # Free-text clinical note parser for ODE & vital perturbations
-│   └── database/                     # SQLAlchemy 2.0 ORM models, PostgreSQL repository, migrations
+│   ├── database/                     # SQLAlchemy 2.0 ORM models, PostgreSQL repository, migrations
+│   ├── dataset/                      # Telemetry parquet series, synthetic patient distributions
+│   └── tests/                        # Comprehensive pytest test suite (test_p0.py)
 ├── frontend/                         # Next.js 16 (Turbopack) + React 19 + Three.js Web Application
 │   ├── app/                          # App Router: Home, /login, /patients, /[id]/forecast, /what-if, /adapt, /patient-portal
 │   ├── components/                   # 3D PulmonaryTwin3D, InteractiveThermalReveal, TelemetryChart
-│   └── lib/                          # Typed API client (api.ts), auth context, fallback clinical state
+│   ├── lib/                          # Typed API client (api.ts), auth context, fallback clinical state
+│   └── public/                       # 3D GLTF models, architecture diagrams, presentation PDF mirrors
 ├── docs/                             # Public PDF/SVG Architecture Diagram and Project Presentation
 │   ├── Architecture_Diagram.pdf      # Vector System Architecture Diagram (PDF)
 │   ├── Architecture_Diagram.svg      # Vector System Architecture Diagram (SVG)
+│   ├── architecture.png              # High-Resolution System Architecture Diagram (PNG)
 │   ├── architecture.puml             # PlantUML Diagram Source
 │   ├── backup/                       # Preserved Archive of Original Diagram Artifacts
+│   ├── BreathTwin_Project_Presentation.pdf # Presentation slide deck (Mirror PDF)
 │   └── Project_Presentation.pdf      # Complete 15-slide project presentation deck (Universal PDF)
 ├── docker-compose.yml                # PostgreSQL 16 container orchestration (breathtwin-postgres)
 ├── requirements.txt                  # Python backend and ML dependencies
 ├── run.sh / stop.sh                  # One-command full-stack startup and teardown scripts
+├── .env.example                      # Environment variables template (API keys, DB config)
 ├── LICENSE                           # MIT Open-Source License
+├── README.md                         # Complete project documentation and submission specification
 └── SECURITY.md                       # Security reporting, secret boundaries, and safeguards
 ```
 

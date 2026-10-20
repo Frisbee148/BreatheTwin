@@ -2279,8 +2279,8 @@ class InferenceEngine:
             # Baseline risk reflects the patient's true current digital twin state
             raw_base_24 = float(base_pred.get("risk24h", 12.0))
             raw_base_48 = float(base_pred.get("risk48h", 15.0))
-            cal_base_48 = float(raw_base_48)
-            cal_base_24 = float(raw_base_24)
+            cal_base_48 = min(88.0, float(raw_base_48))
+            cal_base_24 = min(82.0, float(raw_base_24))
 
             # Couple ODE systemic cytokine delta with neural meta-learner output
             ode_shift_pp = max(10.0, (adapted_ode_inf - base_ode_inf) * 35.0 + m_mods.systemic_inflammation_load * 22.0)

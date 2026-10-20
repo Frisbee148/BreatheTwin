@@ -137,15 +137,21 @@ export default function HomePage() {
               </AppleReveal>
             </div>
 
-            {/* Primary Action Button */}
+            {/* Action Buttons */}
             <AppleReveal duration={1000} delay={380}>
-              <div className="pt-2">
+              <div className="pt-2 flex flex-wrap items-center gap-3">
                 <Link
                   href="/login"
                   className="inline-flex h-12 px-8 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#4CFF8A] text-white dark:text-[#020A05] bg-[#4CFF8A] hover:bg-transparent hover:text-white transition-all items-center justify-center cursor-pointer shadow-[0_0_16px_rgba(76,255,138,0.35)]"
                 >
                   GO TO LOGIN &rarr;
                 </Link>
+                <a
+                  href="#demo"
+                  className="inline-flex h-12 px-6 text-xs sm:text-sm uppercase tracking-wider font-bold border border-[#12612F] text-[#4CFF8A] bg-[#04130A] hover:border-[#4CFF8A] hover:text-white transition-all items-center justify-center cursor-pointer"
+                >
+                  WATCH DEMO VIDEO (20 MIN) &darr;
+                </a>
               </div>
             </AppleReveal>
 
@@ -768,22 +774,46 @@ export default function HomePage() {
               <span className="text-white font-bold">
                 &gt; 20-MINUTE CLINICAL &amp; ARCHITECTURAL VIDEO DEMONSTRATION
               </span>
-              <span className="text-[#4CFF8A] font-semibold">
-                STATUS: SUBMISSION READY
-              </span>
+              <a
+                href="https://youtu.be/S4WMAG_yx4Y"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#4CFF8A] hover:underline font-semibold flex items-center gap-1"
+              >
+                OPEN ON YOUTUBE &rarr;
+              </a>
             </div>
 
-            <div className="relative aspect-[16/9] w-full bg-[#020A05] border border-[#12612F] flex flex-col items-center justify-center text-center p-6 space-y-3">
-              <div className="w-16 h-16 border border-[#4CFF8A] bg-[#04130A] flex items-center justify-center text-[#4CFF8A]">
-                <span className="text-3xl">&gt;</span>
-              </div>
-              <div className="font-mono text-base sm:text-lg text-white font-bold uppercase tracking-wider">
-                BREATHTWIN DEMO WALKTHROUGH
-              </div>
-              <p className="text-sm text-[#75FFA5] max-w-lg leading-relaxed">
-                00:00 Problem &amp; Clinical Blindspot &bull; 03:30 Three-Stream Data Ingestion &bull; 08:15 Thermal Twin Viewport &bull; 13:00 Counterfactual What-If Sandbox &bull; 18:00 Evaluation Benchmarks
-              </p>
+            <div className="relative aspect-[16/9] w-full bg-[#020A05] border border-[#12612F] overflow-hidden">
+              <iframe
+                className="w-full h-full border-0"
+                src="https://www.youtube-nocookie.com/embed/S4WMAG_yx4Y?rel=0"
+                title="BreathTwin 20-Minute Clinical & Architectural Video Demonstration"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
             </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 font-mono text-xs text-[#75FFA5]">
+              <div>
+                <span className="text-white font-bold">DIRECT LINK:</span>{' '}
+                <a
+                  href="https://youtu.be/S4WMAG_yx4Y"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#4CFF8A] hover:underline underline-offset-2"
+                >
+                  https://youtu.be/S4WMAG_yx4Y
+                </a>
+              </div>
+              <div className="text-[#3DE07A]">
+                UNLISTED SUBMISSION DEMO &bull; 15–20 MINUTES
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#75FFA5] leading-relaxed border-t border-[#12612F]/40 pt-3 font-mono">
+              <span className="text-white font-bold">Chapters:</span> 00:00 Problem &amp; Clinical Blindspot &bull; 03:30 Three-Stream Data Ingestion &bull; 08:15 Thermal Twin Viewport &bull; 13:00 Counterfactual What-If Sandbox &bull; 18:00 Evaluation Benchmarks
+            </p>
           </div>
         </AppleReveal>
 
@@ -801,7 +831,7 @@ export default function HomePage() {
           <AppleReveal delay={220} duration={1000} className="h-full">
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2 h-full">
               <div className="text-xs text-[#3DE07A] uppercase font-semibold">CODE &amp; REPOSITORY</div>
-              <div className="text-white font-bold text-base">GitHub: DigiTwin</div>
+              <div className="text-white font-bold text-base">GitHub: BreatheTwin</div>
               <div className="text-[#5CFF95]">License: MIT Open Source</div>
               <div className="text-[#75FFA5] text-xs">Next.js 16 + React 19 + TypeScript</div>
             </div>
@@ -811,6 +841,9 @@ export default function HomePage() {
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2 h-full">
               <div className="text-xs text-[#3DE07A] uppercase font-semibold">SUBMISSION ARTIFACTS</div>
               <div className="space-y-1.5">
+                <a href="https://youtu.be/S4WMAG_yx4Y" target="_blank" rel="noopener noreferrer" className="block text-[#4CFF8A] hover:underline font-bold">
+                  &bull; 20-Min Demo Video (YouTube) &rarr;
+                </a>
                 <a href="/docs/Architecture_Diagram_v2.pdf?v=20261020" target="_blank" rel="noopener noreferrer" className="block text-white hover:text-[#5CFF95] hover:underline">
                   &bull; Architecture Diagram (PDF) &rarr;
                 </a>

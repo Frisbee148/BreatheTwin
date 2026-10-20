@@ -1,6 +1,11 @@
 import os
 import logging
 from typing import Dict, Any, List, Optional, Union
+from dotenv import find_dotenv, load_dotenv
+
+# Load environment variables (.env) from workspace / package roots
+load_dotenv(find_dotenv(usecwd=True), override=False)
+load_dotenv()
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field

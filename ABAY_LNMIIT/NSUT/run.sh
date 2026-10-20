@@ -2,7 +2,9 @@
 # Run both backend (FastAPI) and frontend (Next.js) services.
 # Ensure environment variables are loaded
 if [ -f ".env" ]; then
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  source .env 2>/dev/null || true
+  set +a
 fi
 
 # Ensure Docker PostgreSQL is running
