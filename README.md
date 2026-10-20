@@ -301,14 +301,13 @@ Implemented in [`aasthma/training/ensemble.py`](aasthma/training/ensemble.py) (c
 
 The relationship between the neural ensemble and the mechanistic ODE simulator operates across two distinct pathways:
 
-1. **Real-Time State Blending for Visualization**:  
-   During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation $I_{\text{ODE}}$. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability $P_{48\text{h}}$ to produce the final estimated airway inflammation score:
-   
-   $$
-   \text{Estimated } I(t) = \text{clip}\left(0.55 \cdot I_{\text{ODE}} + 0.45 \cdot \left(0.92 \cdot P_{48\text{h}} + 0.06\right),\, 0.10,\, 0.95\right)
-   $$
-   
-   This combined metric drives the real-time GLSL thermal shader on the 3D pulmonary mesh.
+1. **Real-Time State Blending for Visualization**: During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation $I_{\text{ODE}}$. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability $P_{48\text{h}}$ to produce the final estimated airway inflammation score:
+
+$$
+\text{Estimated } I(t) = \text{clip}\left(0.55 \cdot I_{\text{ODE}} + 0.45 \cdot \left(0.92 \cdot P_{48\text{h}} + 0.06\right),\, 0.10,\, 0.95\right)
+$$
+
+This combined metric drives the real-time GLSL thermal shader on the 3D pulmonary mesh.
 
 2. **Counterfactual What-If Sandbox**:  
    The ODE simulator acts as an independent physics-based branch. When a clinician adjusts intervention sliders (`Stay Indoors`, `Wear N95 Mask`, `HEPA Purifier`, `ICS Adherence Step-Up`), the simulator recalculates the projected inflammation curve $I(t)$ over prospective hours by modifying physical differential equation parameters ($\text{Dose}_{\text{PM}}$, $\alpha_{\text{indoor}}$, $\eta_{\text{N95}}$, $\text{Adherence}$) without altering historical wearable records.
@@ -342,22 +341,24 @@ Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe 
                                       │
                                       ▼
              [Continual Meta-Learner Retraining with EWC Regularization]
-               L_total = L_task + (λ_EWC / 2) · Σ F_i · (θ_i - θ_i,anchor)²
+               L_total = L_outlier + (λ_EWC / 2) · Σ F_i · (θ_i - θ_i,base)²
 ```
+
+
+#### Step-by-Step Clinical Note Ingestion and Adaptation Flow
 
 1. **Unstructured Text Extraction**: The clinician submits free-text observations (e.g., systemic febrile infections like typhoid, dengue, malaria, or medication changes such as beta-blocker introduction).
 2. **Physiological Mapping**: An LLM (or the deterministic regex/ontology fallback engine) extracts structured perturbations:
    - Dynamic Wearable Deltas ($\Delta T$, $\Delta \text{HR}$, $\Delta \text{RR}$, $\Delta \text{SpO}_2$, $\Delta \text{HRV}$).
    - Mechanistic ODE Modifiers: Injects systemic cytokine load ($\delta_{\text{systemic}}$), scales airway hyperresponsiveness ($\beta_{\text{AHR}}$), and adjusts controller absorption efficiency ($\eta_{\text{absorption}}$).
-3. **Continual Retraining with Elastic Weight Consolidation (EWC)**:
-   - Doctor-verified outlier cases are stored in the PostgreSQL **Experience Replay Buffer** (`/api/patients/{id}/clinical-note/commit`).
-   - The adaptation engine fine-tunes `RespiTwinMLPMetaLearner` using EWC loss ([Kirkpatrick et al., *PNAS*, 2017](https://doi.org/10.1073/pnas.1611835114)) to prevent catastrophic forgetting of baseline asthma patterns:
+3. **Doctor Verification & Buffer Commit**: Verified clinical outlier episodes are committed to the PostgreSQL **Experience Replay Buffer** via `POST /api/patients/{id}/clinical-note/commit`.
+4. **Continual Retraining with Elastic Weight Consolidation (EWC)**: The adaptation engine fine-tunes `RespiTwinMLPMetaLearner` on outlier trajectories while preserving previously learned baseline asthma dynamics ([Kirkpatrick et al., *PNAS*, 2017](https://doi.org/10.1073/pnas.1611835114)). The loss function regularizes parameter drift:
 
-     $$
-     \mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i (\theta_i - \theta_{i, \text{base}})^2
-     $$
+$$
+\mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i \left(\theta_i - \theta_{i, \text{base}}\right)^2
+$$
 
-     where $F_i$ represents the diagonal Fisher Information Matrix elements of the baseline parameters.
+where $\mathcal{L}_{\text{outlier}}(\theta)$ is the task loss on the outlier episode, $\lambda_{\text{EWC}}$ is the consolidation importance hyperparameter, $\theta_{i, \text{base}}$ denotes the anchor weights of the trained baseline model, and $F_i$ represents the diagonal Fisher Information Matrix elements measuring parameter sensitivity on baseline asthma cohorts.
 
 ---
 
