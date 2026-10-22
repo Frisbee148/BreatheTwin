@@ -1,0 +1,215 @@
+{
+  "version": "2.0.0",
+  "description": "Comprehensive heuristic fallback defaults for clinical, wearable, acoustic, video, and environmental dynamic features. When telemetry streams or sensor modalities drop or become unavailable during inference, the pipeline seamlessly substitutes these values to ensure continuous frozen predictions.",
+  "features": {
+    "hourly_cough_count": {
+      "category": "symptoms",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Acoustic cough detection count per hour (0 = no detected coughing)",
+      "unit": "events/hour"
+    },
+    "wheeze_percent_duration": {
+      "category": "symptoms",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Percentage of breathing cycles exhibiting wheeze (0.0 = clear airways)",
+      "unit": "%"
+    },
+    "respiratory_rate_brpm": {
+      "category": "vitals",
+      "default_value": 16.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_respiratory_rate",
+      "description": "Respiratory rate in breaths per minute (healthy resting default: 16)",
+      "unit": "brpm"
+    },
+    "heart_rate_bpm": {
+      "category": "vitals",
+      "default_value": 72.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_resting_hr",
+      "description": "Heart rate in beats per minute (healthy resting default: 72)",
+      "unit": "bpm"
+    },
+    "hrv_rmssd_ms": {
+      "category": "vitals",
+      "default_value": 45.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_hrv_rmssd",
+      "description": "Heart Rate Variability Root Mean Square of Successive Differences (default: 45 ms)",
+      "unit": "ms"
+    },
+    "sputum_severity": {
+      "category": "symptoms",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Severity of sputum production (0 = none, 1 = mild, 2 = moderate, 3 = severe)",
+      "unit": "scale_0_3"
+    },
+    "breathlessness_score": {
+      "category": "symptoms",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Self-reported or detected dyspnea/breathlessness (0 = none, 3 = severe)",
+      "unit": "scale_0_3"
+    },
+    "stridor_detection_index": {
+      "category": "voice_audio",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Microphone acoustic inspiratory high-pitched wheeze/stridor score (0.0 = no stridor)",
+      "unit": "index_0_1"
+    },
+    "snoring_nocturnal_score": {
+      "category": "voice_audio",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Nocturnal acoustic snoring index (0.0 = clear peaceful breathing)",
+      "unit": "index"
+    },
+    "vocal_hoarseness_jitter": {
+      "category": "voice_audio",
+      "default_value": 0.5,
+      "fallback_strategy": "neutral_norm",
+      "description": "Microphone acoustic jitter / vocal strain (0.5 = normal baseline phonation)",
+      "unit": "%"
+    },
+    "speech_rate_wpm": {
+      "category": "voice_audio",
+      "default_value": 140.0,
+      "fallback_strategy": "neutral_norm",
+      "description": "Conversational speaking rate (140 wpm = normal fluent speech without dyspnea pauses)",
+      "unit": "words/min"
+    },
+    "mouth_breathing_ratio": {
+      "category": "face_video",
+      "default_value": 0.1,
+      "fallback_strategy": "neutral_norm",
+      "description": "Computer vision fraction of time mouth is open for breathing (0.1 = normal nasal breathing)",
+      "unit": "ratio_0_1"
+    },
+    "nasal_flaring_index": {
+      "category": "face_video",
+      "default_value": 0.15,
+      "fallback_strategy": "neutral_norm",
+      "description": "Vision-based nasal flare detection during inspiration (0.15 = neutral, >0.5 = respiratory distress)",
+      "unit": "index_0_1"
+    },
+    "brow_strain_score": {
+      "category": "face_video",
+      "default_value": 0.08,
+      "fallback_strategy": "zero_neutral",
+      "description": "Facial action coding system (FACS) brow furrow / distress score (0.08 = neutral calm face)",
+      "unit": "index_0_1"
+    },
+    "head_bobbing_amplitude": {
+      "category": "face_video",
+      "default_value": 0.03,
+      "fallback_strategy": "zero_neutral",
+      "description": "Vision-based scalene/sternocleidomastoid accessory muscle recruitment (0.03 = stable head posture)",
+      "unit": "amplitude_norm"
+    },
+    "video_respiratory_rate": {
+      "category": "face_video",
+      "default_value": 16.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_respiratory_rate",
+      "description": "Camera optical flow thoracic expansion rate (fallback: 16 brpm)",
+      "unit": "brpm"
+    },
+    "yawn_sigh_count": {
+      "category": "face_video",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Vision detected compensatory sighing or air hunger yawning (0 = none)",
+      "unit": "events/hour"
+    },
+    "blink_rate_bpm": {
+      "category": "face_video",
+      "default_value": 16.0,
+      "fallback_strategy": "neutral_norm",
+      "description": "Spontaneous blink rate per minute (16 bpm = relaxed wakefulness)",
+      "unit": "blinks/min"
+    },
+    "forehead_rppg_heart_rate": {
+      "category": "face_video",
+      "default_value": 72.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_resting_hr",
+      "description": "Contactless remote photoplethysmography (rPPG) estimated heart rate (fallback: 72 bpm)",
+      "unit": "bpm"
+    },
+    "jaw_slack_index": {
+      "category": "face_video",
+      "default_value": 0.1,
+      "fallback_strategy": "neutral_norm",
+      "description": "Vision jaw drop score associated with severe exhaustion / respiratory fatigue (0.1 = alert tone)",
+      "unit": "index_0_1"
+    },
+    "gaze_instability_score": {
+      "category": "face_video",
+      "default_value": 0.05,
+      "fallback_strategy": "zero_neutral",
+      "description": "Pupil / ocular jitter tracking respiratory distress restlessness (0.05 = stable fixation)",
+      "unit": "index_0_1"
+    },
+    "spo2": {
+      "category": "vitals",
+      "default_value": 98.0,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "patient_baseline_key": "baseline_spo2",
+      "description": "Peripheral capillary blood oxygen saturation (fallback: 98%)",
+      "unit": "%"
+    },
+    "skin_temp_c": {
+      "category": "vitals",
+      "default_value": 36.6,
+      "fallback_strategy": "patient_baseline_or_clinical_norm",
+      "description": "Continuous skin temperature in degrees Celsius (fallback: 36.6 C)",
+      "unit": "°C"
+    },
+    "step_count": {
+      "category": "activity",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Hourly step count from wearable accelerometer (0 = resting)",
+      "unit": "steps"
+    },
+    "active_minutes": {
+      "category": "activity",
+      "default_value": 0.0,
+      "fallback_strategy": "zero_neutral",
+      "description": "Hourly active minutes (0 = sedentary)",
+      "unit": "minutes"
+    },
+    "sleep_duration_hrs": {
+      "category": "activity",
+      "default_value": 7.5,
+      "fallback_strategy": "neutral_norm",
+      "description": "Nocturnal sleep duration (7.5 hrs = restorative sleep)",
+      "unit": "hours"
+    },
+    "pm25_concentration": {
+      "category": "environmental",
+      "default_value": 15.0,
+      "fallback_strategy": "moderate_ambient",
+      "description": "Fine particulate matter <2.5 micrometers (15 ug/m3 = moderate WHO guidance level)",
+      "unit": "ug/m3"
+    },
+    "pm10_concentration": {
+      "category": "environmental",
+      "default_value": 35.0,
+      "fallback_strategy": "moderate_ambient",
+      "description": "Coarse particulate matter <10 micrometers (35 ug/m3 = moderate ambient air quality)",
+      "unit": "ug/m3"
+    },
+    "aqi_index": {
+      "category": "environmental",
+      "default_value": 50.0,
+      "fallback_strategy": "moderate_ambient",
+      "description": "Air Quality Index (50 = Good/Moderate, minimal respiratory risk)",
+      "unit": "AQI"
+    }
+  }
+}

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+import collections
 import os
 import pickle
 import threading
@@ -2507,148 +2509,35 @@ class InferenceEngine:
         ewc_lambda: float = 85.0,
     ) -> Dict[str, Any]:
         """
-        Continual Learning & Outlier Adaptation Engine:
-        1. If note_text is provided and not yet in the buffer, commits it first.
-        2. Synthesizes mechanistic trajectory rollouts across outlier cases + baseline experience replay.
-        3. Fine-tunes the Stage-2 RespiTwinMLPMetaLearner with Elastic Weight Consolidation (EWC)
-           quadratic penalty anchoring weights to the baseline checkpoint so zero catastrophic
-           forgetting occurs.
-        4. Validates PR-AUC and Brier calibration score before hot-swapping the model in memory.
+        [DISABLED - RETRAINING LOGIC REMOVED FOR PURE FROZEN INFERENCE]
+        Model retraining, online fine-tuning, experience replay, synthetic trajectory generation,
+        EWC quadratic penalty, and adaptive weight updates are permanently disabled.
+        Inference operates strictly in frozen prediction mode.
         """
-        import copy
         from datetime import datetime, timezone
-
-        with self._inference_lock:
-            if note_text and patient_id:
-                already_present = any(
-                    c["patientId"] == patient_id and c["noteText"].strip() == note_text.strip()
-                    for c in self.outlier_memory_buffer
-                )
-                if not already_present:
-                    self.commit_clinical_outlier(pid=patient_id, note_text=note_text)
-
-            if not self.outlier_memory_buffer:
-                # Seed with a default typhoid fever case if called with an empty buffer
-                self.commit_clinical_outlier(
-                    pid=patient_id or "PT-8821",
-                    note_text="Patient diagnosed with Typhoid fever (Salmonella Typhi), persistent 102.8°F fever, dehydration, resting tachycardia 114 bpm.",
-                )
-
-            # Build Experience Replay batch (Baseline cohort windows + Synthesized Outlier windows)
-            rng = np.random.default_rng(42 + len(self.adaptation_history))
-            replay_features: List[np.ndarray] = []
-            replay_y24: List[float] = []
-            replay_y48: List[float] = []
-
-            # Sample baseline cohort representations
-            sample_pids = self.registered_demo_ids[:6]
-            for spid in sample_pids:
-                try:
-                    pred = self.predict_patient(spid, end_hour=168)
-                    bp = pred["basePredictions"]
-                    t24 = bp["tcnRisk24h"] / 100.0
-                    g24 = bp["gradientBoostingRisk24h"] / 100.0
-                    t48 = bp["tcnRisk48h"] / 100.0
-                    g48 = bp["gradientBoostingRisk48h"] / 100.0
-                    sev_vec = [0.25, 0.35, 0.25, 0.15]
-                    meta_row = np.array([t24, g24, t48, g48, *sev_vec, *sev_vec], dtype=np.float32)
-                    for _ in range(8):
-                        noise = rng.normal(0.0, 0.015, size=12).astype(np.float32)
-                        replay_features.append(np.clip(meta_row + noise, 0.01, 0.99))
-                        replay_y24.append(float(pred["risk24h"]) / 100.0)
-                        replay_y48.append(float(pred["risk48h"]) / 100.0)
-                except Exception:
-                    continue
-
-            # Synthesize K=24 mechanistic trajectory variations per outlier case in buffer
-            outlier_samples_count = 0
-            for case in self.outlier_memory_buffer[:8]:
-                snap = case["simulationSnapshot"]
-                mb = snap["modelBreakdown"]
-                t24 = mb["tcnRisk24h"] / 100.0
-                g24 = mb["gradientBoostingRisk24h"] / 100.0
-                t48 = mb["tcnRisk48h"] / 100.0
-                g48 = mb["gradientBoostingRisk48h"] / 100.0
-                target_24 = snap["adapted"]["risk24h"] / 100.0
-                target_48 = snap["adapted"]["risk48h"] / 100.0
-                sev_vec = [0.05, 0.20, 0.40, 0.35] if target_48 >= 0.7 else [0.15, 0.40, 0.30, 0.15]
-                base_meta_row = np.array([t24, g24, t48, g48, *sev_vec, *sev_vec], dtype=np.float32)
-                for _ in range(24):
-                    jitter = rng.normal(0.0, 0.025, size=12).astype(np.float32)
-                    replay_features.append(np.clip(base_meta_row + jitter, 0.01, 0.99))
-                    replay_y24.append(float(np.clip(target_24 + rng.normal(0.0, 0.02), 0.05, 0.99)))
-                    replay_y48.append(float(np.clip(target_48 + rng.normal(0.0, 0.02), 0.05, 0.99)))
-                    outlier_samples_count += 1
-
-            x_train = torch.tensor(np.stack(replay_features), dtype=torch.float32, device=self.device)
-            y24_train = torch.tensor(replay_y24, dtype=torch.float32, device=self.device)
-            y48_train = torch.tensor(replay_y48, dtype=torch.float32, device=self.device)
-
-            # Clone current meta_model and store reference parameters for EWC regularization
-            candidate_meta = copy.deepcopy(self.meta_model).to(self.device)
-            candidate_meta.train()
-            anchor_params = {
-                name: param.detach().clone()
-                for name, param in self.meta_model.named_parameters()
-            }
-
-            optimizer = torch.optim.AdamW(candidate_meta.parameters(), lr=learning_rate, weight_decay=1e-4)
-            bce = torch.nn.BCEWithLogitsLoss()
-
-            loss_curve: List[float] = []
-            for _ in range(max(5, min(40, epochs))):
-                optimizer.zero_grad()
-                out24, out48, _ = candidate_meta(x_train)
-                task_loss = 0.45 * bce(out24, y24_train) + 0.55 * bce(out48, y48_train)
-
-                ewc_penalty = torch.tensor(0.0, device=self.device)
-                for name, param in candidate_meta.named_parameters():
-                    ewc_penalty = ewc_penalty + torch.sum((param - anchor_params[name]) ** 2)
-
-                total_loss = task_loss + (ewc_lambda * 1e-4) * ewc_penalty
-                total_loss.backward()
-                optimizer.step()
-                loss_curve.append(round(float(total_loss.item()), 4))
-
-            candidate_meta.eval()
-            with torch.no_grad():
-                pred24_logits, pred48_logits, _ = candidate_meta(x_train)
-                pred48_probs = torch.sigmoid(pred48_logits).cpu().numpy()
-                y48_np = y48_train.cpu().numpy()
-                brier_score = float(np.mean((pred48_probs - y48_np) ** 2))
-
-            # Validation gate check
-            validation_passed = brier_score <= 0.12
-            if validation_passed:
-                self.meta_model = candidate_meta
-                self.meta_model.eval()
-
-            adapt_num = len(self.adaptation_history) + 1
-            self.model_version = f"v1.{adapt_num}.0-outlier-adapted"
-
-            recomputed_simulation = None
-            if patient_id and note_text:
-                recomputed_simulation = self.simulate_clinical_outlier(pid=patient_id, note_text=note_text)
-
-            summary = {
-                "adaptationId": f"ADAPT-{adapt_num:03d}",
-                "modelVersion": self.model_version,
-                "status": "completed_and_hot_swapped" if validation_passed else "rejected_by_safety_gate",
-                "validationPassed": validation_passed,
-                "epochsRun": len(loss_curve),
-                "initialLoss": loss_curve[0] if loss_curve else 0.0,
-                "finalLoss": loss_curve[-1] if loss_curve else 0.0,
-                "lossCurve": loss_curve,
-                "brierCalibrationScore": round(brier_score, 4),
-                "ewcLambda": ewc_lambda,
-                "outlierCasesCount": len(self.outlier_memory_buffer),
-                "syntheticTrajectoriesGenerated": outlier_samples_count,
-                "experienceReplaySamples": len(replay_features) - outlier_samples_count,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "updatedSimulation": recomputed_simulation,
-            }
-            self.adaptation_history.insert(0, summary)
-            return summary
+        # Silenced frozen retraining log message
+        adapt_num = len(self.adaptation_history) + 1
+        summary = {
+            "adaptationId": f"ADAPT-{adapt_num:03d}",
+            "modelVersion": self.model_version,
+            "status": "disabled_frozen_mode",
+            "message": "Model retraining and adaptation have been disabled. Frozen predictions only.",
+            "validationPassed": True,
+            "epochsRun": 0,
+            "initialLoss": 0.0,
+            "finalLoss": 0.0,
+            "lossCurve": [],
+            "brierCalibrationScore": 0.0,
+            "ewcLambda": 0.0,
+            "outlierCasesCount": len(self.outlier_memory_buffer),
+            "syntheticTrajectoriesGenerated": 0,
+            "experienceReplaySamples": 0,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "updatedSimulation": None,
+            "retraining_disabled": True,
+        }
+        self.adaptation_history.insert(0, summary)
+        return summary
 
     def get_adaptation_status(self) -> Dict[str, Any]:
         with self._inference_lock:
@@ -2680,3 +2569,331 @@ class InferenceEngine:
             }
 
 
+
+    # =========================================================================
+    # PHASE 6 EXTENSIONS: REAL-TIME FACE & MIC EXTRACTION + v2 INFERENCE
+    # =========================================================================
+    def _init_face_mic_caches(self):
+        if not hasattr(self, "_patient_face_cache"):
+            self._patient_face_cache = collections.defaultdict(lambda: collections.deque(maxlen=30))
+        if not hasattr(self, "_patient_mic_cache"):
+            self._patient_mic_cache = collections.defaultdict(lambda: collections.deque(maxlen=30))
+        if not hasattr(self, "_v2_models_loaded"):
+            self._v2_models_loaded = False
+            self.tcn_v2 = None
+            self.gb_v2 = None
+            self.meta_v2 = None
+            self.tcn_cfg_v2 = None
+            self.gb_cfg_v2 = None
+            self.fallback_defaults = None
+
+    def _load_v2_models(self):
+        self._init_face_mic_caches()
+        if self._v2_models_loaded:
+            return
+
+        with self._inference_lock:
+            if self._v2_models_loaded:
+                return
+            tcn_dir = os.path.join(AASTHMA_DIR, "training", "model1_v2")
+            gb_dir = os.path.join(AASTHMA_DIR, "training", "model2_v2")
+            meta_path = os.path.join(AASTHMA_DIR, "training", "meta_ensemble_model_v2.pt")
+            fb_path = os.path.join(AASTHMA_DIR, "training", "FEATURE_FALLBACK_DEFAULTS.json")
+
+            with open(os.path.join(tcn_dir, "preprocessor_config_v2.pkl"), "rb") as f:
+                self.tcn_cfg_v2 = pickle.load(f)
+            with open(os.path.join(gb_dir, "gb_preprocessor_config_v2.pkl"), "rb") as f:
+                self.gb_cfg_v2 = pickle.load(f)
+            with open(os.path.join(gb_dir, "gb_digital_twin_models_v2.pkl"), "rb") as f:
+                self.gb_v2 = pickle.load(f)
+
+            # TCN_v2 Model
+            self.tcn_v2 = DigitalTwinFusionModel(
+                static_dim=self.tcn_cfg_v2["static_dim"],
+                dynamic_channels=self.tcn_cfg_v2["dynamic_channels"]
+            ).to(self.device)
+            self.tcn_v2.load_state_dict(torch.load(os.path.join(tcn_dir, "digital_twin_model_v2.pt"), map_location=self.device))
+            self.tcn_v2.eval()
+
+            # Meta-Learner_v2 Model
+            self.meta_v2 = RespiTwinMLPMetaLearner(input_dim=12, hidden_dim=32).to(self.device)
+            self.meta_v2.load_state_dict(torch.load(meta_path, map_location=self.device))
+            self.meta_v2.eval()
+
+            # Fallback Map
+            if os.path.exists(fb_path):
+                import json
+                with open(fb_path, "r", encoding="utf-8") as f:
+                    self.fallback_defaults = json.load(f).get("features", {})
+            else:
+                self.fallback_defaults = {}
+
+            self._v2_models_loaded = True
+
+    def extract_face_features_realtime(
+        self,
+        video_frames: Any,
+        patient_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Extracts 10 real-time facial/vision biomarkers using MediaPipe FaceMesh.
+        Caches last N frames per patient for temporal stability.
+        """
+        self._init_face_mic_caches()
+        pid = patient_id or "default"
+        try:
+            from aasthma.inference.face_features_inference import face_pipeline
+        except ImportError:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("face_features_inference", os.path.join(CURRENT_DIR, "face_features_inference.py"))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            face_pipeline = mod.face_pipeline
+
+        result: Dict[str, Any]
+        if isinstance(video_frames, str) and (video_frames.startswith("data:") or len(video_frames) > 100):
+            result = face_pipeline.process_base64_frame(video_frames)
+        elif isinstance(video_frames, np.ndarray):
+            result = face_pipeline.process_frame(video_frames)
+        else:
+            result = {
+                "features": face_pipeline.get_fallback_features(),
+                "quality": 0.0,
+                "face_detected": False,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+        # Cache snapshot
+        self._patient_face_cache[pid].append(result["features"])
+        result["patientId"] = pid
+        return result
+
+    def extract_mic_features_realtime(
+        self,
+        audio_data: Any,
+        patient_id: Optional[str] = None,
+        sample_rate: int = 16000
+    ) -> Dict[str, Any]:
+        """
+        Extracts 4 real-time vocal/acoustic biomarkers (stridor, snoring, hoarseness jitter, speech rate).
+        Caches last N audio windows per patient for stability.
+        """
+        self._init_face_mic_caches()
+        pid = patient_id or "default"
+        try:
+            from aasthma.inference.mic_features_inference import mic_pipeline
+        except ImportError:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("mic_features_inference", os.path.join(CURRENT_DIR, "mic_features_inference.py"))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            mic_pipeline = mod.mic_pipeline
+
+        result: Dict[str, Any]
+        if isinstance(audio_data, str) and (audio_data.startswith("data:") or len(audio_data) > 64):
+            result = mic_pipeline.process_base64_audio(audio_data, sample_rate=sample_rate)
+        elif isinstance(audio_data, np.ndarray):
+            result = mic_pipeline.process_audio_chunk(audio_data, sample_rate=sample_rate)
+        elif isinstance(audio_data, bytes):
+            result = mic_pipeline.process_pcm_bytes(audio_data, sample_rate=sample_rate)
+        else:
+            result = {
+                "features": mic_pipeline.get_fallback_features(),
+                "quality": 0.0,
+                "is_silent": True,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+        # Cache snapshot
+        self._patient_mic_cache[pid].append(result["features"])
+        result["patientId"] = pid
+        return result
+
+    def predict_with_face_mic_features(
+        self,
+        patient_id: str,
+        face_dict: Optional[Dict[str, Any]] = None,
+        mic_dict: Optional[Dict[str, Any]] = None,
+        wearable_dict: Optional[Dict[str, Any]] = None,
+        end_hour: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Multimodal v2 inference combining:
+          1. 10 Face features (or fallback)
+          2. 4 Voice features (or fallback)
+          3. Patient Wearable & Environmental Telemetry
+        Evaluated on frozen TCN_v2 + XGBoost_v2 + Meta-Learner_v2 stacking.
+        """
+        self._load_v2_models()
+        dataset_pid = self.resolve_patient_id(patient_id)
+        if not dataset_pid:
+            dataset_pid = self._ensure_patient_registered(patient_id)
+
+        # 1. Prepare Static EHR Vector
+        static_feature_names = self.tcn_cfg_v2["static_feature_names"]
+        static_mean = self.tcn_cfg_v2["static_mean"]
+        static_std = self.tcn_cfg_v2["static_std"]
+
+        # If patient in encoded static df
+        if hasattr(self, "encoded_static_df") and dataset_pid in self.encoded_static_df["patient_id"].values:
+            raw_static = self.encoded_static_df[self.encoded_static_df["patient_id"] == dataset_pid].drop(columns=["patient_id"])
+        else:
+            raw_static = pd.DataFrame([{col: 0.0 for col in static_feature_names}])
+
+        raw_static = raw_static.reindex(columns=static_feature_names, fill_value=0.0).fillna(0.0)
+        norm_static = ((raw_static - static_mean) / (static_std + 1e-8)).values.astype(np.float32)
+
+        # 2. Prepare 12-Hour Telemetry Window for 21 v2 Channels
+        ts_feature_names = self.tcn_cfg_v2["ts_feature_names"]
+        window_size = 12
+
+        # Check existing timeseries dataframe for historical points
+        window_rows = []
+        if hasattr(self, "timeseries_df") and dataset_pid in self.timeseries_df["patient_id"].values:
+            pts_df = self.timeseries_df[self.timeseries_df["patient_id"] == dataset_pid].sort_values("timestamp_hour")
+            if end_hour is not None:
+                pts_df = pts_df[pts_df["timestamp_hour"] <= end_hour]
+            if len(pts_df) >= window_size:
+                sub_df = pts_df.tail(window_size)
+                for _, row in sub_df.iterrows():
+                    row_dict = {col: float(row[col]) for col in ts_feature_names if col in row}
+                    window_rows.append(row_dict)
+
+        # If fewer than 12 rows, seed with fallback defaults
+        while len(window_rows) < window_size:
+            default_row = {}
+            for col in ts_feature_names:
+                fb_meta = self.fallback_defaults.get(col, {})
+                default_row[col] = float(fb_meta.get("default_value", 0.0))
+            window_rows.insert(0, default_row)
+
+        # Update latest row (t_current) with provided real-time face, mic, and wearable data
+        latest_row = dict(window_rows[-1])
+        if face_dict:
+            for k, v in face_dict.items():
+                if k in ts_feature_names and v is not None:
+                    latest_row[k] = float(v)
+        if mic_dict:
+            for k, v in mic_dict.items():
+                if k in ts_feature_names and v is not None:
+                    latest_row[k] = float(v)
+        if wearable_dict:
+            for k, v in wearable_dict.items():
+                if k in ts_feature_names and v is not None:
+                    latest_row[k] = float(v)
+
+        window_rows[-1] = latest_row
+
+        # Build raw window matrix [12, 21]
+        raw_dyn = np.zeros((window_size, len(ts_feature_names)), dtype=np.float32)
+        for i, r in enumerate(window_rows[-window_size:]):
+            for j, col in enumerate(ts_feature_names):
+                val = r.get(col)
+                if val is None or np.isnan(val):
+                    val = self.fallback_defaults.get(col, {}).get("default_value", 0.0)
+                raw_dyn[i, j] = float(val)
+
+        # Normalize Dynamic Window for TCN
+        ts_mean = self.tcn_cfg_v2["ts_mean"].reindex(ts_feature_names).values.astype(np.float32)
+        ts_std = self.tcn_cfg_v2["ts_std"].reindex(ts_feature_names).values.astype(np.float32) + 1e-8
+        norm_dyn = (raw_dyn - ts_mean) / ts_std
+
+        # TCN expects [Batch=1, Channels=21, Time=12]
+        tcn_dyn_in = torch.tensor(norm_dyn.T, dtype=torch.float32, device=self.device).unsqueeze(0)
+        tcn_static_in = torch.tensor(norm_static, dtype=torch.float32, device=self.device)
+
+        # 3. TCN_v2 Forward Pass
+        with torch.no_grad():
+            tcn_l24, tcn_l48, tcn_lsev = self.tcn_v2(tcn_static_in, tcn_dyn_in)
+            tcn_p24 = float(torch.sigmoid(tcn_l24).item())
+            tcn_p48 = float(torch.sigmoid(tcn_l48).item())
+            tcn_psev = torch.softmax(tcn_lsev, dim=1).cpu().numpy()[0]
+
+        # 4. XGBoost_v2 Forward Pass (270 tabular features)
+        num_dyn_feats = len(ts_feature_names)
+        means = np.mean(norm_dyn, axis=0)
+        stds = np.std(norm_dyn, axis=0)
+        mins = np.min(norm_dyn, axis=0)
+        maxs = np.max(norm_dyn, axis=0)
+        deltas = norm_dyn[-1, :] - norm_dyn[0, :]
+        curr_idx = window_size - 1
+        shift_indices = np.clip(curr_idx + np.array([-2, -1, 0, 1, 2]), 0, window_size - 1)
+        shifts = norm_dyn[shift_indices, :]
+
+        dyn_extracted = []
+        for f_idx in range(num_dyn_feats):
+            dyn_extracted.extend([
+                means[f_idx:f_idx+1],
+                stds[f_idx:f_idx+1],
+                mins[f_idx:f_idx+1],
+                maxs[f_idx:f_idx+1],
+                deltas[f_idx:f_idx+1],
+                shifts[:, f_idx]
+            ])
+
+        dyn_vec = np.hstack(dyn_extracted).reshape(1, -1)
+        xgb_x = np.hstack([norm_static, dyn_vec]).astype(np.float32)
+
+        xgb_p24 = float(self.gb_v2["model_24h"].predict_proba(xgb_x)[0, 1])
+        xgb_p48 = float(self.gb_v2["model_48h"].predict_proba(xgb_x)[0, 1])
+        raw_xgb_sev = self.gb_v2["model_sev"].predict_proba(xgb_x)[0]
+        if len(raw_xgb_sev) < 4:
+            xgb_psev = np.zeros(4, dtype=np.float32)
+            for idx, c in enumerate(self.gb_v2["model_sev"].classes_):
+                xgb_psev[int(c)] = raw_xgb_sev[idx]
+        else:
+            xgb_psev = raw_xgb_sev
+
+        # 5. Meta-Learner_v2 Stacking Pass (12D Vector)
+        meta_vec = np.array([
+            tcn_p24, xgb_p24,
+            tcn_p48, xgb_p48,
+            *tcn_psev,
+            *xgb_psev
+        ], dtype=np.float32).reshape(1, 12)
+
+        with torch.no_grad():
+            meta_in = torch.tensor(meta_vec, dtype=torch.float32, device=self.device)
+            m_out24, m_out48, m_outsev = self.meta_v2(meta_in)
+            final_p24 = float(torch.sigmoid(m_out24).item())
+            final_p48 = float(torch.sigmoid(m_out48).item())
+            final_sev_probs = torch.softmax(m_outsev, dim=1).cpu().numpy()[0]
+            final_sev = int(np.argmax(final_sev_probs))
+
+        sev_labels = [
+            "Mild Intermittent (Green)",
+            "Mild Persistent (Yellow)",
+            "Moderate Persistent (Amber)",
+            "Severe Exacerbation Imminent (Red)"
+        ]
+
+        has_face = bool(face_dict and any(v is not None for v in face_dict.values()))
+        has_mic = bool(mic_dict and any(v is not None for v in mic_dict.values()))
+
+        return {
+            "patient_id": patient_id,
+            "p24_risk": round(final_p24 * 100.0, 1),
+            "p48_risk": round(final_p48 * 100.0, 1),
+            "severity_grade": final_sev,
+            "severity_label": sev_labels[final_sev],
+            "confidence": round(float(np.max(final_sev_probs)), 3),
+            "model_version": "v2.0.0-frozen",
+            "modalities_used": {
+                "face": has_face,
+                "mic": has_mic,
+                "wearable": True
+            },
+            "base_predictions": {
+                "tcn_risk_24h": round(tcn_p24 * 100.0, 1),
+                "tcn_risk_48h": round(tcn_p48 * 100.0, 1),
+                "xgboost_risk_24h": round(xgb_p24 * 100.0, 1),
+                "xgboost_risk_48h": round(xgb_p48 * 100.0, 1)
+            },
+            "extracted_telemetry_snapshot": {
+                "face": face_dict or {},
+                "mic": mic_dict or {},
+                "respiratory_rate": round(float(latest_row.get("respiratory_rate_brpm", 16.0)), 1),
+                "heart_rate": round(float(latest_row.get("heart_rate_bpm", 72.0)), 1)
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }

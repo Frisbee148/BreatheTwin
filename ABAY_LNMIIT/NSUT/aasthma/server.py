@@ -749,3 +749,83 @@ def get_model_adaptation_status():
         raise HTTPException(status_code=503, detail="Inference engine not ready")
     return engine.get_adaptation_status()
 
+
+
+# =========================================================================
+# REAL-TIME FACE & MIC FEATURE EXTRACTION + v2 PREDICTION ENDPOINTS
+# =========================================================================
+class FaceFeatureExtractRequest(BaseModel):
+    video_frame_base64: Optional[str] = None
+    image_base64: Optional[str] = None
+
+class MicFeatureExtractRequest(BaseModel):
+    audio_base64: Optional[str] = None
+    pcm_base64: Optional[str] = None
+    sample_rate: Optional[int] = 16000
+
+class PredictWithExtendedFeaturesRequest(BaseModel):
+    face_features: Optional[Dict[str, Any]] = None
+    mic_features: Optional[Dict[str, Any]] = None
+    wearable_telemetry: Optional[Dict[str, Any]] = None
+    end_hour: Optional[int] = None
+
+
+@app.post("/api/patients/{patient_id}/face-features")
+@app.post("/api/patients/{patient_id}/face-features/extract")
+def extract_patient_face_features(patient_id: str, req: Optional[FaceFeatureExtractRequest] = None):
+    """
+    Extracts 10 computer-vision facial/respiratory features in real time from
+    a webcam frame. If camera/frame is unavailable, returns heuristic fallback values.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    frame_data = (req.video_frame_base64 or req.image_base64) if req else None
+    try:
+        return engine.extract_face_features_realtime(video_frames=frame_data, patient_id=patient_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Face feature extraction failed: {exc}") from exc
+
+
+@app.post("/api/patients/{patient_id}/mic-features")
+@app.post("/api/patients/{patient_id}/mic-features/extract")
+def extract_patient_mic_features(patient_id: str, req: Optional[MicFeatureExtractRequest] = None):
+    """
+    Extracts 4 acoustic/voice features (stridor, snoring, hoarseness jitter, speech rate) in real time
+    from microphone audio chunks. If audio is unavailable, returns heuristic fallback values.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    audio_data = (req.audio_base64 or req.pcm_base64) if req else None
+    sr = req.sample_rate if req and req.sample_rate else 16000
+    try:
+        return engine.extract_mic_features_realtime(audio_data=audio_data, patient_id=patient_id, sample_rate=sr)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Mic feature extraction failed: {exc}") from exc
+
+
+@app.post("/api/patients/{patient_id}/predict-v2")
+@app.post("/api/patients/{patient_id}/predict-with-extended-features")
+def predict_with_v2_extended_features(patient_id: str, req: Optional[PredictWithExtendedFeaturesRequest] = None):
+    """
+    Runs frozen multimodal v2 inference fusing:
+      - 10 Face features (real-time or fallback)
+      - 4 Mic features (real-time or fallback)
+      - Wearable & environmental telemetry
+    Evaluated with TCN_v2, XGBoost_v2, and Meta-Learner_v2.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    face_d = req.face_features if req else None
+    mic_d = req.mic_features if req else None
+    wearable_d = req.wearable_telemetry if req else None
+    e_hour = req.end_hour if req else None
+    try:
+        return engine.predict_with_face_mic_features(
+            patient_id=patient_id,
+            face_dict=face_d,
+            mic_dict=mic_d,
+            wearable_dict=wearable_d,
+            end_hour=e_hour
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"v2 extended prediction failed: {exc}") from exc

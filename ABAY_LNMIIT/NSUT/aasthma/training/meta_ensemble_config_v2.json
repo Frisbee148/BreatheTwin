@@ -1,0 +1,27 @@
+{
+  "model_version": "v2.0.0-frozen",
+  "input_features": [
+    "tcn_risk_24h",
+    "xgboost_risk_24h",
+    "tcn_risk_48h",
+    "xgboost_risk_48h",
+    "tcn_severity_0",
+    "tcn_severity_1",
+    "tcn_severity_2",
+    "tcn_severity_3",
+    "xgboost_severity_0",
+    "xgboost_severity_1",
+    "xgboost_severity_2",
+    "xgboost_severity_3"
+  ],
+  "input_dim": 12,
+  "hidden_dim": 32,
+  "epochs": 20,
+  "retraining_disabled": true,
+  "metrics": {
+    "test_roc_auc_24h": 0.9196,
+    "test_f1_24h": 0.0169,
+    "test_roc_auc_48h": 0.9527,
+    "test_severity_f1": 0.9382
+  }
+}
