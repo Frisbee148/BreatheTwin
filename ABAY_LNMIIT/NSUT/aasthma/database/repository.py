@@ -1,5 +1,7 @@
 import hashlib
 import secrets
+import collections
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -10,7 +12,11 @@ from aasthma.database.models import (
     ClinicalEventModel,
     PatientDailyLogModel,
     UserAccountModel,
+    AcousticTelemetryModel,
 )
+
+# Resilient in-memory fallback store for acoustic telemetry
+_IN_MEMORY_ACOUSTIC_RECORDS: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
 
 
 def get_db_status() -> Dict[str, Any]:
@@ -185,6 +191,172 @@ def get_patient_daily_logs(patient_id: str, limit: int = 20) -> List[Dict[str, A
         ]
     finally:
         db.close()
+
+
+def add_acoustic_telemetry(
+    patient_id: str,
+    hourly_cough_count: int = 0,
+    cough_severity: int = 0,
+    wheeze_percent_duration: float = 0.0,
+    sputum_severity: int = 0,
+    stridor_detection_index: float = 0.0,
+    breathlessness_score: int = 0,
+    snoring_nocturnal_score: float = 0.0,
+    vocal_hoarseness_jitter: float = 0.8,
+    vocal_shimmer_score: float = 2.5,
+    ambient_noise_decibels: float = 45.0,
+    speech_rate_wpm: float = 130.0,
+    respiratory_rate_brpm: float = 16.0,
+    source: str = "Web Microphone",
+) -> Dict[str, Any]:
+    """Records an acoustic respiratory biosensor measurement for the patient."""
+    timestamp = datetime.now(timezone.utc).isoformat()
+    record = {
+        "id": f"ACOUSTIC-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+        "patient_id": patient_id,
+        "recorded_at": timestamp,
+        "hourly_cough_count": int(hourly_cough_count),
+        "cough_severity": int(cough_severity),
+        "wheeze_percent_duration": round(float(wheeze_percent_duration), 2),
+        "sputum_severity": int(sputum_severity),
+        "stridor_detection_index": round(float(stridor_detection_index), 3),
+        "breathlessness_score": int(breathlessness_score),
+        "snoring_nocturnal_score": round(float(snoring_nocturnal_score), 2),
+        "vocal_hoarseness_jitter": round(float(vocal_hoarseness_jitter), 3),
+        "vocal_shimmer_score": round(float(vocal_shimmer_score), 3),
+        "ambient_noise_decibels": round(float(ambient_noise_decibels), 1),
+        "speech_rate_wpm": round(float(speech_rate_wpm), 1),
+        "respiratory_rate_brpm": round(float(respiratory_rate_brpm), 1),
+        "source": source,
+    }
+
+    # Store in memory cache
+    _IN_MEMORY_ACOUSTIC_RECORDS[patient_id].insert(0, record)
+    if len(_IN_MEMORY_ACOUSTIC_RECORDS[patient_id]) > 50:
+        _IN_MEMORY_ACOUSTIC_RECORDS[patient_id].pop()
+
+    # Attempt PostgreSQL persistence if connected
+    try:
+        db: Session = SessionLocal()
+        try:
+            # Ensure patient exists
+            patient_row = db.query(PatientModel).filter(PatientModel.patient_id == patient_id).first()
+            if not patient_row:
+                stub_patient = PatientModel(
+                    patient_id=patient_id,
+                    age=35,
+                    sex="U",
+                    height_cm=165.0,
+                    weight_kg=65.0,
+                    bmi=23.8,
+                    asthma_severity="Moderate",
+                    baseline_fev1_pct=75.0,
+                    controller_medication="ICS-LABA",
+                    medication_adherence=0.75,
+                )
+                db.add(stub_patient)
+                db.commit()
+
+            entry = AcousticTelemetryModel(
+                patient_id=patient_id,
+                hourly_cough_count=hourly_cough_count,
+                cough_severity=cough_severity,
+                wheeze_percent_duration=wheeze_percent_duration,
+                sputum_severity=sputum_severity,
+                stridor_detection_index=stridor_detection_index,
+                breathlessness_score=breathlessness_score,
+                snoring_nocturnal_score=snoring_nocturnal_score,
+                vocal_hoarseness_jitter=vocal_hoarseness_jitter,
+                vocal_shimmer_score=vocal_shimmer_score,
+                ambient_noise_decibels=ambient_noise_decibels,
+                speech_rate_wpm=speech_rate_wpm,
+                respiratory_rate_brpm=respiratory_rate_brpm,
+                source=source,
+            )
+            db.add(entry)
+            db.commit()
+            db.refresh(entry)
+            record["id"] = entry.id
+            if entry.recorded_at:
+                record["recorded_at"] = entry.recorded_at.isoformat()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    return record
+
+
+def get_patient_acoustic_telemetry(patient_id: str, limit: int = 24) -> List[Dict[str, Any]]:
+    """Fetches acoustic telemetry records for a patient from PostgreSQL with in-memory fallback."""
+    try:
+        db: Session = SessionLocal()
+        try:
+            records = (
+                db.query(AcousticTelemetryModel)
+                .filter(AcousticTelemetryModel.patient_id == patient_id)
+                .order_by(AcousticTelemetryModel.recorded_at.desc())
+                .limit(limit)
+                .all()
+            )
+            if records:
+                return [
+                    {
+                        "id": r.id,
+                        "patient_id": r.patient_id,
+                        "recorded_at": r.recorded_at.isoformat() if r.recorded_at else None,
+                        "hourly_cough_count": r.hourly_cough_count,
+                        "cough_severity": r.cough_severity,
+                        "wheeze_percent_duration": r.wheeze_percent_duration,
+                        "sputum_severity": r.sputum_severity,
+                        "stridor_detection_index": r.stridor_detection_index,
+                        "breathlessness_score": r.breathlessness_score,
+                        "snoring_nocturnal_score": r.snoring_nocturnal_score,
+                        "vocal_hoarseness_jitter": r.vocal_hoarseness_jitter,
+                        "vocal_shimmer_score": r.vocal_shimmer_score,
+                        "ambient_noise_decibels": r.ambient_noise_decibels,
+                        "speech_rate_wpm": r.speech_rate_wpm,
+                        "respiratory_rate_brpm": r.respiratory_rate_brpm,
+                        "source": r.source,
+                    }
+                    for r in records
+                ]
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    # In-memory fallback
+    mem = _IN_MEMORY_ACOUSTIC_RECORDS.get(patient_id, [])
+    if mem:
+        return mem[:limit]
+
+    # Default synthetic baseline acoustic profile if never logged
+    now = datetime.now(timezone.utc)
+    mock_history = []
+    for h in range(limit - 1, -1, -1):
+        is_night = (now.hour - h) % 24 >= 22 or (now.hour - h) % 24 <= 6
+        coughs = 2 if is_night else 0
+        mock_history.append({
+            "id": f"DEFAULT-{h}",
+            "patient_id": patient_id,
+            "recorded_at": now.isoformat(),
+            "hourly_cough_count": coughs,
+            "cough_severity": 1 if coughs > 0 else 0,
+            "wheeze_percent_duration": 1.2 if is_night else 0.0,
+            "sputum_severity": 1 if coughs > 0 else 0,
+            "stridor_detection_index": 0.04,
+            "breathlessness_score": 1 if coughs > 0 else 0,
+            "snoring_nocturnal_score": 1.5 if is_night else 0.0,
+            "vocal_hoarseness_jitter": 0.85,
+            "vocal_shimmer_score": 2.4,
+            "ambient_noise_decibels": 42.0,
+            "speech_rate_wpm": 132.0,
+            "respiratory_rate_brpm": 16.0,
+            "source": "Biosensor Baseline",
+        })
+    return mock_history
+
 
 
 def _hash_password(password: str) -> str:

@@ -22,12 +22,15 @@ from aasthma.llm.llm import (
 from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 from aasthma.simulation.clock import global_clock
 from aasthma.simulation.clinical_data import SIMULATOR_ASSUMPTIONS, BENCHMARKS
+from aasthma.inference.mic_features_inference import get_patient_audio_pipeline
 from aasthma.database import (
     get_db_status,
     get_patient_by_id,
     get_patient_telemetry_series,
     add_patient_daily_log,
     get_patient_daily_logs,
+    add_acoustic_telemetry,
+    get_patient_acoustic_telemetry,
     ensure_auth_tables_and_seed,
     signup_user_account,
     verify_user_account,
@@ -748,4 +751,215 @@ def get_model_adaptation_status():
     if engine is None:
         raise HTTPException(status_code=503, detail="Inference engine not ready")
     return engine.get_adaptation_status()
+
+
+# =========================================================================
+# REAL-TIME ACOUSTIC BIOSENSOR & COUGH DETECTION ENDPOINTS
+# =========================================================================
+
+class AudioStreamChunkRequest(BaseModel):
+    audio_base64: Optional[str] = Field(default=None, description="Base64-encoded audio chunk (WAV/PCM/WebM)")
+    sample_rate: int = Field(default=16000, ge=8000, le=48000)
+    client_coughs: Optional[int] = Field(default=None)
+    client_cough_severity: Optional[int] = Field(default=None, ge=0, le=3)
+
+
+class AcousticTelemetryPostRequest(BaseModel):
+    hourly_cough_count: int = Field(default=0, ge=0, le=100)
+    cough_severity: int = Field(default=0, ge=0, le=3)
+    wheeze_percent_duration: float = Field(default=0.0, ge=0.0, le=100.0)
+    sputum_severity: int = Field(default=0, ge=0, le=3)
+    stridor_detection_index: float = Field(default=0.0, ge=0.0, le=1.0)
+    breathlessness_score: int = Field(default=0, ge=0, le=5)
+    snoring_nocturnal_score: float = Field(default=0.0, ge=0.0, le=10.0)
+    vocal_hoarseness_jitter: float = Field(default=0.8, ge=0.1, le=15.0)
+    vocal_shimmer_score: float = Field(default=2.5, ge=0.5, le=25.0)
+    ambient_noise_decibels: float = Field(default=45.0, ge=20.0, le=110.0)
+    speech_rate_wpm: float = Field(default=130.0, ge=30.0, le=220.0)
+    respiratory_rate_brpm: float = Field(default=16.0, ge=8.0, le=45.0)
+    source: str = Field(default="Web Microphone")
+
+
+class AcousticInferenceRequest(BaseModel):
+    hourly_cough_count: Optional[int] = Field(default=None, ge=0, le=100)
+    cough_severity: Optional[int] = Field(default=None, ge=0, le=3)
+    wheeze_percent_duration: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    sputum_severity: Optional[int] = Field(default=None, ge=0, le=3)
+    stridor_detection_index: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    breathlessness_score: Optional[int] = Field(default=None, ge=0, le=5)
+    vocal_hoarseness_jitter: Optional[float] = Field(default=None, ge=0.1, le=15.0)
+    vocal_shimmer_score: Optional[float] = Field(default=None, ge=0.5, le=25.0)
+    ambient_noise_decibels: Optional[float] = Field(default=None, ge=20.0, le=110.0)
+    respiratory_rate_brpm: Optional[float] = Field(default=None, ge=8.0, le=45.0)
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+@app.post("/api/patients/{patient_id}/audio-stream")
+def process_patient_audio_stream(patient_id: str, req: AudioStreamChunkRequest):
+    """
+    Ingests live microphone audio chunks from the patient portal, runs the
+    LiveAudioFeaturePipeline (YamNet + Librosa DSP), evaluates cough severity,
+    and returns immediate asthma attack risk chances.
+    """
+    import base64
+
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    pipeline = get_patient_audio_pipeline(resolved_pid)
+
+    # Process audio through mic_features_inference.py
+    if req.audio_base64:
+        try:
+            raw_bytes = base64.b64decode(req.audio_base64)
+            result = pipeline.process_audio_bytes(raw_bytes)
+        except Exception as exc:
+            logger.warning("Failed to decode audio bytes: %s", exc)
+            result = {"instant": {"prob_cough": 0.0, "cough_detected": False}, "telemetry": pipeline.get_latest_hourly_telemetry()}
+    else:
+        # Client sent metadata or simulated ping
+        result = {"instant": {"prob_cough": 0.0, "cough_detected": False}, "telemetry": pipeline.get_latest_hourly_telemetry()}
+
+    telemetry = result.get("telemetry", {})
+    instant = result.get("instant", {})
+
+    # Calculate cough severity score (0 to 3)
+    cough_sev = int(telemetry.get("sputum_severity", 0))
+    if req.client_cough_severity is not None:
+        cough_sev = max(cough_sev, req.client_cough_severity)
+    elif instant.get("cough_detected"):
+        cough_sev = max(cough_sev, 2 if instant.get("prob_cough", 0) > 0.75 else 1)
+
+    # Re-calculate digital twin risk with updated acoustic triggers
+    twin_risk24 = 18.0
+    twin_risk48 = 22.0
+    risk_level = "NORMAL"
+    if engine:
+        try:
+            pred = engine.predict_patient(resolved_pid)
+            twin_risk24 = float(pred.get("risk24h", 18.0))
+            twin_risk48 = float(pred.get("risk48h", 22.0))
+            risk_level = pred.get("riskLevel", "NORMAL")
+        except Exception:
+            pass
+
+    # Dynamic acoustic multiplier on asthma chance
+    acoustic_multiplier = 1.0 + (cough_sev * 0.18) + (float(telemetry.get("wheeze_percent_duration", 0.0)) * 0.015)
+    effective_asthma_chance = round(min(98.0, twin_risk48 * acoustic_multiplier), 1)
+
+    # Persist snapshot
+    saved_record = add_acoustic_telemetry(
+        patient_id=resolved_pid,
+        hourly_cough_count=telemetry.get("hourly_cough_count", 0),
+        cough_severity=cough_sev,
+        wheeze_percent_duration=telemetry.get("wheeze_percent_duration", 0.0),
+        sputum_severity=telemetry.get("sputum_severity", 0),
+        stridor_detection_index=telemetry.get("stridor_detection_index", 0.0),
+        breathlessness_score=telemetry.get("breathlessness_score", 0),
+        snoring_nocturnal_score=telemetry.get("snoring_nocturnal_score", 0.0),
+        vocal_hoarseness_jitter=telemetry.get("vocal_hoarseness_jitter", 0.8),
+        vocal_shimmer_score=telemetry.get("vocal_shimmer_score", 2.5),
+        ambient_noise_decibels=telemetry.get("ambient_noise_decibels", 45.0),
+        speech_rate_wpm=telemetry.get("speech_rate_wpm", 130.0),
+        respiratory_rate_brpm=telemetry.get("respiratory_rate_brpm", 16.0),
+        source="Patient Portal Live Mic",
+    )
+
+    return {
+        "instant": instant,
+        "telemetry": telemetry,
+        "patientRisk": {
+            "risk24h": round(min(96.0, twin_risk24 * acoustic_multiplier), 1),
+            "risk48h": effective_asthma_chance,
+            "riskLevel": (
+                "HIGH RISK" if effective_asthma_chance >= 70.0 else
+                "ELEVATED" if effective_asthma_chance >= 45.0 else
+                "CAUTION" if effective_asthma_chance >= 25.0 else "NORMAL"
+            ),
+            "coughSeverity": cough_sev,
+            "coughSeverityLabel": (
+                "Severe / Paroxysmal" if cough_sev == 3 else
+                "Moderate Coughing" if cough_sev == 2 else
+                "Mild / Occasional" if cough_sev == 1 else "None / Quiet"
+            ),
+            "asthmaChancePercent": effective_asthma_chance,
+            "wheezeDetected": instant.get("wheeze_detected", False),
+        },
+        "log": saved_record,
+    }
+
+
+@app.post("/api/patients/{patient_id}/acoustic-telemetry")
+def record_patient_acoustic_telemetry(patient_id: str, req: AcousticTelemetryPostRequest):
+    """Stores a structured acoustic biosensor session for a patient."""
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    saved = add_acoustic_telemetry(
+        patient_id=resolved_pid,
+        hourly_cough_count=req.hourly_cough_count,
+        cough_severity=req.cough_severity,
+        wheeze_percent_duration=req.wheeze_percent_duration,
+        sputum_severity=req.sputum_severity,
+        stridor_detection_index=req.stridor_detection_index,
+        breathlessness_score=req.breathlessness_score,
+        snoring_nocturnal_score=req.snoring_nocturnal_score,
+        vocal_hoarseness_jitter=req.vocal_hoarseness_jitter,
+        vocal_shimmer_score=req.vocal_shimmer_score,
+        ambient_noise_decibels=req.ambient_noise_decibels,
+        speech_rate_wpm=req.speech_rate_wpm,
+        respiratory_rate_brpm=req.respiratory_rate_brpm,
+        source=req.source,
+    )
+    return {
+        "message": "Acoustic telemetry recorded successfully",
+        "record": saved,
+    }
+
+
+@app.get("/api/patients/{patient_id}/acoustic-telemetry")
+def list_patient_acoustic_telemetry(patient_id: str, limit: int = Query(default=24, ge=1, le=100)):
+    """Fetches recent acoustic biosensor and cough records for doctor evaluation."""
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    records = get_patient_acoustic_telemetry(resolved_pid, limit=limit)
+    latest = records[0] if records else {}
+    return {
+        "patient_id": patient_id,
+        "dataset_id": resolved_pid,
+        "count": len(records),
+        "latest": latest,
+        "history": records,
+    }
+
+
+@app.post("/api/patients/{patient_id}/acoustic-inference")
+def simulate_patient_acoustic_inference(patient_id: str, req: AcousticInferenceRequest):
+    """
+    Doctor-Action Endpoint: Injects patient acoustic biosensor data directly into
+    the digital twin's 12-hour sliding window and latent inflammation ODE, re-scoring
+    flare-up risk across Stage-1 TCN + XGBoost and Stage-2 Meta-Learner.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = req.hour if req.hour is not None else global_clock.current_hour
+    payload = {
+        k: v for k, v in req.model_dump().items() if v is not None and k != "hour"
+    }
+
+    # If payload is mostly empty, pull latest recorded acoustic metrics from database
+    if not payload.get("hourly_cough_count") and not payload.get("cough_severity"):
+        resolved_pid = engine.resolve_patient_id(patient_id)
+        existing = get_patient_acoustic_telemetry(resolved_pid, limit=1)
+        if existing:
+            payload = existing[0]
+
+    try:
+        return engine.simulate_acoustic_sensor_outlier(
+            pid=patient_id,
+            acoustic_payload=payload,
+            end_hour=eval_hour,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Acoustic outlier inference failed for %s", patient_id)
+        raise HTTPException(status_code=500, detail=f"Acoustic inference error: {exc}") from exc
+
 

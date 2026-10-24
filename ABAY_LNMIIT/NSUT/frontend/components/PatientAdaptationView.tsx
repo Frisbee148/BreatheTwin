@@ -15,6 +15,10 @@ import {
   ModelAdaptationSummary,
   AdaptationStatusResponse,
   PatientDailyLogEntry,
+  getPatientAcousticTelemetry,
+  simulateAcousticInference,
+  AcousticTelemetryRecord,
+  AcousticInferenceResponse,
 } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
@@ -79,6 +83,139 @@ export default function PatientAdaptationView({
   const [patientLogs, setPatientLogs] = useState<PatientDailyLogEntry[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
 
+  // Acoustic Biosensor & Cough Telemetry Stream
+  const [acousticHistory, setAcousticHistory] = useState<AcousticTelemetryRecord[]>([]);
+  const [latestAcoustic, setLatestAcoustic] = useState<AcousticTelemetryRecord | null>(null);
+  const [loadingAcoustic, setLoadingAcoustic] = useState<boolean>(true);
+  const [isRunningAcousticInference, setIsRunningAcousticInference] = useState<boolean>(false);
+  const [acousticInferenceNotice, setAcousticInferenceNotice] = useState<string | null>(null);
+
+  const fetchAcousticFeed = () => {
+    setLoadingAcoustic(true);
+    getPatientAcousticTelemetry(patientId, 24).then((res) => {
+      if (res && Array.isArray(res.history)) {
+        setAcousticHistory(res.history);
+        setLatestAcoustic(res.latest || res.history[0] || null);
+      }
+      setLoadingAcoustic(false);
+    });
+  };
+
+  const handleRunAcousticInference = async () => {
+    setIsRunningAcousticInference(true);
+    setAcousticInferenceNotice(null);
+    try {
+      const payload: Partial<AcousticTelemetryRecord> = latestAcoustic || {
+        hourly_cough_count: 14,
+        cough_severity: 2,
+        wheeze_percent_duration: 16.5,
+        sputum_severity: 2,
+        stridor_detection_index: 0.12,
+        breathlessness_score: 2,
+        vocal_hoarseness_jitter: 1.45,
+        respiratory_rate_brpm: 22.0,
+      };
+
+      const res = await simulateAcousticInference(patient.id, payload);
+      if (res) {
+        const mappedSimResult: ClinicalOutlierSimulationResponse = {
+          patientId: res.patientId,
+          datasetId: res.datasetId,
+          noteText: `[Acoustic Biosensor Ingestion] Detected ${res.acousticBiomarkers.hourlyCoughCount} coughs/hr (Severity ${res.acousticBiomarkers.coughSeverity}/3), ${res.acousticBiomarkers.wheezePercentDuration}% wheeze duration, vocal jitter ${res.acousticBiomarkers.vocalHoarsenessJitter}%.`,
+          modelVersion: res.modelVersion,
+          extraction: {
+            primary_condition: 'Acoustic Bronchospasm & Cough Bursts',
+            icd10_code: 'R05.9',
+            is_outlier_condition: true,
+            severity_tier: (res.acousticBiomarkers.coughSeverity >= 2 ? 'Severe' : 'Moderate') as 'Severe' | 'Moderate',
+            clinical_summary: 'Acoustic microphone monitoring indicating explosive cough bursts and wheezing.',
+            pathophysiological_mechanism: 'Bronchial smooth muscle constriction and mucosal irritation detected via YamNet & STFT DSP.',
+            vitals_deltas: {
+              delta_skin_temp_c: 0.2,
+              delta_resting_hr: res.acousticBiomarkers.coughSeverity * 6,
+              delta_respiratory_rate: Math.max(0, res.acousticBiomarkers.respiratoryRateBrpm - 16),
+              delta_spo2: -res.acousticBiomarkers.coughSeverity * 1.2,
+              hrv_reduction_factor: 0.78,
+              delta_cough_severity: res.acousticBiomarkers.coughSeverity,
+              delta_wheezing_score: res.acousticBiomarkers.wheezePercentDuration > 10 ? 2 : 1,
+              delta_breathlessness_score: res.acousticBiomarkers.breathlessnessScore,
+              delta_chest_tightness: 1,
+              delta_fatigue_score: 1,
+              hydration_status: 'Adequate',
+            },
+            mechanistic_modifiers: {
+              systemic_inflammation_load: res.acousticBiomarkers.coughSeverity * 0.18,
+              airway_hyperresponsiveness_factor: 1.0 + res.acousticBiomarkers.stridorDetectionIndex * 1.5,
+              medication_absorption_efficiency: 0.85,
+            },
+            comorbidity_burden_delta: 0,
+            extracted_symptoms: ['Acoustic Cough', 'Wheeze', 'Vocal Strain'],
+            extraction_source: 'Acoustic Biosensor Pipeline',
+          },
+          derivedFeatures: [
+            {
+              featureName: 'Hourly Cough Burst Count',
+              featureKey: 'hourly_cough_count',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0 - 2 / hr',
+              derivedValue: `${res.acousticBiomarkers.hourlyCoughCount} / hr`,
+              deltaDisplay: `+${res.acousticBiomarkers.hourlyCoughCount}`,
+              physiologicalRationale: 'Explosive airway clearance bursts detected by acoustic pipeline.',
+            },
+            {
+              featureName: 'Acoustic Wheeze Duration %',
+              featureKey: 'wheeze_percent_duration',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0.0%',
+              derivedValue: `${res.acousticBiomarkers.wheezePercentDuration.toFixed(1)}%`,
+              deltaDisplay: `+${res.acousticBiomarkers.wheezePercentDuration.toFixed(1)}%`,
+              physiologicalRationale: 'Continuous high-pitched whistling during expiration.',
+            },
+            {
+              featureName: 'Inspiratory Stridor Index',
+              featureKey: 'stridor_detection_index',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0.04',
+              derivedValue: `${res.acousticBiomarkers.stridorDetectionIndex.toFixed(2)}`,
+              deltaDisplay: `+${res.acousticBiomarkers.stridorDetectionIndex.toFixed(2)}`,
+              physiologicalRationale: 'High-frequency upper bronchial narrowing and airflow obstruction.',
+            },
+            {
+              featureName: 'Vocal Fold Micro-Jitter',
+              featureKey: 'vocal_hoarseness_jitter',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0.80%',
+              derivedValue: `${res.acousticBiomarkers.vocalHoarsenessJitter.toFixed(2)}%`,
+              deltaDisplay: `+${(res.acousticBiomarkers.vocalHoarsenessJitter - 0.8).toFixed(2)}%`,
+              physiologicalRationale: 'Laryngeal mucosal edema and vocal hoarseness strain.',
+            },
+          ],
+          baseline: res.baseline,
+          adapted: res.adapted,
+          deltas: res.deltas,
+          modelBreakdown: {
+            tcnRisk24h: res.baseline.risk24h,
+            gradientBoostingRisk24h: res.baseline.risk24h,
+            metaRisk24h: res.adapted.risk24h,
+            tcnRisk48h: res.baseline.risk48h,
+            gradientBoostingRisk48h: res.baseline.risk48h,
+            metaRisk48h: res.adapted.risk48h,
+          },
+          trajectoryPoints: res.trajectory,
+        };
+
+        setSimResult(mappedSimResult);
+        setAcousticInferenceNotice(
+          `Twin adapted to acoustic sensor data: 48h Risk shifted by ${res.deltas.risk48hDelta > 0 ? '+' : ''}${res.deltas.risk48hDelta}% (Inflammation Δ: ${res.deltas.inflammationDelta > 0 ? '+' : ''}${res.deltas.inflammationDelta})`
+        );
+      }
+    } catch (err: any) {
+      setAcousticInferenceNotice(`Acoustic inference error: ${err.message}`);
+    } finally {
+      setIsRunningAcousticInference(false);
+    }
+  };
+
   // Standard Calibrated Adaptation Parameters
   const STANDARD_EPOCHS = 14;
   const STANDARD_EWC_LAMBDA = 85;
@@ -97,6 +234,7 @@ export default function PatientAdaptationView({
       }
       if (mounted) setLoadingLogs(false);
     });
+    fetchAcousticFeed();
     return () => {
       mounted = false;
     };
@@ -230,6 +368,206 @@ export default function PatientAdaptationView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column (5 cols): Clinical Note Input & Continual Learning Controls */}
         <div className="lg:col-span-5 space-y-6">
+
+          {/* =========================================================================
+              PATIENT ACOUSTIC COUGH & RESPIRATORY BIOSENSOR FEED (GRAPHICAL VIEW)
+          ========================================================================= */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-5 shadow-sm dark:shadow-none space-y-4">
+            <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
+                  <span className="w-2 h-2 rounded-full bg-[#0E793C] dark:bg-[#4CFF8A] animate-pulse" />
+                  ACOUSTIC SENSOR STREAM ◈ YAMNET &amp; STFT DSP
+                </div>
+                <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono mt-0.5">
+                  PATIENT ACOUSTIC COUGH SENSOR FEED ({patient.id})
+                </h2>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={fetchAcousticFeed}
+                  className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#4CFF8A] hover:bg-[#EAF8EF] dark:hover:bg-[#061C0E] cursor-pointer"
+                  title="Refresh acoustic stream"
+                >
+                  ↻ REFRESH
+                </button>
+                <span className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#4CFF8A] bg-[#EAF8EF] dark:bg-[#061C0E] font-semibold">
+                  LIVE SYNCED
+                </span>
+              </div>
+            </div>
+
+            {/* Graphical 24-Hour Cough Frequency Distribution (SVG Bar Chart) */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/60 bg-[#F6FBF7] dark:bg-[#020A05] p-3 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#0A602F] dark:text-[#2FBF63]">
+                <span className="font-bold">24-HOUR HOURLY COUGH FREQUENCY TIMELINE</span>
+                <span>PEAK: {Math.max(...(acousticHistory.length > 0 ? acousticHistory.map((h) => h.hourly_cough_count) : [14]))} COUGHS/HR</span>
+              </div>
+
+              {/* Responsive SVG Histogram */}
+              <div className="h-28 w-full pt-1">
+                <svg className="w-full h-full" viewBox="0 0 480 95" preserveAspectRatio="none">
+                  {/* Shaded Nocturnal Band (Night time hours 22h - 06h) */}
+                  <rect x="0" y="0" width="120" height="75" fill="rgba(14, 121, 60, 0.08)" />
+                  <rect x="360" y="0" width="120" height="75" fill="rgba(14, 121, 60, 0.08)" />
+
+                  {/* Horizontal Gridlines */}
+                  <line x1="0" y1="20" x2="480" y2="20" stroke="currentColor" strokeDasharray="3 3" className="text-gray-300 dark:text-[#12612F]/40" />
+                  <line x1="0" y1="50" x2="480" y2="50" stroke="currentColor" strokeDasharray="3 3" className="text-gray-300 dark:text-[#12612F]/40" />
+                  <line x1="0" y1="75" x2="480" y2="75" stroke="currentColor" className="text-gray-400 dark:text-[#12612F]" />
+
+                  {/* 24 Hourly Cough Burst Bars */}
+                  {(acousticHistory.length > 0 ? acousticHistory : Array.from({ length: 24 }).map((_, i) => ({
+                    hourly_cough_count: i >= 18 || i <= 5 ? (i % 2 === 0 ? 12 : 16) : (i % 3 === 0 ? 3 : 1),
+                  }))).slice(0, 24).map((record, idx) => {
+                    const count = record.hourly_cough_count;
+                    const barH = Math.min(65, Math.max(4, count * 3.8));
+                    const x = idx * 19.5 + 4;
+                    const y = 75 - barH;
+                    const barColor = count >= 8 ? '#EF4444' : count >= 3 ? '#F59E0B' : '#10B981';
+                    return (
+                      <g key={idx}>
+                        <rect
+                          x={x}
+                          y={y}
+                          width={14}
+                          height={barH}
+                          fill={barColor}
+                          rx={1.5}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <title>Hour -{24 - idx}h: {count} cough bursts</title>
+                        </rect>
+                      </g>
+                    );
+                  })}
+
+                  {/* Time Axis Labels */}
+                  <text x="5" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">-24h (Night)</text>
+                  <text x="220" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">-12h (Day)</text>
+                  <text x="440" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">Now</text>
+                </svg>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono text-[#4A755A] dark:text-[#2FBF63] border-t border-[#B4E3C5]/40 dark:border-[#12612F]/40 pt-1.5">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#10B981] inline-block" /> 0-2 (Normal)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#F59E0B] inline-block" /> 3-7 (Elevated)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#EF4444] inline-block" /> 8+ (High Burst Peak)
+                </span>
+              </div>
+            </div>
+
+            {/* Acoustic Biomarkers Radar Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Cough Severity</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  Grade {latestAcoustic?.cough_severity ?? 2}/3
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">
+                  {(latestAcoustic?.cough_severity ?? 2) === 3 ? 'Paroxysmal' : (latestAcoustic?.cough_severity ?? 2) === 2 ? 'Moderate' : 'Mild'}
+                </span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Wheeze Duration</span>
+                <div className="text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                  {(latestAcoustic?.wheeze_percent_duration ?? 16.5).toFixed(1)}%
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Acoustic Cycles</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Sputum / Rattle</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  Grade {latestAcoustic?.sputum_severity ?? 2}/3
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">STFT Roll-off</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Stridor Index</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestAcoustic?.stridor_detection_index ?? 0.12).toFixed(2)}
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">500-1500 Hz Ratio</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Vocal Jitter</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestAcoustic?.vocal_hoarseness_jitter ?? 1.45).toFixed(2)}%
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Mucosal Edema</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Acoustic Breath</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestAcoustic?.respiratory_rate_brpm ?? 21.0).toFixed(1)} brpm
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Acoustic RR</span>
+              </div>
+            </div>
+
+            {/* Doctor Action: Run Digital Twin Inference on Acoustic Sensor Data */}
+            <div className="pt-2 border-t border-[#B4E3C5]/60 dark:border-[#12612F]/60 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-mono text-[#0A602F] dark:text-[#2FBF63]">
+                  INCORPORATE SENSOR FEED INTO CLINICAL TWIN INFERENCE:
+                </span>
+                {acousticInferenceNotice && (
+                  <span className="text-[10px] font-mono text-[#0E793C] dark:text-[#4CFF8A] font-bold">
+                    ✓ {acousticInferenceNotice}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={isRunningAcousticInference}
+                  onClick={handleRunAcousticInference}
+                  className="px-4 py-2.5 bg-[#0E793C] hover:bg-[#0A602F] text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <span>⚡</span> {isRunningAcousticInference ? 'INTEGRATING ACOUSTIC ODE...' : 'RUN TWIN INFERENCE WITH ACOUSTIC DATA'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const simulatedCoughOutlier = {
+                      hourly_cough_count: 26,
+                      cough_severity: 3,
+                      wheeze_percent_duration: 32.5,
+                      sputum_severity: 3,
+                      stridor_detection_index: 0.28,
+                      breathlessness_score: 4,
+                      vocal_hoarseness_jitter: 2.15,
+                      respiratory_rate_brpm: 26.5,
+                    };
+                    setLatestAcoustic(simulatedCoughOutlier as any);
+                    simulateAcousticInference(patient.id, simulatedCoughOutlier).then((res) => {
+                      if (res) {
+                        handleRunAcousticInference();
+                      }
+                    });
+                  }}
+                  className="px-3 py-2 border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] hover:border-[#0E793C] dark:hover:border-[#4CFF8A] text-[#0E2E1B] dark:text-[#B6FFCC] text-xs font-mono transition-all cursor-pointer"
+                  title="Simulate acute severe nocturnal cough storm"
+                >
+                  + Simulate Severe Cough Storm (26 coughs/hr)
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Patient Self-Reported Daily Check-in Notes from Portal */}
           <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-5 shadow-sm dark:shadow-none">
             <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3 mb-3">

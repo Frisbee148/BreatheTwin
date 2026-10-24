@@ -636,6 +636,97 @@ def test_plain_text_clinical_note_outlier_simulation_and_continual_adaptation(cl
     assert any("Typhoid" in c["primaryCondition"] for c in status["outlierCases"])
 
 
+# =========================================================================
+# REAL-TIME ACOUSTIC SENSOR & COUGH INFERENCE TESTS
+# =========================================================================
+
+def test_acoustic_pipeline_unit():
+    """Verifies that the LiveAudioFeaturePipeline in mic_features_inference.py processes chunks."""
+    from aasthma.inference.mic_features_inference import get_patient_audio_pipeline
+    pipeline = get_patient_audio_pipeline("PT-8821")
+    assert pipeline is not None
+    # Feed 1-second synthetic audio chunk
+    synthetic_audio = np.random.randn(16000).astype(np.float32) * 0.05
+    res = pipeline.process_audio_chunk(synthetic_audio, sample_rate=16000)
+    assert "instant" in res
+    assert "telemetry" in res
+    assert "hourly_cough_count" in res["telemetry"]
+    assert "wheeze_percent_duration" in res["telemetry"]
+    assert "sputum_severity" in res["telemetry"]
+
+
+def test_acoustic_telemetry_and_audio_stream_endpoints(client):
+    """Verifies the audio-stream ingestion and acoustic-telemetry persistence endpoints."""
+    # 1. Post to audio-stream endpoint
+    res_stream = client.post(
+        "/api/patients/PT-8821/audio-stream",
+        json={
+            "client_coughs": 4,
+            "client_cough_severity": 2,
+        },
+    )
+    assert res_stream.status_code == 200
+    stream_data = res_stream.json()
+    assert "patientRisk" in stream_data
+    assert stream_data["patientRisk"]["coughSeverity"] >= 2
+    assert stream_data["patientRisk"]["asthmaChancePercent"] > 0
+    assert "telemetry" in stream_data
+
+    # 2. Post structured telemetry
+    res_post = client.post(
+        "/api/patients/PT-8821/acoustic-telemetry",
+        json={
+            "hourly_cough_count": 18,
+            "cough_severity": 3,
+            "wheeze_percent_duration": 22.5,
+            "sputum_severity": 3,
+            "stridor_detection_index": 0.19,
+            "breathlessness_score": 3,
+            "vocal_hoarseness_jitter": 1.6,
+            "respiratory_rate_brpm": 24.0,
+            "source": "Strados RESP Patch",
+        },
+    )
+    assert res_post.status_code == 200
+    post_data = res_post.json()
+    assert post_data["record"]["hourly_cough_count"] == 18
+
+    # 3. Retrieve acoustic telemetry history
+    res_get = client.get("/api/patients/PT-8821/acoustic-telemetry?limit=5")
+    assert res_get.status_code == 200
+    get_data = res_get.json()
+    assert get_data["count"] >= 1
+    assert "history" in get_data
+
+
+def test_acoustic_outlier_model_inference(client):
+    """Verifies that doctor-triggered acoustic outlier inference recalculates twin risk and ODE inflammation."""
+    res = client.post(
+        "/api/patients/PT-8821/acoustic-inference",
+        json={
+            "hourly_cough_count": 22,
+            "cough_severity": 3,
+            "wheeze_percent_duration": 28.0,
+            "sputum_severity": 3,
+            "stridor_detection_index": 0.25,
+            "breathlessness_score": 4,
+            "vocal_hoarseness_jitter": 1.85,
+            "respiratory_rate_brpm": 26.0,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["patientId"] == "PT-8821"
+    assert "acousticBiomarkers" in data
+    assert data["acousticBiomarkers"]["hourlyCoughCount"] == 22
+    assert data["adapted"]["risk48h"] > data["baseline"]["risk48h"]
+    assert data["deltas"]["risk48hDelta"] > 0
+    assert data["adapted"]["inflammation"] > data["baseline"]["inflammation"]
+    assert len(data["trajectory"]) > 0
+    assert len(data["adapted"]["shapReasons"]) >= 3
+
+
+
 
 
 

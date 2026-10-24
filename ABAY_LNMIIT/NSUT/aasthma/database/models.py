@@ -34,6 +34,7 @@ class PatientModel(Base):
     events = relationship("ClinicalEventModel", back_populates="patient", cascade="all, delete-orphan")
     telemetry = relationship("TelemetryModel", back_populates="patient", cascade="all, delete-orphan")
     daily_logs = relationship("PatientDailyLogModel", back_populates="patient", cascade="all, delete-orphan")
+    acoustic_telemetry = relationship("AcousticTelemetryModel", back_populates="patient", cascade="all, delete-orphan")
 
 
 class PatientHistoryModel(Base):
@@ -139,4 +140,32 @@ class UserAccountModel(Base):
     is_verified = Column(Boolean, default=False, nullable=False)
     verification_code = Column(String(20), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AcousticTelemetryModel(Base):
+    """
+    Real-Time Acoustic Respiratory Sensor & Cough Monitoring Table
+    Stores micro-acoustic biosensor metrics (hourly cough count, wheeze %, stridor, etc.)
+    """
+    __tablename__ = "acoustic_telemetry"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    patient_id = Column(String(50), ForeignKey("patients.patient_id", ondelete="CASCADE"), index=True, nullable=False)
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    hourly_cough_count = Column(Integer, default=0)
+    cough_severity = Column(Integer, default=0)           # 0: None, 1: Mild, 2: Moderate, 3: Severe
+    wheeze_percent_duration = Column(Float, default=0.0)
+    sputum_severity = Column(Integer, default=0)          # 0: None, 1: Dry, 2: Moderate, 3: Heavy Sputum
+    stridor_detection_index = Column(Float, default=0.0)
+    breathlessness_score = Column(Integer, default=0)
+    snoring_nocturnal_score = Column(Float, default=0.0)
+    vocal_hoarseness_jitter = Column(Float, default=0.8)
+    vocal_shimmer_score = Column(Float, default=2.5)
+    ambient_noise_decibels = Column(Float, default=45.0)
+    speech_rate_wpm = Column(Float, default=130.0)
+    respiratory_rate_brpm = Column(Float, default=16.0)
+    source = Column(String(50), default="Web Microphone")
+
+    patient = relationship("PatientModel", back_populates="acoustic_telemetry")
+
 

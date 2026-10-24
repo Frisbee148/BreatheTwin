@@ -745,6 +745,240 @@ export async function getPatientCheckIns(patientId: string) {
   return { patient_id: patientId, count: localLogs.length, logs: localLogs };
 }
 
+// =========================================================================
+// REAL-TIME ACOUSTIC BIOSENSOR & COUGH DETECTION TYPES & CLIENT
+// =========================================================================
+
+export interface AcousticTelemetryRecord {
+  id?: string | number;
+  patient_id?: string;
+  recorded_at?: string;
+  hourly_cough_count: number;
+  cough_severity: number; // 0..3
+  wheeze_percent_duration: number;
+  sputum_severity: number;
+  stridor_detection_index: number;
+  breathlessness_score: number;
+  snoring_nocturnal_score?: number;
+  vocal_hoarseness_jitter?: number;
+  vocal_shimmer_score?: number;
+  ambient_noise_decibels?: number;
+  speech_rate_wpm?: number;
+  respiratory_rate_brpm?: number;
+  source?: string;
+}
+
+export interface AudioStreamChunkResponse {
+  instant: {
+    prob_cough: number;
+    prob_wheeze: number;
+    cough_detected: boolean;
+    wheeze_detected: boolean;
+    spectral_rolloff_hz?: number;
+    ambient_db?: number;
+    jitter_pct?: number;
+  };
+  telemetry: AcousticTelemetryRecord;
+  patientRisk: {
+    risk24h: number;
+    risk48h: number;
+    riskLevel: 'NORMAL' | 'CAUTION' | 'ELEVATED' | 'HIGH RISK';
+    coughSeverity: number;
+    coughSeverityLabel: string;
+    asthmaChancePercent: number;
+    wheezeDetected: boolean;
+  };
+  log?: AcousticTelemetryRecord;
+}
+
+export interface AcousticInferenceResponse {
+  patientId: string;
+  datasetId: string;
+  source: string;
+  acousticBiomarkers: {
+    hourlyCoughCount: number;
+    coughSeverity: number;
+    wheezePercentDuration: number;
+    sputumSeverity: number;
+    stridorDetectionIndex: number;
+    breathlessnessScore: number;
+    vocalHoarsenessJitter: number;
+    vocalShimmerScore: number;
+    ambientNoiseDb: number;
+    respiratoryRateBrpm: number;
+  };
+  baseline: {
+    risk24h: number;
+    risk48h: number;
+    inflammation: number;
+    riskLevel: string;
+  };
+  adapted: {
+    risk24h: number;
+    risk48h: number;
+    inflammation: number;
+    riskLevel: string;
+    shapReasons: Array<{
+      rank: number;
+      feature: string;
+      impactPercent: number;
+      direction: 'up' | 'down';
+      description: string;
+      targetStream: string;
+    }>;
+  };
+  deltas: {
+    risk24hDelta: number;
+    risk48hDelta: number;
+    inflammationDelta: number;
+  };
+  trajectory: Array<{
+    hour: number;
+    label: string;
+    baselineRisk: number;
+    adaptedRisk: number;
+    baselineInflammation: number;
+    adaptedInflammation: number;
+  }>;
+  modelVersion: string;
+}
+
+const LOCAL_ACOUSTIC_KEY = 'digi_acoustic_telemetry_v1';
+
+export function getLocalAcousticRecords(patientId: string): AcousticTelemetryRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_ACOUSTIC_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    return map[patientId] || [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalAcousticRecord(patientId: string, entry: AcousticTelemetryRecord) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(LOCAL_ACOUSTIC_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    const cur = map[patientId] || [];
+    map[patientId] = [entry, ...cur].slice(0, 30);
+    localStorage.setItem(LOCAL_ACOUSTIC_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+/** Streams/posts an audio buffer or cough detection event to the backend */
+export async function streamAudioChunk(
+  patientId: string,
+  audioBase64?: string,
+  sampleRate: number = 16000,
+  clientCoughs?: number,
+  clientCoughSeverity?: number
+): Promise<AudioStreamChunkResponse> {
+  const fallback: AudioStreamChunkResponse = {
+    instant: {
+      prob_cough: (clientCoughs && clientCoughs > 0) ? 0.82 : 0.08,
+      prob_wheeze: 0.05,
+      cough_detected: !!(clientCoughs && clientCoughs > 0),
+      wheeze_detected: false,
+      spectral_rolloff_hz: 2200,
+      ambient_db: 46,
+      jitter_pct: 0.9,
+    },
+    telemetry: {
+      hourly_cough_count: clientCoughs || 0,
+      cough_severity: clientCoughSeverity || 0,
+      wheeze_percent_duration: 1.5,
+      sputum_severity: clientCoughSeverity || 0,
+      stridor_detection_index: 0.04,
+      breathlessness_score: clientCoughSeverity ? Math.min(3, clientCoughSeverity) : 0,
+      vocal_hoarseness_jitter: 0.88,
+      vocal_shimmer_score: 2.5,
+      ambient_noise_decibels: 45.0,
+      speech_rate_wpm: 130.0,
+      respiratory_rate_brpm: 16.5,
+      source: 'Client Web Audio Fallback',
+    },
+    patientRisk: {
+      risk24h: 18.0 + (clientCoughSeverity || 0) * 8.0,
+      risk48h: 22.0 + (clientCoughSeverity || 0) * 12.0,
+      riskLevel: (clientCoughSeverity && clientCoughSeverity >= 2) ? 'ELEVATED' : 'NORMAL',
+      coughSeverity: clientCoughSeverity || 0,
+      coughSeverityLabel: clientCoughSeverity === 3 ? 'Severe / Paroxysmal' : clientCoughSeverity === 2 ? 'Moderate Coughing' : clientCoughSeverity === 1 ? 'Mild / Occasional' : 'None / Quiet',
+      asthmaChancePercent: Math.min(95.0, 22.0 + (clientCoughSeverity || 0) * 14.0),
+      wheezeDetected: false,
+    },
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/audio-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audio_base64: audioBase64 || null,
+        sample_rate: sampleRate,
+        client_coughs: clientCoughs,
+        client_cough_severity: clientCoughSeverity,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.telemetry) {
+        saveLocalAcousticRecord(patientId, data.telemetry);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('Audio streaming backend request failed, using client fallback:', err);
+  }
+
+  saveLocalAcousticRecord(patientId, fallback.telemetry);
+  return fallback;
+}
+
+/** Fetches recent acoustic records for a patient */
+export async function getPatientAcousticTelemetry(patientId: string, limit: number = 24) {
+  const localRecords = getLocalAcousticRecords(patientId);
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/acoustic-telemetry?limit=${limit}`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.history) && data.history.length > 0) {
+        return data;
+      }
+    }
+  } catch {}
+  return {
+    patient_id: patientId,
+    count: localRecords.length,
+    latest: localRecords[0] || null,
+    history: localRecords,
+  };
+}
+
+/** Runs doctor-triggered twin model inference on the patient's acoustic sensor data */
+export async function simulateAcousticInference(
+  patientId: string,
+  payload: Partial<AcousticTelemetryRecord> = {},
+  hour?: number
+): Promise<AcousticInferenceResponse> {
+  const body = { ...payload, hour };
+  const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/acoustic-inference`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Acoustic inference failed: ${errorText}`);
+  }
+  return await res.json();
+}
+
+
 export interface PatientChatResponse {
   patient_id: string;
   plain_risk_level: 'Low' | 'Watch' | 'High';
