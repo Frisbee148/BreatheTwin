@@ -89,9 +89,9 @@ Asthma management in polluted urban environments faces a critical clinical blind
 1. **Disproportionate Mortality Burden in India**:  
    India accounts for **more than 42% of global asthma mortality** despite representing approximately 13% of the global asthma population ([Salvi et al., *The Lancet Global Health*, 2018](https://doi.org/10.1016/S2214-109X(18)30409-1)). High levels of ambient and household particulate matter, coupled with variable controller adherence and delayed clinical presentation, drive preventable severe exacerbations.
 2. **Empirical Delayed Inflammatory Response Window (24–36 Hours)**:  
-   Controlled inhalation exposure and observational studies demonstrate that inhalation of ambient fine particulate matter ($\text{PM}_{2.5}$) triggers a delayed bronchial mucosal inflammatory cascade ([Guarnieri & Balmes, *The Lancet*, 2014](https://doi.org/10.1016/S0140-6736(14)60617-6); [Gong et al., *Inhal Toxicol*, 2003](https://doi.org/10.1080/08958370304455); [Ghio et al., *Am J Respir Crit Care Med*, 2000](https://doi.org/10.1164/ajrccm.162.3.9911115)). Acute pulmonary oxidative stress, neutrophil/eosinophil recruitment, and secondary bronchial hyperresponsiveness peak over a characteristic **24 to 36-hour delayed window** before airway narrowing manifests as clinically perceptible dyspnea or acute forced expiratory volume drops. This delayed window provides a crucial prospective opportunity for preventative stabilization, but is invisible under reactive care models.
+   Controlled inhalation exposure and observational studies demonstrate that inhalation of ambient fine particulate matter (PM2.5) triggers a delayed bronchial mucosal inflammatory cascade ([Guarnieri & Balmes, *The Lancet*, 2014](https://doi.org/10.1016/S0140-6736(14)60617-6); [Gong et al., *Inhal Toxicol*, 2003](https://doi.org/10.1080/08958370304455); [Ghio et al., *Am J Respir Crit Care Med*, 2000](https://doi.org/10.1164/ajrccm.162.3.9911115)). Acute pulmonary oxidative stress, neutrophil/eosinophil recruitment, and secondary bronchial hyperresponsiveness peak over a characteristic **24 to 36-hour delayed window** before airway narrowing manifests as clinically perceptible dyspnea or acute forced expiratory volume drops. This delayed window provides a crucial prospective opportunity for preventative stabilization, but is invisible under reactive care models.
 3. **Fragmented Clinical and Environmental Signals**:  
-   Static pulmonary function baselines (spirometry $\text{FEV}_1$, $\text{FEV}_1/\text{FVC}$), continuous wearable biometric telemetry (nocturnal $\text{SpO}_2$ dips, resting respiratory rate elevation, reduced heart rate variability), and ambient air-quality telemetry reside in separate operational silos.
+   Static pulmonary function baselines (spirometry FEV1, FEV1/FVC), continuous wearable biometric telemetry (nocturnal SpO2 dips, resting respiratory rate elevation, reduced heart rate variability), and ambient air-quality telemetry reside in separate operational silos.
 4. **Reactive Treatment vs. Proactive Intervention**:  
    Because physicians lack visibility into sub-clinical airway inflammation between scheduled clinic visits, therapy remains reactive—often beginning only when acute bronchospasm forces emergency department presentation.
 
@@ -100,7 +100,7 @@ Asthma management in polluted urban environments faces a critical clinical blind
 To ensure scientific clarity, BreathTwin distinguishes its data streams by origin and availability:
 
 - **Synthetic Patient Cohort**: All 1,000 patient records (demographics, baseline spirometry, comorbidities, 20-channel wearable sensor time series, and physician event logs) are generated synthetically using physiological distributions documented in clinical literature. No protected health information (PHI) is included.
-- **Environmental Telemetry**: Ambient air-quality measurements ($\text{PM}_{2.5}$, $\text{PM}_{10}$, AQI) can be streamed live from public monitoring stations via the Open-Meteo Air Quality API (mapped to 70+ Indian city coordinates) or replayed through deterministic benchmark scenarios.
+- **Environmental Telemetry**: Ambient air-quality measurements (PM2.5, PM10, AQI) can be streamed live from public monitoring stations via the Open-Meteo Air Quality API (mapped to 70+ Indian city coordinates) or replayed through deterministic benchmark scenarios.
 - **Standalone vs. API-Dependent Operation**: Core ML inference, ODE simulation, What-If counterfactual analysis, deterministic clinical-note extraction, and PostgreSQL replay run 100% offline without external services. Live AQI fetching and LLM-generated patient Copilot reports utilize optional external API endpoints (`Open-Meteo`, `OpenAI`, `Hugging Face`).
 
 ---
@@ -115,22 +115,22 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 * **Population-Level Risk Ranking**: Automatically ranks the outpatient panel by predicted 48-hour exacerbation probability.
 * **Multi-Grade Severity Classification**: Categorizes patient status from `Grade 0 (Stable)` through `Grade 3 (Severe / Critical)`.
 * **Rapid Clinical Triage Badges**: Displays visual status badges (`High Risk`, `Moderate`, `Low`) for rapid bedside prioritization.
-* **Environmental Context Integration**: Overlays live ambient $\text{PM}_{2.5}$ / $\text{PM}_{10}$ air quality indices for each patient's home monitoring station.
+* **Environmental Context Integration**: Overlays live ambient PM2.5 / PM10 air quality indices for each patient's home monitoring station.
 * **Direct Clinical Navigation**: One-click deep link to individual digital twins, forecasts, sandbox counterfactuals, and note adaptation.
 
 #### Page 2: Physiological Digital Twin Viewport (`/patients/[id]`)
-* **State Observer Header (`MODEL: KALMAN MECHANISTIC STATE ESTIMATOR I(t) • REALISTIC ANATOMY`)**: Displays the active twin modeling mode—signifying continuous estimation of latent inflammation $I(t)$ from noisy surface vitals mapped onto a 3D anatomical respiratory mesh.
+* **State Observer Header (`MODEL: KALMAN MECHANISTIC STATE ESTIMATOR I(t) • REALISTIC ANATOMY`)**: Displays the active twin modeling mode—signifying continuous estimation of latent inflammation I(t) from noisy surface vitals mapped onto a 3D anatomical respiratory mesh.
 * **Interactive 3D Pulmonary Visualization**: Renders an anatomical 3D lung model using Three.js and WebGL with responsive orbit controls.
-* **Thermal Inflammation Shader Overlay**: Dynamic GLSL thermal color maps visualize localized bronchial mucosal swelling based on latent $I(t)$.
-* **Continuous Latent Airway State $I(t)$**: Plots continuous inflammatory trajectory derived from the Euler-Maruyama SDE solver ($[0.08, 0.98]$).
-* **Multi-Sensor Telemetry Comparison**: Compares rolling 12-hour wearable vitals ($\text{SpO}_2$, resting heart rate, respiratory rate, HRV) against the patient's personalized healthy baseline.
+* **Thermal Inflammation Shader Overlay**: Dynamic GLSL thermal color maps visualize localized bronchial mucosal swelling based on latent I(t).
+* **Continuous Latent Airway State I(t)**: Plots continuous inflammatory trajectory derived from the Euler-Maruyama SDE solver (range [0.08, 0.98]).
+* **Multi-Sensor Telemetry Comparison**: Compares rolling 12-hour wearable vitals (SpO2, resting heart rate, respiratory rate, HRV) against the patient's personalized healthy baseline.
 * **Historical Longitudinal Trajectory**: Tracks 14-day trend history for spirometry baseline, daily controller compliance, and acute symptom spikes.
 
 #### Page 3: 24-Hour & 48-Hour Conformal Risk Forecast (`/patients/[id]/forecast`)
 * **Multi-Horizon Risk Probability**: Displays dual prospective risk gauges predicting exacerbation probability at 24 hours and 48 hours.
 * **Conformal Uncertainty Bands**: Wraps predictions in 90% conformal prediction intervals derived from split-conformal calibration on the held-out validation cohort.
-* **Interactive Hourly Timeline Scrubber**: Enables clinicians to scrub across hours $t+0$ to $t+48$ to observe projected metric evolution.
-* **Ranked SHAP Feature Attribution**: Explains risk drivers using local SHAP contribution bars (e.g., nocturnal $\text{SpO}_2$ drops, $\text{PM}_{2.5}$ surge, missed controller doses).
+* **Interactive Hourly Timeline Scrubber**: Enables clinicians to scrub across hours t+0 to t+48 to observe projected metric evolution.
+* **Ranked SHAP Feature Attribution**: Explains risk drivers using local SHAP contribution bars (e.g., nocturnal SpO2 drops, PM2.5 surge, missed controller doses).
 * **Targeted Clinical Guidance**: Formulates evidence-based clinical recommendations directly aligned with dominant SHAP risk contributors.
 
 #### Page 4: Counterfactual What-If Sandbox (`/patients/[id]/what-if`)
@@ -138,11 +138,11 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 * **Intervention 02 — N95 Respirator Simulation**: Evaluates 95% particulate filtration efficacy during peak commuting or smog hours.
 * **Intervention 03 — HEPA Air Filtration Simulation**: Simulates high-efficiency indoor filtration lowering indoor infiltration ratio from `0.65` to `0.30`.
 * **Intervention 04 — ICS Controller Step-Up**: Simulates 100% adherence to inhaled corticosteroid therapy, computing accelerated mucosal recovery rate.
-* **Real-Time Delta Comparison**: Computes before-versus-after trajectory overlays, delta risk percentage reduction, and expected $\text{FEV}_1$ stabilization.
+* **Real-Time Delta Comparison**: Computes before-versus-after trajectory overlays, delta risk percentage reduction, and expected FEV1 stabilization.
 
 #### Page 5: Clinical Note Adaptation & Model Retraining (`/patients/[id]/adapt`)
 * **Unstructured Doctor Free-Text Ingestion**: Accepts natural language clinical observations (e.g., concurrent typhoid fever, dengue, acute dehydration, beta-blocker introduction).
-* **Clinical Feature Extraction**: Automatically parses free text into quantitative physiological perturbations ($\Delta T$, $\Delta \text{HR}$, $\Delta \text{RR}$, $\Delta \text{SpO}_2$) and mechanistic ODE modifiers ($\delta_{\text{systemic}}$, $\beta_{\text{AHR}}$, $\eta_{\text{absorption}}$) via LLM or deterministic regex/ontology fallback.
+* **Clinical Feature Extraction**: Automatically parses free text into quantitative physiological perturbations (ΔT, ΔHR, ΔRR, ΔSpO2) and mechanistic ODE modifiers (δ_systemic, β_AHR, η_absorption) via LLM or deterministic regex/ontology fallback.
 * **Dynamic Parameter Override**: Directly injects extracted perturbations into the patient's runtime digital twin without database schema migrations.
 * **Experience Replay Buffer Commit**: Persists verified clinical outlier episodes into PostgreSQL with clinician attribution and timestamp.
 * **Continual Retraining with Elastic Weight Consolidation (EWC)**: Fine-tunes the Stage-2 Meta-Learner on outlier trajectories while penalizing weight movement away from baseline Fisher information parameters.
@@ -195,13 +195,13 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 | **3D & Shader Visualization** | Three.js `0.186`, WebGL / GLSL Custom Shaders, `.glb` 3D Pulmonary Mesh | Interactive 3D lung anatomical viewer and thermal inflammation reveal | Standalone Local |
 | **Backend API Server** | Python 3.11+, FastAPI `0.110+`, Uvicorn, Pydantic `2.5+`, HTTPX | REST endpoints, simulation clock replay, schema validation, telemetry routing | Standalone Local |
 | **Deep Learning & Boosting** | PyTorch `2.0+`, XGBoost `2.0+`, scikit-learn `1.3+`, NumPy, Pandas | Stage-1A Dilated TCN, Stage-1B XGBoost Suite, Stage-2 Stacking MLP Meta-Learner | Standalone Local |
-| **Mechanistic Simulation** | Custom Euler-Maruyama SDE Solver ([`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py)) | Continuous airway inflammation state $I(t)$ integration and counterfactual What-If sandbox | Standalone Local |
+| **Mechanistic Simulation** | Custom Euler-Maruyama SDE Solver ([`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py)) | Continuous airway inflammation state I(t) integration and counterfactual What-If sandbox | Standalone Local |
 | **Clinical Language & Copilot** | OpenAI API (`gpt-4o`) / Hugging Face (`Llama-3.1-8B` / `Qwen2.5`) + Deterministic Fallback Engine | Schema-validated clinical reports, unstructured clinical note perturbation extraction | External API (with Offline Fallback) |
 | **Continual Adaptation & EWC** | Elastic Weight Consolidation (EWC), Experience Replay Buffer, PyTorch | Fine-tuning Stage-2 Meta-Learner on clinician-verified outlier episodes | Standalone Local |
 | **Acoustic Audio & DSP** | Google YamNet (AudioSet Class 47 Cough, Class 50 Wheeze), Librosa, SoundFile, SciPy STFT | Live microphone cough detection, wheeze duration %, vocal jitter/shimmer, stridor | Standalone Local |
 | **Computer Vision & Video** | MediaPipe FaceMesh (468 3D landmarks), OpenCV, optical rPPG green-channel FFT | Webcam facial respiratory distress, mouth breathing ratio (MAR), nasal flaring, optical pulse | Standalone Local |
 | **Database & Persistence** | PostgreSQL 16 (`postgres:16-alpine`), SQLAlchemy 2.0, Psycopg 3 | Stores patients, telemetry, clinical events, daily logs, and RBAC accounts | Standalone Local (Containerized) |
-| **Environmental Telemetry** | CPCB Station Coordinates (70+ Indian cities), Open-Meteo Air Quality API | Live ambient $\text{PM}_{2.5}$, $\text{PM}_{10}$, and AQI telemetry, plus replayed historical episodes | External API / Local Scenario Cache |
+| **Environmental Telemetry** | CPCB Station Coordinates (70+ Indian cities), Open-Meteo Air Quality API | Live ambient PM2.5, PM10, and AQI telemetry, plus replayed historical episodes | External API / Local Scenario Cache |
 | **Packaging & Testing** | Docker Compose, Pytest `8.0+`, Bash service orchestration (`run.sh`, `stop.sh`) | Containerized database, environment validation, and automated P0 verification tests | Standalone Local |
 
 ---
@@ -259,13 +259,13 @@ BreathTwin combines a **Two-Stage Multi-Model Ensemble** (Stage 1A TCN + Stage 1
 
 ### 7.1 Mechanistic Airway Inflammation State Estimator (Latent SDE)
 
-Implemented in [`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state $I(t) \in [0.08, 0.98]$ governed by the stochastic differential equation:
+Implemented in [`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py). Every virtual patient maintains a continuous latent airway inflammation state I(t) ∈ [0.08, 0.98] governed by the stochastic differential equation:
 
 $$
 \frac{dI}{dt} = -k \cdot I(t) + a \cdot \beta_{\text{AHR}} \cdot \text{Dose}_{\text{PM}}(t) + b \cdot \text{Trigger}(t) + \delta_{\text{systemic}} - c \cdot \eta_{\text{absorption}} \cdot \text{Controller}(t) + \sigma \cdot \xi(t)
 $$
 
-where $\xi(t) \sim \mathcal{N}(0, 1)$ represents standard Gaussian white noise. The equation is solved numerically using the **Euler-Maruyama discretization method** with a time step of $\Delta t = 1.0\text{ hour}$, and the updated state is bounded to $[0.08, 0.98]$ via clipping.
+where ξ(t) ~ N(0, 1) represents standard Gaussian white noise. The equation is solved numerically using the **Euler-Maruyama discretization method** with a time step of Δt = 1.0 hour, and the updated state is bounded to [0.08, 0.98] via clipping.
 
 #### Biological Parameter Registry & Literature Rationales
 
@@ -273,17 +273,17 @@ All parameter values are grounded in published clinical and pharmacological lite
 
 | Parameter | Symbol | Calibrated Value | Units | Physiological Role & Rationale | Literature Citation & DOI |
 | :--- | :---: | :---: | :---: | :--- | :--- |
-| **Inflammation Recovery Decay Rate** | $k$ | $0.08$ | $\text{hr}^{-1}$ | Spontaneous clearance and resolution of bronchial epithelial inflammation in the absence of active insults (half-life $\approx 8.6\text{ hours}$). | Barnes, P. J. (2010), *J Allergy Clin Immunol*, [10.1016/j.jaci.2010.02.034](https://doi.org/10.1016/j.jaci.2010.02.034) |
-| **Particulate Deposition Factor** | $a$ | $0.0009$ | $(\mu\text{g/m}^3)^{-1}\text{hr}^{-1}$ | Rate of latent mucosal oxidative stress and inflammatory induction per unit of inhaled ambient $\text{PM}_{2.5}$, scaled by individual hyperresponsiveness ($\beta_{\text{AHR}}$). | Guarnieri, M. & Balmes, J. R. (2014), *The Lancet*, [10.1016/S0140-6736(14)60617-6](https://doi.org/10.1016/S0140-6736(14)60617-6) |
-| **Meteorological & Symptom Sensitivity** | $b$ | $0.020$ | $\text{hr}^{-1}$ | Airway sensitivity responding to rapid diurnal humidity drops, cold thermal shocks, and acute symptom triggers (cough, wheeze, rescue inhaler puffs). | Graudenz, G. S., et al. (2006), *Chest*, [10.1378/chest.129.3.645](https://doi.org/10.1378/chest.129.3.645) |
-| **Controller Inhaled Steroid Efficacy** | $c$ | $0.100$ | $\text{hr}^{-1}$ | Suppression rate of eosinophilic airway cascade via inhaled corticosteroid (ICS) receptor binding, scaled by medication adherence and absorption efficiency ($\eta_{\text{absorption}}$). | Global Initiative for Asthma (GINA, 2023), *Eur Respir J*, [10.1183/13993003.01053-2023](https://doi.org/10.1183/13993003.01053-2023) |
-| **Stochastic Biological Variance** | $\sigma$ | $0.015$ | dimensionless | Gaussian white noise term representing unmeasured micro-environmental fluctuations, emotional stress, and physiological volatility. | Frey, U., et al. (2005), *Am J Respir Crit Care Med*, [10.1164/rccm.200404-517OC](https://doi.org/10.1164/rccm.200404-517OC) |
-| **Indoor Particulate Penetration Ratio** | $\alpha_{\text{indoor}}$ | $0.65\text{ (unfiltered)} / 0.30\text{ (HEPA)}$ | ratio | Fraction of ambient outdoor $\text{PM}_{2.5}$ that infiltrates standard urban residential and commercial building envelopes. | Pant, P., et al. (2017), *Environ Pollut*, [10.1016/j.envpol.2016.03.064](https://doi.org/10.1016/j.envpol.2016.03.064) |
-| **Respirator Filtration Efficiency** | $\eta_{\text{N95}}$ | $0.05\text{ (95\% filtration)}$ | ratio | Penetration fraction applied to outdoor $\text{PM}_{2.5}$ exposure when an N95-certified respirator is worn during transit. | NIOSH / CDC (2020), DHHS Publication No. 2020-120, [10.26616/NIOSHPUB2020120](https://doi.org/10.26616/NIOSHPUB2020120) |
+| **Inflammation Recovery Decay Rate** | k | 0.08 | hr⁻¹ | Spontaneous clearance and resolution of bronchial epithelial inflammation in the absence of active insults (half-life ≈ 8.6 hours). | Barnes, P. J. (2010), *J Allergy Clin Immunol*, [10.1016/j.jaci.2010.02.034](https://doi.org/10.1016/j.jaci.2010.02.034) |
+| **Particulate Deposition Factor** | a | 0.0009 | (µg/m³)⁻¹·hr⁻¹ | Rate of latent mucosal oxidative stress and inflammatory induction per unit of inhaled ambient PM2.5, scaled by individual hyperresponsiveness (β_AHR). | Guarnieri, M. & Balmes, J. R. (2014), *The Lancet*, [10.1016/S0140-6736(14)60617-6](https://doi.org/10.1016/S0140-6736(14)60617-6) |
+| **Meteorological & Symptom Sensitivity** | b | 0.020 | hr⁻¹ | Airway sensitivity responding to rapid diurnal humidity drops, cold thermal shocks, and acute symptom triggers (cough, wheeze, rescue inhaler puffs). | Graudenz, G. S., et al. (2006), *Chest*, [10.1378/chest.129.3.645](https://doi.org/10.1378/chest.129.3.645) |
+| **Controller Inhaled Steroid Efficacy** | c | 0.100 | hr⁻¹ | Suppression rate of eosinophilic airway cascade via inhaled corticosteroid (ICS) receptor binding, scaled by medication adherence and absorption efficiency (η_absorption). | Global Initiative for Asthma (GINA, 2023), *Eur Respir J*, [10.1183/13993003.01053-2023](https://doi.org/10.1183/13993003.01053-2023) |
+| **Stochastic Biological Variance** | σ | 0.015 | dimensionless | Gaussian white noise term representing unmeasured micro-environmental fluctuations, emotional stress, and physiological volatility. | Frey, U., et al. (2005), *Am J Respir Crit Care Med*, [10.1164/rccm.200404-517OC](https://doi.org/10.1164/rccm.200404-517OC) |
+| **Indoor Particulate Penetration Ratio** | α_indoor | 0.65 (unfiltered) / 0.30 (HEPA) | ratio | Fraction of ambient outdoor PM2.5 that infiltrates standard urban residential and commercial building envelopes. | Pant, P., et al. (2017), *Environ Pollut*, [10.1016/j.envpol.2016.03.064](https://doi.org/10.1016/j.envpol.2016.03.064) |
+| **Respirator Filtration Efficiency** | η_N95 | 0.05 (95% filtration) | ratio | Penetration fraction applied to outdoor PM2.5 exposure when an N95-certified respirator is worn during transit. | NIOSH / CDC (2020), DHHS Publication No. 2020-120, [10.26616/NIOSHPUB2020120](https://doi.org/10.26616/NIOSHPUB2020120) |
 
 > [!NOTE]
 > **State Observer Analogy ("Kalman Mechanistic State Estimator")**:  
-> In the clinician interface, this component is labeled *Kalman Mechanistic State Estimator*. In system theory, a Kalman filter acts as a state observer that infers an unmeasurable internal state by filtering noisy, indirect surface observations against a dynamical model. Here, internal mucosal inflammation cannot be directly measured by consumer wearables. Operating as a state observer, the engine infers latent $I(t)$ from noisy vitals ($\text{SpO}_2$, heart rate, respiratory rate, nocturnal dips) and particulate exposure, mapping the estimated state onto a 3D anatomical lung mesh (`realistic_human_lungs.glb`) for clinical inspection. It is a functional physiological state observer rather than a classic unconstrained linear-Gaussian matrix filter.
+> In the clinician interface, this component is labeled *Kalman Mechanistic State Estimator*. In system theory, a Kalman filter acts as a state observer that infers an unmeasurable internal state by filtering noisy, indirect surface observations against a dynamical model. Here, internal mucosal inflammation cannot be directly measured by consumer wearables. Operating as a state observer, the engine infers latent I(t) from noisy vitals (SpO2, heart rate, respiratory rate, nocturnal dips) and particulate exposure, mapping the estimated state onto a 3D anatomical lung mesh (`realistic_human_lungs.glb`) for clinical inspection. It is a functional physiological state observer rather than a classic unconstrained linear-Gaussian matrix filter.
 
 ---
 
@@ -323,7 +323,7 @@ Implemented in [`aasthma/training/ensemble.py`](ABAY_LNMIIT/NSUT/aasthma/trainin
 
 The relationship between the neural ensemble and the mechanistic ODE simulator operates across two distinct pathways:
 
-1. **Real-Time State Blending for Visualization**: During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](ABAY_LNMIIT/NSUT/aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation $I_{\text{ODE}}$. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability $P_{48\text{h}}$ to produce the final estimated airway inflammation score:
+1. **Real-Time State Blending for Visualization**: During runtime prediction ([`aasthma/inference/inference_engine.py#L841-L849`](ABAY_LNMIIT/NSUT/aasthma/inference/inference_engine.py#L841-L849)), the ODE numerically integrates over the patient's observed 12-hour telemetry and particulate exposure window to calculate latent biological mucosal inflammation I_ODE. The engine blends this mechanistic state with the neural ensemble's 48-hour risk probability P_48h to produce the final estimated airway inflammation score:
 
 $$
 \text{Estimated } I(t) = \text{clip}\left(0.55 \cdot I_{\text{ODE}} + 0.45 \cdot \left(0.92 \cdot P_{48\text{h}} + 0.06\right),\, 0.10,\, 0.95\right)
@@ -332,7 +332,7 @@ $$
 This combined metric drives the real-time GLSL thermal shader on the 3D pulmonary mesh.
 
 2. **Counterfactual What-If Sandbox**:  
-   The ODE simulator acts as an independent physics-based branch. When a clinician adjusts intervention sliders (`Stay Indoors`, `Wear N95 Mask`, `HEPA Purifier`, `ICS Adherence Step-Up`), the simulator recalculates the projected inflammation curve $I(t)$ over prospective hours by modifying physical differential equation parameters ($\text{Dose}_{\text{PM}}$, $\alpha_{\text{indoor}}$, $\eta_{\text{N95}}$, $\text{Adherence}$) without altering historical wearable records.
+   The ODE simulator acts as an independent physics-based branch. When a clinician adjusts intervention sliders (`Stay Indoors`, `Wear N95 Mask`, `HEPA Purifier`, `ICS Adherence Step-Up`), the simulator recalculates the projected inflammation curve I(t) over prospective hours by modifying physical differential equation parameters (Dose_PM, α_indoor, η_N95, Adherence) without altering historical wearable records.
 
 ---
 
@@ -371,8 +371,8 @@ Unstructured Doctor Note ("Patient presented with Typhoid fever, 102.5F, severe 
 
 1. **Unstructured Text Extraction**: The clinician submits free-text observations (e.g., systemic febrile infections like typhoid, dengue, malaria, or medication changes such as beta-blocker introduction).
 2. **Physiological Mapping**: An LLM (or the deterministic regex/ontology fallback engine) extracts structured perturbations:
-   - Dynamic Wearable Deltas ($\Delta T$, $\Delta \text{HR}$, $\Delta \text{RR}$, $\Delta \text{SpO}_2$, $\Delta \text{HRV}$).
-   - Mechanistic ODE Modifiers: Injects systemic cytokine load ($\delta_{\text{systemic}}$), scales airway hyperresponsiveness ($\beta_{\text{AHR}}$), and adjusts controller absorption efficiency ($\eta_{\text{absorption}}$).
+   - Dynamic Wearable Deltas (ΔT, ΔHR, ΔRR, ΔSpO2, ΔHRV).
+   - Mechanistic ODE Modifiers: Injects systemic cytokine load (δ_systemic), scales airway hyperresponsiveness (β_AHR), and adjusts controller absorption efficiency (η_absorption).
 3. **Doctor Verification & Buffer Commit**: Verified clinical outlier episodes are committed to the PostgreSQL **Experience Replay Buffer** via `POST /api/patients/{id}/clinical-note/commit`.
 4. **Continual Retraining with Elastic Weight Consolidation (EWC)**: The adaptation engine fine-tunes `RespiTwinMLPMetaLearner` on outlier trajectories while preserving previously learned baseline asthma dynamics ([Kirkpatrick et al., *PNAS*, 2017](https://doi.org/10.1073/pnas.1611835114)). The loss function regularizes parameter drift:
 
@@ -380,7 +380,7 @@ $$
 \mathcal{L}_{\text{total}}(\theta) = \mathcal{L}_{\text{outlier}}(\theta) + \frac{\lambda_{\text{EWC}}}{2} \sum_{i} F_i \left(\theta_i - \theta_{i, \text{base}}\right)^2
 $$
 
-where $\mathcal{L}_{\text{outlier}}(\theta)$ is the task loss on the outlier episode, $\lambda_{\text{EWC}}$ is the consolidation importance hyperparameter, $\theta_{i, \text{base}}$ denotes the anchor weights of the trained baseline model, and $F_i$ represents the diagonal Fisher Information Matrix elements measuring parameter sensitivity on baseline asthma cohorts.
+where `L_outlier(θ)` is the task loss on the outlier episode, `λ_EWC` is the consolidation importance hyperparameter, `θ_{i,base}` denotes the anchor weights of the trained baseline model, and `F_i` represents the diagonal Fisher Information Matrix elements measuring parameter sensitivity on baseline asthma cohorts.
 
 ---
 
@@ -407,11 +407,11 @@ The quantitative evaluation was conducted on a patient-split cohort generated fr
   - **Held-Out Test Cohort**: 100 patients (10%, 22,900 telemetry windows).  
   All static and dynamic normalization parameters (`preprocessor_config.pkl` and `gb_preprocessor_config.pkl`) were fitted exclusively on the 800 training patients.
 - **Target Label Definitions**:
-  - **24-Hour Flare-Up ($y_{24}$)**: $y_{24} = 1.0$ if an exacerbation event begins within the prospective window $(t, t+24\text{h}]$ or is active at hour $t$; $0.0$ otherwise.
-  - **48-Hour Severe Exacerbation ($y_{48}$)**: $y_{48} = 1.0$ if an exacerbation begins within $(t, t+48\text{h}]$ or is active at hour $t$; $0.0$ otherwise.
-  - **Severity Tier ($y_{\text{sev}}$)**: Maximum severity score among active/upcoming events within the horizon (`Grade 0: None`, `Grade 1: Mild`, `Grade 2: Moderate`, `Grade 3: Severe`).
+  - **24-Hour Flare-Up (`y_24`)**: `y_24 = 1.0` if an exacerbation event begins within the prospective window `(t, t+24h]` or is active at hour `t`; `0.0` otherwise.
+  - **48-Hour Severe Exacerbation (`y_48`)**: `y_48 = 1.0` if an exacerbation begins within `(t, t+48h]` or is active at hour `t`; `0.0` otherwise.
+  - **Severity Tier (`y_sev`)**: Maximum severity score among active/upcoming events within the horizon (`Grade 0: None`, `Grade 1: Mild`, `Grade 2: Moderate`, `Grade 3: Severe`).
   - **Class Prevalence in Test Set**: Approximately 18.4% positive 24-hour windows.
-- **Warning Lead Time Definition**: The temporal difference between the first continuous prospective warning ($P(\text{risk}) \ge 0.50$) and the recorded onset timestamp of the severe exacerbation event, evaluated across true-positive flare-up trajectories in the test split ($42.4 \pm 4.1\text{ hours}$).
+- **Warning Lead Time Definition**: The temporal difference between the first continuous prospective warning (`P(risk) >= 0.50`) and the recorded onset timestamp of the severe exacerbation event, evaluated across true-positive flare-up trajectories in the test split (42.4 ± 4.1 hours).
 - **Inference Latency Protocol**: Measured single-instance inference (batch size = 1) across 100 consecutive forward passes following 5 warm-up cycles on an 8-core x86-64 CPU and NVIDIA RTX GPU. End-to-end FastAPI HTTP round-trip latency averaged <65 ms.
 
 #### Benchmark Results on Held-Out Test Cohort
@@ -468,7 +468,7 @@ This project is released under the **MIT Open-Source License**. See the [`LICENS
 The high-resolution architecture diagram (`docs/architecture.png` and `docs/Architecture_Diagram.pdf`) provides modality-specific color coding for clinical and machine learning pipelines:
 - **Green (`#059669`)**: Multimodal Sensor Feeds (Static 60D Baseline, 20ch Telemetry Series) and UI Telemetry Streams
 - **Blue (`#2563EB`)**: Base Predictor Probabilities & Calibrated Conformal Risk Forecast
-- **Orange (`#D97706`)**: Ambient Particulate Dose, Latent Airway Inflammation State $I(t)$, and Counterfactual Sandbox Coupling
+- **Orange (`#D97706`)**: Ambient Particulate Dose, Latent Airway Inflammation State I(t), and Counterfactual Sandbox Coupling
 - **Purple (`#7C3AED`)**: LLM Clinical Feature Extraction, EWC Continual Retraining Feed, and Synthesized Copilot Reports
 - **Dark Blue (`#1D4ED8`)**: Relational PostgreSQL Stream Persistence
 
@@ -577,7 +577,7 @@ The complete project presentation slide deck is provided in universal PDF format
 | **04** | **Three layers keep the project understandable** | System Architecture | 3-layer architecture: Input & storage, Hybrid twin engine (TCN + XGBoost + MLP + ODE), and FastAPI services & user interfaces. |
 | **05** | **Three streams describe the patient and their environment** | Data Ingestion | 60 static clinical EHR features, 20 wearable channels over 12h rolling windows, and live ambient air quality (`PM2.5`, `PM10`, `AQI`). |
 | **06** | **Two base models learn different patterns; a third combines their outputs** | Predictive Pipeline | Stage 1A Dilated TCN, Stage 1B XGBoost suite, and Stage 2 Stacking MLP yielding calibrated 24h/48h risks and 4-tier severity. |
-| **07** | **The twin tracks a modelled state the wearable cannot measure directly** | Physiological Twin | Mechanistic SDE simulation of latent airway inflammation $I(t)$ driven by ambient exposure, mucosal clearance, and controller adherence. |
+| **07** | **The twin tracks a modelled state the wearable cannot measure directly** | Physiological Twin | Mechanistic SDE simulation of latent airway inflammation I(t) driven by ambient exposure, mucosal clearance, and controller adherence. |
 | **08** | **Show the risk trajectory and the signals behind it** | Forecasts & Explainability | Dual forecast horizons (24h flare-up & 48h severe exacerbation), 90% conformal prediction intervals, and inspectable local SHAP feature attributions. |
 | **09** | **Ask “what if?” before comparing a prevention plan** | Intervention Sandbox | Counterfactual simulation of preventative actions: outdoor time reduction, N95 respirator filtration, HEPA air purification, and controller adherence. |
 | **10** | **Add context when the sensor stream is not the whole story** | Clinical Adaptation | Free-text clinical note extraction to structured parameters and ODE modifiers, with replay buffer and EWC regularization to prevent catastrophic forgetting. |
