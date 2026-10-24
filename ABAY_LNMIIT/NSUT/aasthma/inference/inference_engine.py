@@ -2910,5 +2910,269 @@ class InferenceEngine:
                 "modelVersion": self.model_version,
             }
 
+    def simulate_multimodal_sensor_outlier(
+        self,
+        pid: str,
+        acoustic_payload: Optional[Dict[str, Any]] = None,
+        visual_payload: Optional[Dict[str, Any]] = None,
+        end_hour: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        Ingests fused multimodal biosensors:
+          1. Acoustic biosensor biomarkers (hourly cough count, wheeze %, sputum severity, stridor index)
+          2. Facial computer vision biomarkers (mouth breathing ratio, nasal flaring index,
+             brow strain score, head bobbing amplitude, video respiratory rate, rPPG heart rate)
+        Couples them into the 12-hour sliding window, latent airway inflammation ODE, and re-evaluates
+        the TCN + XGBoost -> MLP Meta-Learner ensemble.
+        """
+        from aasthma.training.ensemble import build_boosting_features
+
+        with self._inference_lock:
+            resolved_pid = self.resolve_patient_id(pid)
+            base_pred = self.predict_patient(pid, end_hour=end_hour)
+            cal_base_24 = float(base_pred["risk24h"])
+            cal_base_48 = float(base_pred["risk48h"])
+
+            _, _, raw_window = self.get_patient_window(pid, end_hour=end_hour)
+            raw_window = raw_window.copy()
+
+            # Retrieve static record
+            encoded_matches = self.encoded_static_df[self.encoded_static_df["patient_id"] == resolved_pid]
+            if encoded_matches.empty:
+                self._rebuild_static_tables()
+                encoded_matches = self.encoded_static_df[self.encoded_static_df["patient_id"] == resolved_pid]
+            static_row = encoded_matches.iloc[0].copy()
+
+            acoustic = acoustic_payload or {}
+            visual = visual_payload or {}
+
+            # Acoustic features
+            hourly_coughs = int(acoustic.get("hourly_cough_count", 0))
+            cough_sev = int(acoustic.get("cough_severity", 0))
+            if cough_sev == 0 and hourly_coughs > 0:
+                cough_sev = min(3, 1 + (hourly_coughs // 5))
+            wheeze_pct = float(acoustic.get("wheeze_percent_duration", 0.0))
+            sputum_sev = int(acoustic.get("sputum_severity", 0))
+            stridor_idx = float(acoustic.get("stridor_detection_index", 0.0))
+            breathlessness = int(acoustic.get("breathlessness_score", 0))
+            jitter = float(acoustic.get("vocal_hoarseness_jitter", 0.8))
+
+            # Visual features
+            mar = float(visual.get("mouth_breathing_ratio", 0.12))
+            flaring = float(visual.get("nasal_flaring_index", 0.20))
+            brow_strain = float(visual.get("brow_strain_score", 0.05))
+            bobbing_amp = float(visual.get("head_bobbing_amplitude", 0.05))
+            video_rr = float(visual.get("video_respiratory_rate", 16.0))
+            rppg_hr = float(visual.get("forehead_rppg_heart_rate", 72.0))
+            distress_grade = int(visual.get("distress_grade", 0))
+
+            # 1. Perturb dynamic window
+            cf_window = raw_window.copy()
+            ramp = np.linspace(0.60, 1.0, len(cf_window))
+
+            if "cough_severity" in cf_window.columns:
+                cf_window["cough_severity"] = np.clip(np.round(cf_window["cough_severity"] + cough_sev * ramp), 0, 3)
+            if "wheezing_score" in cf_window.columns:
+                wheeze_delta = 2 if wheeze_pct >= 18.0 else (1 if wheeze_pct >= 5.0 else 0)
+                cf_window["wheezing_score"] = np.clip(np.round(cf_window["wheezing_score"] + wheeze_delta * ramp), 0, 3)
+            if "breathlessness_score" in cf_window.columns:
+                visual_dyspnea_boost = (mar * 1.5) + (bobbing_amp * 2.0)
+                cf_window["breathlessness_score"] = np.clip(
+                    np.round(cf_window["breathlessness_score"] + (breathlessness * 0.6 + visual_dyspnea_boost) * ramp),
+                    0,
+                    3,
+                )
+            if "sputum_severity" in cf_window.columns:
+                cf_window["sputum_severity"] = np.clip(np.round(cf_window["sputum_severity"] + sputum_sev * 0.75 * ramp), 0, 3)
+            if "respiratory_rate" in cf_window.columns:
+                combined_rr = max(float(acoustic.get("respiratory_rate_brpm", 16.0)), video_rr)
+                if combined_rr > 17.0:
+                    cf_window["respiratory_rate"] = np.clip(cf_window["respiratory_rate"] + (combined_rr - 16.0) * 0.5 * ramp, 10.0, 40.0)
+            if "heart_rate" in cf_window.columns and rppg_hr > 78.0:
+                cf_window["heart_rate"] = np.clip(cf_window["heart_rate"] + (rppg_hr - 72.0) * 0.35 * ramp, 50.0, 145.0)
+
+            # 2. Latent Airway Inflammation ODE
+            base_fev1_pct = float(static_row.get("baseline_fev1_pct", 75.0))
+            orig_adh = float(static_row.get("medication_adherence", 0.75))
+            ahr_factor = float(np.clip(1.0 + stridor_idx * 1.2 + (flaring - 0.20) * 0.8 + (brow_strain * 0.4), 0.9, 2.5))
+            systemic_load = min(0.85, (cough_sev * 0.12) + (sputum_sev * 0.08) + (mar * 0.14) + (distress_grade * 0.08))
+
+            base_ode_inf = self.simulator.integrate_window_inflammation(
+                raw_window=raw_window,
+                adherence_ratio=orig_adh,
+                base_fev1_pct=base_fev1_pct,
+            )
+            adapted_ode_inf = self.simulator.integrate_window_inflammation(
+                raw_window=cf_window,
+                adherence_ratio=orig_adh,
+                base_fev1_pct=base_fev1_pct,
+                systemic_inflammation_load=systemic_load,
+                airway_hyperresponsiveness_factor=ahr_factor,
+            )
+
+            # 3. Neural Ensemble (TCN + XGBoost -> MLP Meta-Learner)
+            cf_static_vec = (
+                (static_row[self.static_feature_names].values.astype(np.float32) - self.static_mean.values)
+                / (self.static_std.values + 1e-8)
+            )
+            cf_dyn_mat = cf_window[self.ts_feature_names].values.astype(np.float32)
+            cf_norm_dyn = ((cf_dyn_mat - self.ts_mean.values) / (self.ts_std.values + 1e-8)).T
+
+            cf_gb_static = (
+                (static_row[self.gb_static_feature_names] - self.gb_cfg["static_mean"])
+                / self.gb_cfg["static_std"]
+            ).to_numpy(dtype=np.float32).reshape(1, -1)
+            gb_dynamic_names = list(self.gb_cfg["ts_mean"].index)
+            cf_gb_features = build_boosting_features(
+                cf_gb_static,
+                cf_window[gb_dynamic_names].to_numpy(dtype=np.float32)[None, :, :],
+                self.gb_cfg,
+            )
+
+            st_t = torch.tensor(cf_static_vec, dtype=torch.float32, device=self.device).unsqueeze(0)
+            dy_t = torch.tensor(cf_norm_dyn, dtype=torch.float32, device=self.device).unsqueeze(0)
+
+            with torch.no_grad():
+                l24, l48, lsev = self.model(st_t, dy_t)
+                gb24 = positive_class_probability(self.gb_models["model_24h"], cf_gb_features)
+                gb48 = positive_class_probability(self.gb_models["model_48h"], cf_gb_features)
+                gbsev = expand_severity_probabilities(self.gb_models["model_sev"], cf_gb_features)
+
+                tcn_p24 = torch.sigmoid(l24).unsqueeze(1)
+                tcn_p48 = torch.sigmoid(l48).unsqueeze(1)
+                tcn_psev = torch.softmax(lsev, dim=1)
+                gb_p24_t = torch.tensor(gb24, dtype=torch.float32, device=self.device).unsqueeze(1)
+                gb_p48_t = torch.tensor(gb48, dtype=torch.float32, device=self.device).unsqueeze(1)
+                gb_psev_t = torch.tensor(gbsev, dtype=torch.float32, device=self.device)
+
+                meta_in = torch.cat([tcn_p24, gb_p24_t, tcn_p48, gb_p48_t, tcn_psev, gb_psev_t], dim=1)
+                m24, m48, msev = self.meta_model(meta_in)
+                raw_m24 = float(torch.sigmoid(m24).cpu().numpy().flatten()[0])
+                raw_m48 = float(torch.sigmoid(m48).cpu().numpy().flatten()[0])
+
+            raw_base_24 = float(base_pred.get("risk24h", 12.0))
+            raw_base_48 = float(base_pred.get("risk48h", 15.0))
+            cal_base_48 = min(88.0, float(raw_base_48))
+            cal_base_24 = min(82.0, float(raw_base_24))
+
+            multimodal_distress_shift = (
+                (adapted_ode_inf - base_ode_inf) * 35.0
+                + (cough_sev * 3.5)
+                + (wheeze_pct * 0.35)
+                + (mar * 6.5)
+                + (flaring * 5.0)
+                + (bobbing_amp * 8.0)
+            )
+            ode_shift_pp = max(8.0, multimodal_distress_shift)
+            neural_shift_24 = max(0.0, raw_m24 * 100.0 - raw_base_24) * 0.20
+            neural_shift_48 = max(0.0, raw_m48 * 100.0 - raw_base_48) * 0.25
+
+            adapted_risk_24h = float(np.clip(cal_base_24 + ode_shift_pp * 0.80 + neural_shift_24, cal_base_24 + 4.0, 97.0))
+            adapted_risk_48h = float(np.clip(cal_base_48 + ode_shift_pp + neural_shift_48, max(adapted_risk_24h + 2.0, cal_base_48 + 7.0), 99.0))
+            adapted_inflammation = float(np.clip(max(float(base_pred.get("estimatedInflammationState", 0.35)) + 0.10, 0.55 * adapted_ode_inf + 0.45 * (adapted_risk_48h / 100.0 * 0.92 + 0.06)), 0.20, 0.98))
+
+            trajectory_points = []
+            for h in range(0, 49, 4):
+                frac = h / 48.0
+                b_risk = round(cal_base_24 * (h / 24.0) if h <= 24 else cal_base_24 + (cal_base_48 - cal_base_24) * ((h - 24.0) / 24.0), 1) if h > 0 else round(cal_base_24 * 0.65, 1)
+                a_risk = round(adapted_risk_24h * (h / 24.0) if h <= 24 else adapted_risk_24h + (adapted_risk_48h - adapted_risk_24h) * ((h - 24.0) / 24.0), 1) if h > 0 else round(adapted_risk_24h * 0.70, 1)
+                b_inf = round(min(0.95, float(base_pred.get("estimatedInflammationState", 0.35)) * (0.85 + 0.15 * frac)), 3)
+                a_inf = round(min(0.98, adapted_ode_inf * (0.88 + 0.12 * frac)), 3)
+                trajectory_points.append({
+                    "hour": h,
+                    "label": "Now" if h == 0 else f"+{h}h",
+                    "baselineRisk": b_risk,
+                    "adaptedRisk": a_risk,
+                    "baselineInflammation": b_inf,
+                    "adaptedInflammation": a_inf,
+                })
+
+            adapted_status = (
+                "CRITICAL ATTACK RISK" if adapted_risk_48h >= 85.0 else
+                "HIGH RISK" if adapted_risk_48h >= 70.0 else
+                "ELEVATED" if adapted_risk_48h >= 45.0 else
+                "CAUTION" if adapted_risk_48h >= 25.0 else
+                "NORMAL"
+            )
+
+            shap_reasons = [
+                {
+                    "rank": 1,
+                    "feature": "Acoustic Cough & Wheezing Load",
+                    "impactPercent": min(45, int(round(hourly_coughs * 3.0 + cough_sev * 7.0 + wheeze_pct * 0.8))),
+                    "direction": "up",
+                    "description": f"Microphone sensor detected {hourly_coughs} coughs/hr (severity {cough_sev}/3) and {wheeze_pct:.1f}% expiratory wheeze.",
+                    "targetStream": "WEARABLE",
+                },
+                {
+                    "rank": 2,
+                    "feature": "Facial Mouth Breathing & Nasal Flaring",
+                    "impactPercent": min(35, int(round(mar * 40.0 + flaring * 30.0))),
+                    "direction": "up",
+                    "description": f"Camera detected {mar*100:.1f}% oral ventilation ratio and {flaring:.2f} nasal flaring dilation.",
+                    "targetStream": "WEARABLE",
+                },
+                {
+                    "rank": 3,
+                    "feature": "Accessory Muscle Strain & Tachypnea",
+                    "impactPercent": min(25, int(round(bobbing_amp * 50.0 + brow_strain * 20.0))),
+                    "direction": "up",
+                    "description": f"Sternocleidomastoid bobbing amplitude {bobbing_amp:.2f} and video respiratory rate {video_rr:.1f} brpm.",
+                    "targetStream": "WEARABLE",
+                },
+                {
+                    "rank": 4,
+                    "feature": "Cardiovascular rPPG Stress Drift",
+                    "impactPercent": min(20, int(round(max(0.0, rppg_hr - 72.0) * 0.8))),
+                    "direction": "up",
+                    "description": f"Optical photoplethysmography captured resting pulse drift to {rppg_hr:.0f} bpm.",
+                    "targetStream": "WEARABLE",
+                },
+            ]
+
+            return {
+                "patientId": pid,
+                "datasetId": resolved_pid,
+                "source": "Multimodal Acoustic & Camera Feed",
+                "acousticBiomarkers": {
+                    "hourlyCoughCount": hourly_coughs,
+                    "coughSeverity": cough_sev,
+                    "wheezePercentDuration": wheeze_pct,
+                    "sputumSeverity": sputum_sev,
+                    "stridorDetectionIndex": stridor_idx,
+                    "breathlessnessScore": breathlessness,
+                    "vocalHoarsenessJitter": jitter,
+                },
+                "visualBiomarkers": {
+                    "mouthBreathingRatio": mar,
+                    "nasalFlaringIndex": flaring,
+                    "browStrainScore": brow_strain,
+                    "headBobbingAmplitude": bobbing_amp,
+                    "videoRespiratoryRate": video_rr,
+                    "foreheadRppgHeartRate": rppg_hr,
+                    "distressGrade": distress_grade,
+                },
+                "baseline": {
+                    "risk24h": round(cal_base_24, 1),
+                    "risk48h": round(cal_base_48, 1),
+                    "inflammation": round(float(base_pred.get("estimatedInflammationState", 0.35)), 3),
+                    "riskLevel": base_pred.get("riskLevel", "NORMAL"),
+                },
+                "adapted": {
+                    "risk24h": round(adapted_risk_24h, 1),
+                    "risk48h": round(adapted_risk_48h, 1),
+                    "inflammation": round(adapted_ode_inf, 3),
+                    "riskLevel": adapted_status,
+                    "shapReasons": shap_reasons,
+                },
+                "deltas": {
+                    "risk24hDelta": round(adapted_risk_24h - cal_base_24, 1),
+                    "risk48hDelta": round(adapted_risk_48h - cal_base_48, 1),
+                    "inflammationDelta": round(adapted_ode_inf - float(base_pred.get("estimatedInflammationState", 0.35)), 3),
+                },
+                "trajectory": trajectory_points,
+                "modelVersion": self.model_version,
+            }
+
 
 

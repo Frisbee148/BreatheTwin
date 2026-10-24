@@ -35,6 +35,7 @@ class PatientModel(Base):
     telemetry = relationship("TelemetryModel", back_populates="patient", cascade="all, delete-orphan")
     daily_logs = relationship("PatientDailyLogModel", back_populates="patient", cascade="all, delete-orphan")
     acoustic_telemetry = relationship("AcousticTelemetryModel", back_populates="patient", cascade="all, delete-orphan")
+    visual_telemetry = relationship("VisualTelemetryModel", back_populates="patient", cascade="all, delete-orphan")
 
 
 class PatientHistoryModel(Base):
@@ -167,5 +168,33 @@ class AcousticTelemetryModel(Base):
     source = Column(String(50), default="Web Microphone")
 
     patient = relationship("PatientModel", back_populates="acoustic_telemetry")
+
+
+class VisualTelemetryModel(Base):
+    """
+    Real-Time Webcam Facial Biosensor & Respiratory Distress Monitoring Table
+    Stores visual facial biomarkers (mouth breathing ratio, nasal flaring index,
+    brow strain score, head bobbing amplitude, video respiratory rate, rPPG heart rate).
+    """
+    __tablename__ = "visual_telemetry"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    patient_id = Column(String(50), ForeignKey("patients.patient_id", ondelete="CASCADE"), index=True, nullable=False)
+    recorded_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    mouth_breathing_ratio = Column(Float, default=0.12)
+    nasal_flaring_index = Column(Float, default=0.20)
+    brow_strain_score = Column(Float, default=0.05)
+    head_bobbing_amplitude = Column(Float, default=0.05)
+    video_respiratory_rate = Column(Float, default=16.0)
+    forehead_rppg_heart_rate = Column(Float, default=72.0)
+    blink_rate_bpm = Column(Float, default=15.0)
+    yawn_sigh_count = Column(Integer, default=0)
+    jaw_slack_index = Column(Float, default=0.10)
+    gaze_instability_score = Column(Float, default=0.03)
+    distress_grade = Column(Integer, default=0)
+    source = Column(String(50), default="Web Camera")
+
+    patient = relationship("PatientModel", back_populates="visual_telemetry")
+
 
 

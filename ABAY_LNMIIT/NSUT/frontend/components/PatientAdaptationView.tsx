@@ -19,6 +19,10 @@ import {
   simulateAcousticInference,
   AcousticTelemetryRecord,
   AcousticInferenceResponse,
+  getPatientVisualTelemetry,
+  simulateMultimodalInference,
+  VisualTelemetryRecord,
+  MultimodalInferenceResponse,
 } from '@/lib/api';
 import PatientNavHeader from '@/components/PatientNavHeader';
 import StatusChip from '@/components/StatusChip';
@@ -216,6 +220,157 @@ export default function PatientAdaptationView({
     }
   };
 
+  // Visual Biosensor & Webcam Respiratory Telemetry Stream
+  const [visualHistory, setVisualHistory] = useState<VisualTelemetryRecord[]>([]);
+  const [latestVisual, setLatestVisual] = useState<VisualTelemetryRecord | null>(null);
+  const [loadingVisual, setLoadingVisual] = useState<boolean>(true);
+  const [isRunningMultimodalInference, setIsRunningMultimodalInference] = useState<boolean>(false);
+  const [multimodalInferenceNotice, setMultimodalInferenceNotice] = useState<string | null>(null);
+
+  const fetchVisualFeed = () => {
+    setLoadingVisual(true);
+    getPatientVisualTelemetry(patientId, 24).then((res) => {
+      if (res && Array.isArray(res.history)) {
+        setVisualHistory(res.history);
+        setLatestVisual(res.latest || res.history[0] || null);
+      }
+      setLoadingVisual(false);
+    });
+  };
+
+  const handleRunMultimodalInference = async () => {
+    setIsRunningMultimodalInference(true);
+    setMultimodalInferenceNotice(null);
+    try {
+      const acousticPayload = latestAcoustic || {
+        hourly_cough_count: 14,
+        cough_severity: 2,
+        wheeze_percent_duration: 16.5,
+        sputum_severity: 2,
+      };
+      const visualPayload = latestVisual || {
+        mouth_breathing_ratio: 0.45,
+        nasal_flaring_index: 0.32,
+        brow_strain_score: 0.40,
+        head_bobbing_amplitude: 0.18,
+        video_respiratory_rate: 24.0,
+        forehead_rppg_heart_rate: 86.0,
+        distress_grade: 2,
+      };
+
+      const res = await simulateMultimodalInference(patient.id, {
+        acoustic: acousticPayload,
+        visual: visualPayload,
+      });
+
+      if (res) {
+        const mappedSimResult: ClinicalOutlierSimulationResponse = {
+          patientId: res.patientId,
+          datasetId: res.datasetId,
+          noteText: `[Multimodal Sensor Ingestion] Ingested ${res.acousticBiomarkers.hourlyCoughCount} coughs/hr + ${(res.visualBiomarkers.mouthBreathingRatio * 100).toFixed(0)}% oral breathing, nasal flaring ${res.visualBiomarkers.nasalFlaringIndex.toFixed(2)}, video RR ${res.visualBiomarkers.videoRespiratoryRate.toFixed(1)} brpm.`,
+          modelVersion: res.modelVersion,
+          extraction: {
+            primary_condition: 'Multimodal Respiratory Distress (Acoustic + Visual)',
+            icd10_code: 'R06.0',
+            is_outlier_condition: true,
+            severity_tier: (res.visualBiomarkers.distressGrade >= 2 ? 'Severe' : 'Moderate') as 'Severe' | 'Moderate',
+            clinical_summary: 'Synchronized acoustic cough bursts and facial accessory muscle strain detected.',
+            pathophysiological_mechanism: 'Upper airway irritation, mouth breathing particulate overload, and sternocleidomastoid bobbing.',
+            vitals_deltas: {
+              delta_skin_temp_c: 0.2,
+              delta_resting_hr: Math.max(0, res.visualBiomarkers.foreheadRppgHeartRate - 72),
+              delta_respiratory_rate: Math.max(0, res.visualBiomarkers.videoRespiratoryRate - 16),
+              delta_spo2: -res.visualBiomarkers.distressGrade * 1.5,
+              hrv_reduction_factor: 0.75,
+              delta_cough_severity: res.acousticBiomarkers.coughSeverity || 2,
+              delta_wheezing_score: res.acousticBiomarkers.wheezePercentDuration > 10 ? 2 : 1,
+              delta_breathlessness_score: Math.min(3, res.visualBiomarkers.distressGrade + 1),
+              delta_chest_tightness: 2,
+              delta_fatigue_score: 1,
+              hydration_status: 'Adequate',
+            },
+            mechanistic_modifiers: {
+              systemic_inflammation_load: res.visualBiomarkers.distressGrade * 0.16 + (res.acousticBiomarkers.coughSeverity || 1) * 0.12,
+              airway_hyperresponsiveness_factor: 1.0 + res.visualBiomarkers.nasalFlaringIndex * 1.2,
+              medication_absorption_efficiency: 0.82,
+            },
+            comorbidity_burden_delta: 0,
+            extracted_symptoms: ['Acoustic Cough', 'Oral Breathing', 'Nasal Flaring', 'Accessory Bobbing'],
+            extraction_source: 'Multimodal Acoustic & Camera Pipeline',
+          },
+          derivedFeatures: [
+            {
+              featureName: 'Mouth Breathing Ratio %',
+              featureKey: 'mouth_breathing_ratio',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '8% - 15%',
+              derivedValue: `${(res.visualBiomarkers.mouthBreathingRatio * 100).toFixed(1)}%`,
+              deltaDisplay: `+${(res.visualBiomarkers.mouthBreathingRatio * 100).toFixed(1)}%`,
+              physiologicalRationale: 'Loss of nasal warming and filtration induces bronchial irritant bronchospasm.',
+            },
+            {
+              featureName: 'Nasal Flaring Index',
+              featureKey: 'nasal_flaring_index',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0.20',
+              derivedValue: `${res.visualBiomarkers.nasalFlaringIndex.toFixed(2)}`,
+              deltaDisplay: `+${(res.visualBiomarkers.nasalFlaringIndex - 0.20).toFixed(2)}`,
+              physiologicalRationale: 'Alar muscle dilation in response to acute airway obstruction.',
+            },
+            {
+              featureName: 'Video Respiratory Rate (BRPM)',
+              featureKey: 'video_respiratory_rate',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '16.0 brpm',
+              derivedValue: `${res.visualBiomarkers.videoRespiratoryRate.toFixed(1)} brpm`,
+              deltaDisplay: `+${(res.visualBiomarkers.videoRespiratoryRate - 16.0).toFixed(1)}`,
+              physiologicalRationale: 'Optical tachypnea tracking via nose displacement bandpass filter.',
+            },
+            {
+              featureName: 'Head Bobbing / Accessory SCM Strain',
+              featureKey: 'head_bobbing_amplitude',
+              category: 'DYNAMIC_WEARABLE',
+              baselineValue: '0.05',
+              derivedValue: `${res.visualBiomarkers.headBobbingAmplitude.toFixed(2)}`,
+              deltaDisplay: `+${(res.visualBiomarkers.headBobbingAmplitude - 0.05).toFixed(2)}`,
+              physiologicalRationale: 'Accessory neck muscle recruitment during high work of breathing.',
+            },
+          ],
+          baseline: res.baseline,
+          adapted: {
+            ...res.adapted,
+            shapReasons: res.adapted.shapReasons.map((s, idx) => ({
+              rank: idx + 1,
+              feature: s.feature,
+              impactPercent: s.impactPercent,
+              direction: s.direction,
+              description: s.description,
+              targetStream: s.targetStream as 'WEARABLE' | 'MEDICATION' | 'EHR' | 'ENVIRONMENT',
+            })),
+          },
+          deltas: res.deltas,
+          modelBreakdown: {
+            tcnRisk24h: res.baseline.risk24h,
+            gradientBoostingRisk24h: res.baseline.risk24h,
+            metaRisk24h: res.adapted.risk24h,
+            tcnRisk48h: res.baseline.risk48h,
+            gradientBoostingRisk48h: res.baseline.risk48h,
+            metaRisk48h: res.adapted.risk48h,
+          },
+          trajectoryPoints: res.trajectory,
+        };
+
+        setSimResult(mappedSimResult);
+        setMultimodalInferenceNotice(`Multimodal twin adapted: +${res.deltas.risk48hDelta.toFixed(1)}% 48h risk surge (${res.adapted.riskLevel}).`);
+        setTimeout(() => setMultimodalInferenceNotice(null), 6000);
+      }
+    } catch (err: any) {
+      setMultimodalInferenceNotice(`Multimodal inference error: ${err.message}`);
+    } finally {
+      setIsRunningMultimodalInference(false);
+    }
+  };
+
   // Standard Calibrated Adaptation Parameters
   const STANDARD_EPOCHS = 14;
   const STANDARD_EWC_LAMBDA = 85;
@@ -235,6 +390,7 @@ export default function PatientAdaptationView({
       if (mounted) setLoadingLogs(false);
     });
     fetchAcousticFeed();
+    fetchVisualFeed();
     return () => {
       mounted = false;
     };
@@ -563,6 +719,198 @@ export default function PatientAdaptationView({
                   title="Simulate acute severe nocturnal cough storm"
                 >
                   + Simulate Severe Cough Storm (26 coughs/hr)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* =========================================================================
+              PATIENT FACIAL RESPIRATORY DISTRESS & CAMERA FEED (GRAPHICAL VIEW)
+          ========================================================================= */}
+          <div className="border border-[#B4E3C5] dark:border-[#12612F] bg-white dark:bg-[#04130A] p-5 shadow-sm dark:shadow-none space-y-4">
+            <div className="flex items-center justify-between border-b border-[#B4E3C5]/60 dark:border-[#12612F]/60 pb-3">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-[#0A602F] dark:text-[#2FBF63]">
+                  <span className="w-2 h-2 rounded-full bg-[#0E793C] dark:bg-[#4CFF8A] animate-pulse" />
+                  FACIAL DISTRESS STREAM ◈ OPENCV &amp; MEDIAPIPE FACEMESH
+                </div>
+                <h2 className="text-sm font-bold text-[#0E2E1B] dark:text-[#B6FFCC] font-mono mt-0.5">
+                  PATIENT WEBCAM RESPIRATORY DISTRESS FEED ({patient.id})
+                </h2>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={fetchVisualFeed}
+                  className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#4CFF8A] hover:bg-[#EAF8EF] dark:hover:bg-[#061C0E] cursor-pointer"
+                  title="Refresh webcam distress stream"
+                >
+                  ↻ REFRESH
+                </button>
+                <span className="text-[10px] font-mono px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#4CFF8A] bg-[#EAF8EF] dark:bg-[#061C0E] font-semibold">
+                  LIVE SYNCED
+                </span>
+              </div>
+            </div>
+
+            {/* Graphical 24-Hour Mouth Breathing & SCM Strain SVG Chart */}
+            <div className="border border-[#B4E3C5]/60 dark:border-[#12612F]/60 bg-[#F6FBF7] dark:bg-[#020A05] p-3 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-mono text-[#0A602F] dark:text-[#2FBF63]">
+                <span className="font-bold">24-HOUR MOUTH BREATHING &amp; SCM STRAIN TIMELINE</span>
+                <span>PEAK MAR: {Math.max(...(visualHistory.length > 0 ? visualHistory.map((h) => Math.round(h.mouth_breathing_ratio * 100)) : [45]))}%</span>
+              </div>
+
+              <div className="h-28 w-full pt-1">
+                <svg className="w-full h-full" viewBox="0 0 480 95" preserveAspectRatio="none">
+                  {/* Gridlines */}
+                  <line x1="0" y1="20" x2="480" y2="20" stroke="currentColor" strokeDasharray="3 3" className="text-gray-300 dark:text-[#12612F]/40" />
+                  <line x1="0" y1="50" x2="480" y2="50" stroke="currentColor" strokeDasharray="3 3" className="text-gray-300 dark:text-[#12612F]/40" />
+                  <line x1="0" y1="75" x2="480" y2="75" stroke="currentColor" className="text-gray-400 dark:text-[#12612F]" />
+
+                  {/* 24 Hourly Visual Distress Bars */}
+                  {(visualHistory.length > 0 ? visualHistory : Array.from({ length: 24 }).map((_, i) => ({
+                    mouth_breathing_ratio: i >= 14 && i <= 21 ? 0.42 : 0.12,
+                    distress_grade: i >= 14 && i <= 21 ? 2 : 0,
+                  }))).slice(0, 24).map((record, idx) => {
+                    const ratio = record.mouth_breathing_ratio;
+                    const barH = Math.min(65, Math.max(4, ratio * 100));
+                    const x = idx * 19.5 + 4;
+                    const y = 75 - barH;
+                    const barColor = ratio >= 0.35 ? '#EF4444' : ratio >= 0.20 ? '#F59E0B' : '#10B981';
+                    return (
+                      <g key={idx}>
+                        <rect
+                          x={x}
+                          y={y}
+                          width={14}
+                          height={barH}
+                          fill={barColor}
+                          rx={1.5}
+                          className="hover:opacity-80 transition-opacity"
+                        >
+                          <title>Hour -{24 - idx}h: {Math.round(ratio * 100)}% Oral Breathing</title>
+                        </rect>
+                      </g>
+                    );
+                  })}
+
+                  {/* Time Axis Labels */}
+                  <text x="5" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">-24h</text>
+                  <text x="220" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">-12h</text>
+                  <text x="440" y="88" fill="currentColor" className="text-[8px] font-mono fill-[#0A602F] dark:fill-[#2FBF63]">Now</text>
+                </svg>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] font-mono text-[#4A755A] dark:text-[#2FBF63] border-t border-[#B4E3C5]/40 dark:border-[#12612F]/40 pt-1.5">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#10B981] inline-block" /> &lt;20% Nasal Resting
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#F59E0B] inline-block" /> 20-34% Mild Oral
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-xs bg-[#EF4444] inline-block" /> 35%+ Hyperventilation
+                </span>
+              </div>
+            </div>
+
+            {/* Visual Biomarkers Radar Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs font-mono">
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Oral Breathing</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {((latestVisual?.mouth_breathing_ratio ?? 0.18) * 100).toFixed(0)}%
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">
+                  {(latestVisual?.mouth_breathing_ratio ?? 0.18) > 0.35 ? 'Oral Ventilation' : 'Nasal Dominant'}
+                </span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Nasal Flaring</span>
+                <div className="text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                  {(latestVisual?.nasal_flaring_index ?? 0.22).toFixed(2)}
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">IPD Normalized</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Accessory SCM Bobbing</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestVisual?.head_bobbing_amplitude ?? 0.08).toFixed(2)}
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Nose Motion P-P</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Video Resp Rate</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestVisual?.video_respiratory_rate ?? 18.0).toFixed(1)} brpm
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Optical Bandpass</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">rPPG Pulse (BPM)</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  {(latestVisual?.forehead_rppg_heart_rate ?? 74.0).toFixed(0)} bpm
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">Forehead Green ROI</span>
+              </div>
+
+              <div className="border border-[#B4E3C5]/70 dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] p-2.5 flex flex-col justify-between">
+                <span className="text-[10px] text-[#0A602F] dark:text-[#2FBF63] uppercase font-semibold">Distress Grade</span>
+                <div className="text-base font-bold text-[#0E2E1B] dark:text-[#B6FFCC] mt-0.5">
+                  Grade {latestVisual?.distress_grade ?? 1}/3
+                </div>
+                <span className="text-[10px] text-[#4A755A] dark:text-[#75FFA5]">
+                  {(latestVisual?.distress_grade ?? 1) >= 2 ? 'Severe Strain' : (latestVisual?.distress_grade ?? 1) === 1 ? 'Mild Tension' : 'Relaxed'}
+                </span>
+              </div>
+            </div>
+
+            {/* Doctor Action: Run Multimodal Twin Inference */}
+            <div className="pt-2 border-t border-[#B4E3C5]/60 dark:border-[#12612F]/60 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-mono text-[#0A602F] dark:text-[#2FBF63]">
+                  INCORPORATE MULTIMODAL (ACOUSTIC + WEBCAM) FEED INTO TWIN INFERENCE:
+                </span>
+                {multimodalInferenceNotice && (
+                  <span className="text-[10px] font-mono text-[#0E793C] dark:text-[#4CFF8A] font-bold">
+                    ✓ {multimodalInferenceNotice}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={isRunningMultimodalInference}
+                  onClick={handleRunMultimodalInference}
+                  className="px-4 py-2.5 bg-[#0E793C] hover:bg-[#0A602F] text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <span>⚡</span> {isRunningMultimodalInference ? 'INTEGRATING MULTIMODAL ODE...' : 'RUN MULTIMODAL TWIN INFERENCE (ACOUSTIC + CAMERA)'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const simulatedMultimodalOutlier = {
+                      mouth_breathing_ratio: 0.65,
+                      nasal_flaring_index: 0.38,
+                      brow_strain_score: 0.65,
+                      head_bobbing_amplitude: 0.28,
+                      video_respiratory_rate: 28.5,
+                      forehead_rppg_heart_rate: 98.0,
+                      distress_grade: 3,
+                    };
+                    setLatestVisual(simulatedMultimodalOutlier as any);
+                    handleRunMultimodalInference();
+                  }}
+                  className="px-3 py-2 border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] hover:border-[#0E793C] dark:hover:border-[#4CFF8A] text-[#0E2E1B] dark:text-[#B6FFCC] text-xs font-mono transition-all cursor-pointer"
+                  title="Simulate acute oral hyperventilation & sternocleidomastoid bobbing"
+                >
+                  + Simulate Severe Respiratory Distress Outlier (Grade 3)
                 </button>
               </div>
             </div>

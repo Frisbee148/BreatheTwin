@@ -13,10 +13,12 @@ from aasthma.database.models import (
     PatientDailyLogModel,
     UserAccountModel,
     AcousticTelemetryModel,
+    VisualTelemetryModel,
 )
 
-# Resilient in-memory fallback store for acoustic telemetry
+# Resilient in-memory fallback store for acoustic & visual telemetry
 _IN_MEMORY_ACOUSTIC_RECORDS: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
+_IN_MEMORY_VISUAL_RECORDS: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
 
 
 def get_db_status() -> Dict[str, Any]:
@@ -356,6 +358,166 @@ def get_patient_acoustic_telemetry(patient_id: str, limit: int = 24) -> List[Dic
             "source": "Biosensor Baseline",
         })
     return mock_history
+
+
+def add_visual_telemetry(
+    patient_id: str,
+    mouth_breathing_ratio: float = 0.12,
+    nasal_flaring_index: float = 0.20,
+    brow_strain_score: float = 0.05,
+    head_bobbing_amplitude: float = 0.05,
+    video_respiratory_rate: float = 16.0,
+    forehead_rppg_heart_rate: float = 72.0,
+    blink_rate_bpm: float = 15.0,
+    yawn_sigh_count: int = 0,
+    jaw_slack_index: float = 0.10,
+    gaze_instability_score: float = 0.03,
+    distress_grade: int = 0,
+    source: str = "Web Camera",
+) -> Dict[str, Any]:
+    """Records a facial respiratory distress biosensor measurement for the patient."""
+    timestamp = datetime.now(timezone.utc).isoformat()
+    record = {
+        "id": f"VISUAL-{int(datetime.now(timezone.utc).timestamp() * 1000)}",
+        "patient_id": patient_id,
+        "recorded_at": timestamp,
+        "mouth_breathing_ratio": round(float(mouth_breathing_ratio), 3),
+        "nasal_flaring_index": round(float(nasal_flaring_index), 3),
+        "brow_strain_score": round(float(brow_strain_score), 3),
+        "head_bobbing_amplitude": round(float(head_bobbing_amplitude), 3),
+        "video_respiratory_rate": round(float(video_respiratory_rate), 1),
+        "forehead_rppg_heart_rate": round(float(forehead_rppg_heart_rate), 1),
+        "blink_rate_bpm": round(float(blink_rate_bpm), 1),
+        "yawn_sigh_count": int(yawn_sigh_count),
+        "jaw_slack_index": round(float(jaw_slack_index), 3),
+        "gaze_instability_score": round(float(gaze_instability_score), 3),
+        "distress_grade": int(distress_grade),
+        "source": source,
+    }
+
+    # Store in memory cache
+    _IN_MEMORY_VISUAL_RECORDS[patient_id].insert(0, record)
+    if len(_IN_MEMORY_VISUAL_RECORDS[patient_id]) > 50:
+        _IN_MEMORY_VISUAL_RECORDS[patient_id].pop()
+
+    # Attempt PostgreSQL persistence if connected
+    try:
+        db: Session = SessionLocal()
+        try:
+            # Ensure patient exists
+            patient_row = db.query(PatientModel).filter(PatientModel.patient_id == patient_id).first()
+            if not patient_row:
+                stub_patient = PatientModel(
+                    patient_id=patient_id,
+                    age=35,
+                    sex="U",
+                    height_cm=165.0,
+                    weight_kg=65.0,
+                    bmi=23.8,
+                    asthma_severity="Moderate",
+                    baseline_fev1_pct=75.0,
+                    controller_medication="ICS-LABA",
+                    medication_adherence=0.75,
+                )
+                db.add(stub_patient)
+                db.commit()
+
+            entry = VisualTelemetryModel(
+                patient_id=patient_id,
+                mouth_breathing_ratio=mouth_breathing_ratio,
+                nasal_flaring_index=nasal_flaring_index,
+                brow_strain_score=brow_strain_score,
+                head_bobbing_amplitude=head_bobbing_amplitude,
+                video_respiratory_rate=video_respiratory_rate,
+                forehead_rppg_heart_rate=forehead_rppg_heart_rate,
+                blink_rate_bpm=blink_rate_bpm,
+                yawn_sigh_count=yawn_sigh_count,
+                jaw_slack_index=jaw_slack_index,
+                gaze_instability_score=gaze_instability_score,
+                distress_grade=distress_grade,
+                source=source,
+            )
+            db.add(entry)
+            db.commit()
+            db.refresh(entry)
+            record["id"] = entry.id
+            if entry.recorded_at:
+                record["recorded_at"] = entry.recorded_at.isoformat()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    return record
+
+
+def get_patient_visual_telemetry(patient_id: str, limit: int = 24) -> List[Dict[str, Any]]:
+    """Fetches visual telemetry records for a patient from PostgreSQL with in-memory fallback."""
+    try:
+        db: Session = SessionLocal()
+        try:
+            records = (
+                db.query(VisualTelemetryModel)
+                .filter(VisualTelemetryModel.patient_id == patient_id)
+                .order_by(VisualTelemetryModel.recorded_at.desc())
+                .limit(limit)
+                .all()
+            )
+            if records:
+                return [
+                    {
+                        "id": r.id,
+                        "patient_id": r.patient_id,
+                        "recorded_at": r.recorded_at.isoformat() if r.recorded_at else None,
+                        "mouth_breathing_ratio": r.mouth_breathing_ratio,
+                        "nasal_flaring_index": r.nasal_flaring_index,
+                        "brow_strain_score": r.brow_strain_score,
+                        "head_bobbing_amplitude": r.head_bobbing_amplitude,
+                        "video_respiratory_rate": r.video_respiratory_rate,
+                        "forehead_rppg_heart_rate": r.forehead_rppg_heart_rate,
+                        "blink_rate_bpm": r.blink_rate_bpm,
+                        "yawn_sigh_count": r.yawn_sigh_count,
+                        "jaw_slack_index": r.jaw_slack_index,
+                        "gaze_instability_score": r.gaze_instability_score,
+                        "distress_grade": r.distress_grade,
+                        "source": r.source,
+                    }
+                    for r in records
+                ]
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    # In-memory fallback
+    mem = _IN_MEMORY_VISUAL_RECORDS.get(patient_id, [])
+    if mem:
+        return mem[:limit]
+
+    # Default synthetic baseline visual profile if never logged
+    now = datetime.now(timezone.utc)
+    mock_history = []
+    for h in range(limit - 1, -1, -1):
+        is_active = (now.hour - h) % 24 >= 8 and (now.hour - h) % 24 <= 20
+        mock_history.append({
+            "id": f"DEFAULT-VIS-{h}",
+            "patient_id": patient_id,
+            "recorded_at": now.isoformat(),
+            "mouth_breathing_ratio": 0.14 if is_active else 0.08,
+            "nasal_flaring_index": 0.20,
+            "brow_strain_score": 0.05,
+            "head_bobbing_amplitude": 0.05,
+            "video_respiratory_rate": 16.5 if is_active else 14.0,
+            "forehead_rppg_heart_rate": 74.0 if is_active else 62.0,
+            "blink_rate_bpm": 16.0,
+            "yawn_sigh_count": 1 if not is_active else 0,
+            "jaw_slack_index": 0.10,
+            "gaze_instability_score": 0.03,
+            "distress_grade": 0,
+            "source": "Facial Baseline",
+        })
+    return mock_history
+
 
 
 

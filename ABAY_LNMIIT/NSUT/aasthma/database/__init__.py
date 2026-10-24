@@ -8,6 +8,7 @@ from aasthma.database.models import (
     PatientDailyLogModel,
     UserAccountModel,
     AcousticTelemetryModel,
+    VisualTelemetryModel,
 )
 from aasthma.database.repository import (
     get_db_status,
@@ -17,6 +18,8 @@ from aasthma.database.repository import (
     get_patient_daily_logs,
     add_acoustic_telemetry,
     get_patient_acoustic_telemetry,
+    add_visual_telemetry,
+    get_patient_visual_telemetry,
     ensure_auth_tables_and_seed,
     signup_user_account,
     verify_user_account,

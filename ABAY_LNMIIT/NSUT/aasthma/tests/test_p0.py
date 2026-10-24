@@ -726,6 +726,78 @@ def test_acoustic_outlier_model_inference(client):
     assert len(data["adapted"]["shapReasons"]) >= 3
 
 
+def test_visual_telemetry_flow(client):
+    """Verifies that live video frames can be processed, stored, and retrieved."""
+    import base64
+    import numpy as np
+    import cv2
+
+    frame = np.full((120, 120, 3), [150, 180, 220], dtype=np.uint8)
+    _, buf = cv2.imencode(".jpg", frame)
+    b64_frame = base64.b64encode(buf.tobytes()).decode("ascii")
+
+    res = client.post(
+        "/api/patients/PT-8821/video-stream",
+        json={
+            "image_base64": b64_frame,
+            "client_mar": 0.45,
+            "client_flaring": 0.32,
+            "client_brow_strain": 0.55,
+            "client_bobbing": 0.22,
+            "client_video_rr": 24.5,
+            "client_rppg_hr": 88.0,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "instant" in data
+    assert "telemetry" in data
+    assert "patientRisk" in data
+    assert data["patientRisk"]["mouthBreathing"] is True
+
+    res_get = client.get("/api/patients/PT-8821/visual-telemetry?limit=5")
+    assert res_get.status_code == 200
+    get_data = res_get.json()
+    assert get_data["count"] >= 1
+    assert "history" in get_data
+
+
+def test_multimodal_outlier_model_inference(client):
+    """Verifies that doctor-triggered multimodal (acoustic + visual) outlier inference recalculates twin risk."""
+    res = client.post(
+        "/api/patients/PT-8821/multimodal-inference",
+        json={
+            "acoustic": {
+                "hourly_cough_count": 18,
+                "cough_severity": 3,
+                "wheeze_percent_duration": 22.0,
+                "sputum_severity": 2,
+            },
+            "visual": {
+                "mouth_breathing_ratio": 0.58,
+                "nasal_flaring_index": 0.35,
+                "brow_strain_score": 0.60,
+                "head_bobbing_amplitude": 0.25,
+                "video_respiratory_rate": 26.0,
+                "forehead_rppg_heart_rate": 92.0,
+                "distress_grade": 3,
+            },
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["patientId"] == "PT-8821"
+    assert "acousticBiomarkers" in data
+    assert "visualBiomarkers" in data
+    assert data["visualBiomarkers"]["mouthBreathingRatio"] == 0.58
+    assert data["adapted"]["risk48h"] > data["baseline"]["risk48h"]
+    assert data["deltas"]["risk48hDelta"] > 0
+    assert data["adapted"]["inflammation"] > data["baseline"]["inflammation"]
+    assert len(data["trajectory"]) > 0
+    assert len(data["adapted"]["shapReasons"]) >= 3
+
+
+
 
 
 

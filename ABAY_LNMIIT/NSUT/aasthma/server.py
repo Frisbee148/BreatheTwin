@@ -23,6 +23,7 @@ from aasthma.simulation.mechanistic_simulator import MechanisticSimulator
 from aasthma.simulation.clock import global_clock
 from aasthma.simulation.clinical_data import SIMULATOR_ASSUMPTIONS, BENCHMARKS
 from aasthma.inference.mic_features_inference import get_patient_audio_pipeline
+from aasthma.inference.face_features_inference import get_patient_face_pipeline
 from aasthma.database import (
     get_db_status,
     get_patient_by_id,
@@ -31,6 +32,8 @@ from aasthma.database import (
     get_patient_daily_logs,
     add_acoustic_telemetry,
     get_patient_acoustic_telemetry,
+    add_visual_telemetry,
+    get_patient_visual_telemetry,
     ensure_auth_tables_and_seed,
     signup_user_account,
     verify_user_account,
@@ -961,5 +964,224 @@ def simulate_patient_acoustic_inference(patient_id: str, req: AcousticInferenceR
     except Exception as exc:
         logger.exception("Acoustic outlier inference failed for %s", patient_id)
         raise HTTPException(status_code=500, detail=f"Acoustic inference error: {exc}") from exc
+
+
+# =========================================================================
+# REAL-TIME WEBCAM FACIAL RESPIRATORY DISTRESS & MULTIMODAL ENDPOINTS
+# =========================================================================
+
+class VideoStreamChunkRequest(BaseModel):
+    image_base64: Optional[str] = Field(default=None, description="Base64-encoded JPEG/PNG frame from webcam")
+    client_mar: Optional[float] = Field(default=None, ge=0.0, le=1.5)
+    client_flaring: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    client_brow_strain: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    client_bobbing: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    client_video_rr: Optional[float] = Field(default=None, ge=5.0, le=50.0)
+    client_rppg_hr: Optional[float] = Field(default=None, ge=40.0, le=180.0)
+
+
+class VisualTelemetryPostRequest(BaseModel):
+    mouth_breathing_ratio: float = Field(default=0.12, ge=0.0, le=1.0)
+    nasal_flaring_index: float = Field(default=0.20, ge=0.0, le=1.0)
+    brow_strain_score: float = Field(default=0.05, ge=0.0, le=1.0)
+    head_bobbing_amplitude: float = Field(default=0.05, ge=0.0, le=1.0)
+    video_respiratory_rate: float = Field(default=16.0, ge=8.0, le=45.0)
+    forehead_rppg_heart_rate: float = Field(default=72.0, ge=40.0, le=160.0)
+    blink_rate_bpm: float = Field(default=15.0, ge=0.0, le=60.0)
+    yawn_sigh_count: int = Field(default=0, ge=0, le=100)
+    jaw_slack_index: float = Field(default=0.10, ge=0.0, le=1.0)
+    gaze_instability_score: float = Field(default=0.03, ge=0.0, le=1.0)
+    distress_grade: int = Field(default=0, ge=0, le=3)
+    source: str = Field(default="Web Camera")
+
+
+class MultimodalInferenceRequest(BaseModel):
+    acoustic: Optional[Dict[str, Any]] = Field(default=None)
+    visual: Optional[Dict[str, Any]] = Field(default=None)
+    hour: Optional[int] = Field(default=None, ge=12, le=239)
+
+
+@app.post("/api/patients/{patient_id}/video-stream")
+def process_patient_video_stream(patient_id: str, req: VideoStreamChunkRequest):
+    """
+    Ingests live webcam frame from patient portal, runs the
+    LiveFaceFeaturePipeline (MediaPipe FaceLandmarker + Optical DSP),
+    evaluates facial respiratory distress, and returns immediate risk indicators.
+    """
+    import base64
+    import numpy as np
+
+    pipeline = get_patient_face_pipeline(patient_id)
+    client_metrics = {}
+    if req.client_mar is not None:
+        client_metrics["client_mar"] = req.client_mar
+    if req.client_flaring is not None:
+        client_metrics["client_flaring"] = req.client_flaring
+    if req.client_brow_strain is not None:
+        client_metrics["client_brow_strain"] = req.client_brow_strain
+    if req.client_bobbing is not None:
+        client_metrics["client_bobbing"] = req.client_bobbing
+    if req.client_video_rr is not None:
+        client_metrics["video_rr"] = req.client_video_rr
+    if req.client_rppg_hr is not None:
+        client_metrics["heart_rate"] = req.client_rppg_hr
+
+    if req.image_base64:
+        try:
+            clean_b64 = req.image_base64
+            if "," in clean_b64:
+                clean_b64 = clean_b64.split(",", 1)[1]
+            raw_bytes = base64.b64decode(clean_b64)
+            result = pipeline.process_frame_bytes(raw_bytes, client_metrics=client_metrics)
+        except Exception as e:
+            logger.warning("Failed to decode video frame: %s", e)
+            result = {
+                "instant": {"mouth_breathing_detected": False, "distress_grade": 0, "video_respiratory_rate": 16.0, "forehead_rppg_heart_rate": 72.0},
+                "telemetry": pipeline.get_latest_hourly_telemetry(),
+            }
+    else:
+        mar_active = bool(req.client_mar and req.client_mar > 0.35)
+        distress = 1 if mar_active else 0
+        result = {
+            "instant": {
+                "mouth_breathing_detected": mar_active,
+                "nasal_flaring_detected": bool(req.client_flaring and req.client_flaring > 0.28),
+                "distress_grade": distress,
+                "video_respiratory_rate": req.client_video_rr or 16.0,
+                "forehead_rppg_heart_rate": req.client_rppg_hr or 72.0,
+            },
+            "telemetry": pipeline.get_latest_hourly_telemetry(),
+        }
+
+    instant = result.get("instant", {})
+    telemetry = result.get("telemetry", {})
+    distress_grade = int(instant.get("distress_grade", 0))
+
+    base_prob = 15.0
+    if engine:
+        try:
+            base = engine.predict_patient(patient_id)
+            base_prob = float(base.get("risk48h", 15.0))
+        except Exception:
+            pass
+
+    visual_multiplier = 1.0 + (distress_grade * 0.15) + (float(telemetry.get("mouth_breathing_ratio", 0.12)) * 0.25)
+    adjusted_prob = float(np.clip(base_prob * visual_multiplier, 0.0, 98.0))
+
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    saved_log = add_visual_telemetry(
+        patient_id=resolved_pid,
+        mouth_breathing_ratio=telemetry.get("mouth_breathing_ratio", 0.12),
+        nasal_flaring_index=telemetry.get("nasal_flaring_index", 0.20),
+        brow_strain_score=telemetry.get("brow_strain_score", 0.05),
+        head_bobbing_amplitude=telemetry.get("head_bobbing_amplitude", 0.05),
+        video_respiratory_rate=telemetry.get("video_respiratory_rate", 16.0),
+        forehead_rppg_heart_rate=telemetry.get("forehead_rppg_heart_rate", 72.0),
+        blink_rate_bpm=telemetry.get("blink_rate_bpm", 15.0),
+        yawn_sigh_count=telemetry.get("yawn_sigh_count", 0),
+        jaw_slack_index=telemetry.get("jaw_slack_index", 0.10),
+        gaze_instability_score=telemetry.get("gaze_instability_score", 0.03),
+        distress_grade=distress_grade,
+        source="Patient Portal Live Camera",
+    )
+
+    return {
+        "instant": instant,
+        "telemetry": telemetry,
+        "patientRisk": {
+            "distressGrade": distress_grade,
+            "distressGradeLabel": (
+                "Severe Labored Breathing" if distress_grade == 3 else
+                "Moderate Mouth/Flaring Strain" if distress_grade == 2 else
+                "Mild Accessory Tension" if distress_grade == 1 else "Normal Facial Rhythm"
+            ),
+            "asthmaChancePercent": round(adjusted_prob, 1),
+            "mouthBreathing": instant.get("mouth_breathing_detected", False),
+            "nasalFlaring": instant.get("nasal_flaring_detected", False),
+            "videoRespiratoryRate": instant.get("video_respiratory_rate", 16.0),
+            "opticalHeartRate": instant.get("forehead_rppg_heart_rate", 72.0),
+        },
+        "log": saved_log,
+    }
+
+
+@app.post("/api/patients/{patient_id}/visual-telemetry")
+def record_patient_visual_telemetry(patient_id: str, req: VisualTelemetryPostRequest):
+    """Allows recording manual or camera-derived visual respiratory distress telemetry."""
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    saved = add_visual_telemetry(
+        patient_id=resolved_pid,
+        mouth_breathing_ratio=req.mouth_breathing_ratio,
+        nasal_flaring_index=req.nasal_flaring_index,
+        brow_strain_score=req.brow_strain_score,
+        head_bobbing_amplitude=req.head_bobbing_amplitude,
+        video_respiratory_rate=req.video_respiratory_rate,
+        forehead_rppg_heart_rate=req.forehead_rppg_heart_rate,
+        blink_rate_bpm=req.blink_rate_bpm,
+        yawn_sigh_count=req.yawn_sigh_count,
+        jaw_slack_index=req.jaw_slack_index,
+        gaze_instability_score=req.gaze_instability_score,
+        distress_grade=req.distress_grade,
+        source=req.source,
+    )
+    return {
+        "message": "Visual telemetry recorded successfully",
+        "record": saved,
+    }
+
+
+@app.get("/api/patients/{patient_id}/visual-telemetry")
+def list_patient_visual_telemetry(patient_id: str, limit: int = Query(default=24, ge=1, le=100)):
+    """Fetches recent facial respiratory biosensor records for doctor evaluation."""
+    resolved_pid = engine.resolve_patient_id(patient_id) if engine else patient_id
+    records = get_patient_visual_telemetry(resolved_pid, limit=limit)
+    latest = records[0] if records else {}
+    return {
+        "patient_id": patient_id,
+        "dataset_id": resolved_pid,
+        "count": len(records),
+        "latest": latest,
+        "history": records,
+    }
+
+
+@app.post("/api/patients/{patient_id}/multimodal-inference")
+def simulate_patient_multimodal_inference(patient_id: str, req: MultimodalInferenceRequest):
+    """
+    Doctor-Action Endpoint: Injects combined acoustic biosensors AND facial camera distress
+    markers into the digital twin's 12-hour window and latent inflammation ODE, re-scoring
+    flare-up risk across Stage-1 TCN + XGBoost and Stage-2 Meta-Learner.
+    """
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+
+    eval_hour = req.hour if req.hour is not None else global_clock.current_hour
+    resolved_pid = engine.resolve_patient_id(patient_id)
+
+    acoustic = req.acoustic or {}
+    if not acoustic:
+        ac_history = get_patient_acoustic_telemetry(resolved_pid, limit=1)
+        if ac_history:
+            acoustic = ac_history[0]
+
+    visual = req.visual or {}
+    if not visual:
+        vis_history = get_patient_visual_telemetry(resolved_pid, limit=1)
+        if vis_history:
+            visual = vis_history[0]
+
+    try:
+        return engine.simulate_multimodal_sensor_outlier(
+            pid=patient_id,
+            acoustic_payload=acoustic,
+            visual_payload=visual,
+            end_hour=eval_hour,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Multimodal outlier inference failed for %s", patient_id)
+        raise HTTPException(status_code=500, detail=f"Multimodal inference error: {exc}") from exc
+
 
 

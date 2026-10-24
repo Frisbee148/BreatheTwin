@@ -978,6 +978,228 @@ export async function simulateAcousticInference(
   return await res.json();
 }
 
+export interface VisualTelemetryRecord {
+  id?: string | number;
+  patient_id?: string;
+  recorded_at?: string | null;
+  mouth_breathing_ratio: number;
+  nasal_flaring_index: number;
+  brow_strain_score: number;
+  head_bobbing_amplitude: number;
+  video_respiratory_rate: number;
+  forehead_rppg_heart_rate: number;
+  blink_rate_bpm?: number;
+  yawn_sigh_count?: number;
+  jaw_slack_index?: number;
+  gaze_instability_score?: number;
+  distress_grade: number;
+  source?: string;
+}
+
+export interface VideoStreamChunkResponse {
+  instant: {
+    mar?: number;
+    flaring_index?: number;
+    brow_strain?: number;
+    bobbing_amplitude?: number;
+    video_respiratory_rate?: number;
+    forehead_rppg_heart_rate?: number;
+    mouth_breathing_detected?: boolean;
+    nasal_flaring_detected?: boolean;
+    accessory_muscle_strain?: boolean;
+    distress_grade?: number;
+  };
+  telemetry: VisualTelemetryRecord;
+  patientRisk: {
+    distressGrade: number;
+    distressGradeLabel: string;
+    asthmaChancePercent: number;
+    mouthBreathing: boolean;
+    nasalFlaring: boolean;
+    videoRespiratoryRate: number;
+    opticalHeartRate: number;
+  };
+  log?: any;
+}
+
+export interface MultimodalInferenceResponse {
+  patientId: string;
+  datasetId: string;
+  source: string;
+  acousticBiomarkers: Record<string, any>;
+  visualBiomarkers: Record<string, any>;
+  baseline: {
+    risk24h: number;
+    risk48h: number;
+    inflammation: number;
+    riskLevel: string;
+  };
+  adapted: {
+    risk24h: number;
+    risk48h: number;
+    inflammation: number;
+    riskLevel: string;
+    shapReasons: Array<{
+      rank: number;
+      feature: string;
+      impactPercent: number;
+      direction: 'up' | 'down';
+      description: string;
+      targetStream: string;
+    }>;
+  };
+  deltas: {
+    risk24hDelta: number;
+    risk48hDelta: number;
+    inflammationDelta: number;
+  };
+  trajectory: Array<{
+    hour: number;
+    label: string;
+    baselineRisk: number;
+    adaptedRisk: number;
+    baselineInflammation: number;
+    adaptedInflammation: number;
+  }>;
+  modelVersion: string;
+}
+
+const LOCAL_VISUAL_KEY = 'digi_visual_telemetry_v1';
+
+export function getLocalVisualRecords(patientId: string): VisualTelemetryRecord[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_VISUAL_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    return map[patientId] || [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalVisualRecord(patientId: string, entry: VisualTelemetryRecord) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(LOCAL_VISUAL_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    const cur = map[patientId] || [];
+    map[patientId] = [entry, ...cur].slice(0, 30);
+    localStorage.setItem(LOCAL_VISUAL_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+/** Streams/posts a webcam frame snapshot or visual metrics to the backend */
+export async function streamVideoChunk(
+  patientId: string,
+  imageBase64?: string,
+  clientMetrics: {
+    client_mar?: number;
+    client_flaring?: number;
+    client_brow_strain?: number;
+    client_bobbing?: number;
+    client_video_rr?: number;
+    client_rppg_hr?: number;
+  } = {}
+): Promise<VideoStreamChunkResponse> {
+  const fallback: VideoStreamChunkResponse = {
+    instant: {
+      mar: clientMetrics.client_mar || 0.14,
+      flaring_index: clientMetrics.client_flaring || 0.20,
+      brow_strain: clientMetrics.client_brow_strain || 0.05,
+      bobbing_amplitude: clientMetrics.client_bobbing || 0.05,
+      video_respiratory_rate: clientMetrics.client_video_rr || 16.0,
+      forehead_rppg_heart_rate: clientMetrics.client_rppg_hr || 72.0,
+      mouth_breathing_detected: !!(clientMetrics.client_mar && clientMetrics.client_mar > 0.35),
+      nasal_flaring_detected: !!(clientMetrics.client_flaring && clientMetrics.client_flaring > 0.28),
+      distress_grade: clientMetrics.client_mar && clientMetrics.client_mar > 0.35 ? 1 : 0,
+    },
+    telemetry: {
+      mouth_breathing_ratio: clientMetrics.client_mar || 0.12,
+      nasal_flaring_index: clientMetrics.client_flaring || 0.20,
+      brow_strain_score: clientMetrics.client_brow_strain || 0.05,
+      head_bobbing_amplitude: clientMetrics.client_bobbing || 0.05,
+      video_respiratory_rate: clientMetrics.client_video_rr || 16.0,
+      forehead_rppg_heart_rate: clientMetrics.client_rppg_hr || 72.0,
+      distress_grade: clientMetrics.client_mar && clientMetrics.client_mar > 0.35 ? 1 : 0,
+      source: 'Client Camera Fallback',
+    },
+    patientRisk: {
+      distressGrade: clientMetrics.client_mar && clientMetrics.client_mar > 0.35 ? 1 : 0,
+      distressGradeLabel: clientMetrics.client_mar && clientMetrics.client_mar > 0.35 ? 'Mild Accessory Tension' : 'Normal Facial Rhythm',
+      asthmaChancePercent: clientMetrics.client_mar && clientMetrics.client_mar > 0.35 ? 35.0 : 18.0,
+      mouthBreathing: !!(clientMetrics.client_mar && clientMetrics.client_mar > 0.35),
+      nasalFlaring: !!(clientMetrics.client_flaring && clientMetrics.client_flaring > 0.28),
+      videoRespiratoryRate: clientMetrics.client_video_rr || 16.0,
+      opticalHeartRate: clientMetrics.client_rppg_hr || 72.0,
+    },
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/video-stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_base64: imageBase64 || null,
+        ...clientMetrics,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.telemetry) {
+        saveLocalVisualRecord(patientId, data.telemetry);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('Video streaming backend request failed, using client fallback:', err);
+  }
+
+  saveLocalVisualRecord(patientId, fallback.telemetry);
+  return fallback;
+}
+
+/** Fetches recent visual telemetry records for a patient */
+export async function getPatientVisualTelemetry(patientId: string, limit: number = 24) {
+  const localRecords = getLocalVisualRecords(patientId);
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/visual-telemetry?limit=${limit}`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.history) && data.history.length > 0) {
+        return data;
+      }
+    }
+  } catch {}
+  return {
+    patient_id: patientId,
+    count: localRecords.length,
+    latest: localRecords[0] || null,
+    history: localRecords,
+  };
+}
+
+/** Runs doctor-triggered twin model inference on combined multimodal (acoustic + visual) data */
+export async function simulateMultimodalInference(
+  patientId: string,
+  payload: { acoustic?: Partial<AcousticTelemetryRecord>; visual?: Partial<VisualTelemetryRecord> } = {},
+  hour?: number
+): Promise<MultimodalInferenceResponse> {
+  const body = { ...payload, hour };
+  const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/multimodal-inference`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Multimodal inference failed: ${errorText}`);
+  }
+  return await res.json();
+}
+
 
 export interface PatientChatResponse {
   patient_id: string;
