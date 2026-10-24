@@ -146,6 +146,14 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 * **Dynamic Parameter Override**: Directly injects extracted perturbations into the patient's runtime digital twin without database schema migrations.
 * **Experience Replay Buffer Commit**: Persists verified clinical outlier episodes into PostgreSQL with clinician attribution and timestamp.
 * **Continual Retraining with Elastic Weight Consolidation (EWC)**: Fine-tunes the Stage-2 Meta-Learner on outlier trajectories while penalizing weight movement away from baseline Fisher information parameters.
+* **Patient Acoustic Cough Sensor Feed (Graphical View)**:
+  - *24-Hour Cough Frequency Histogram*: Responsive SVG timeline displaying hourly cough burst distribution with nocturnal shading (22h–06h) and color-coded burst severity (Green: 0–2, Yellow: 3–7, Red: 8+ coughs/hr).
+  - *Acoustic Biomarker Radar*: Real-time tiles tracking Cough Severity Grade (0–3), Wheeze Duration % (400–1600 Hz), Sputum/Rattle Score, Inspiratory Stridor Index, Vocal Fold Micro-Jitter (mucosal edema marker), and Acoustic Respiratory Rate.
+  - *Direct Model Rescoring*: `RUN TWIN INFERENCE WITH ACOUSTIC DATA` button injects acoustic coughs and wheezes into the 12-hour window and latent inflammation ODE.
+* **Patient Webcam Respiratory Distress Feed (Graphical View)**:
+  - *24-Hour Oral Breathing & Accessory Strain Timeline*: SVG chart tracking oral ventilation percentage and sternocleidomastoid (SCM) strain across 24 hours.
+  - *Facial Biomarker Radar*: Displays Mouth Aspect Ratio (MAR), Nasal Flaring Alar Index, Head Bobbing Amplitude, Video Respiratory Rate (BRPM via nose motion bandpass), and Optical rPPG Heart Rate (BPM).
+  - *Multimodal Twin Action*: `RUN MULTIMODAL TWIN INFERENCE (ACOUSTIC + CAMERA)` button fuses synchronized acoustic and visual distress streams into the full digital twin ensemble.
 
 ---
 
@@ -154,6 +162,17 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 #### Page 6: Patient View & Self-Management Portal (`/patient-portal`)
 * **Plain-Language Risk Status**: Presents current clinical risk level (`Low`, `Moderate`, `High`) in intuitive patient-friendly terminology without clinical jargon.
 * **Local Ambient AQI Advisory**: Displays local monitoring station air quality readings with concrete activity recommendations.
+* **Smart Acoustic Cough & Wheeze Sensor (Section 5B)**:
+  - *Web Audio API Ingestion*: Patient enables microphone access (`navigator.mediaDevices.getUserMedia`) for real-time acoustic breath and cough monitoring.
+  - *Live Oscilloscope Canvas*: Renders real-time transient audio waveforms and decibel volume meter in night-vision phosphor styling.
+  - *Detected Cough Burst Counter & Wheeze Alert*: Tracks explosive cough bursts, assigns real-time Cough Severity Grade (0–3), and flags continuous high-pitched wheezing.
+  - *Dynamic Asthma Attack Probability %*: Displays live flare-up chances updating in real time with continuous background sync to `POST /api/patients/{id}/audio-stream`.
+* **Smart Webcam Facial Respiratory Distress Biosensor (Section 5C)**:
+  - *Live Video Viewfinder & HUD*: User camera feed rendered with an active recording HUD and IPD (inter-pupillary distance) normalization box.
+  - *Ventilation Mode Tracking*: Distinguishes 👄 Oral Breathing vs. 👃 Nasal Breathing via Mouth Aspect Ratio (MAR) with interactive threshold calibration.
+  - *Accessory Muscle Strain & Flaring*: Flags nasal flaring dilation, corrugator brow strain, and sternocleidomastoid head bobbing.
+  - *Contactless Optical Vitals*: Computes Video Respiratory Rate (BRPM) and Forehead rPPG Optical Pulse (BPM) via green-channel optical absorption.
+  - *Continuous Stream Sync*: Periodically transmits frame snapshots to `POST /api/patients/{id}/video-stream`.
 * **AI Clinical Copilot Report**: Generates and renders a comprehensive, patient-centered Copilot Report:
   - *Clinical Summary & Primary Reason*: Explains physiological state and recent environmental triggers in clear language.
   - *Actionable Non-Pharmacological Precautions*: Advises on indoor ventilation, mask usage, and activity pacing.
@@ -179,6 +198,8 @@ BreathTwin transitions outpatient asthma care from reactive emergency triage to 
 | **Mechanistic Simulation** | Custom Euler-Maruyama SDE Solver ([`aasthma/simulation/mechanistic_simulator.py`](ABAY_LNMIIT/NSUT/aasthma/simulation/mechanistic_simulator.py)) | Continuous airway inflammation state $I(t)$ integration and counterfactual What-If sandbox | Standalone Local |
 | **Clinical Language & Copilot** | OpenAI API (`gpt-4o`) / Hugging Face (`Llama-3.1-8B` / `Qwen2.5`) + Deterministic Fallback Engine | Schema-validated clinical reports, unstructured clinical note perturbation extraction | External API (with Offline Fallback) |
 | **Continual Adaptation & EWC** | Elastic Weight Consolidation (EWC), Experience Replay Buffer, PyTorch | Fine-tuning Stage-2 Meta-Learner on clinician-verified outlier episodes | Standalone Local |
+| **Acoustic Audio & DSP** | Google YamNet (AudioSet Class 47 Cough, Class 50 Wheeze), Librosa, SoundFile, SciPy STFT | Live microphone cough detection, wheeze duration %, vocal jitter/shimmer, stridor | Standalone Local |
+| **Computer Vision & Video** | MediaPipe FaceMesh (468 3D landmarks), OpenCV, optical rPPG green-channel FFT | Webcam facial respiratory distress, mouth breathing ratio (MAR), nasal flaring, optical pulse | Standalone Local |
 | **Database & Persistence** | PostgreSQL 16 (`postgres:16-alpine`), SQLAlchemy 2.0, Psycopg 3 | Stores patients, telemetry, clinical events, daily logs, and RBAC accounts | Standalone Local (Containerized) |
 | **Environmental Telemetry** | CPCB Station Coordinates (70+ Indian cities), Open-Meteo Air Quality API | Live ambient $\text{PM}_{2.5}$, $\text{PM}_{10}$, and AQI telemetry, plus replayed historical episodes | External API / Local Scenario Cache |
 | **Packaging & Testing** | Docker Compose, Pytest `8.0+`, Bash service orchestration (`run.sh`, `stop.sh`) | Containerized database, environment validation, and automated P0 verification tests | Standalone Local |
@@ -501,7 +522,10 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   │   ├── model1/                   # Stage-1A Dilated TCN trainer and digital_twin_model.pt
 │   │   ├── model2/                   # Stage-1B XGBoost trainer and gb_digital_twin_models.pkl
 │   │   └── ensemble.py               # Stage-2 RespiTwinMLPMetaLearner and meta_ensemble_model.pt
-│   ├── inference/inference_engine.py # Multimodal pipeline, EWC model adaptation, conformal bounds
+│   ├── inference/
+│   │   ├── inference_engine.py       # Multimodal pipeline, EWC model adaptation, conformal bounds
+│   │   ├── mic_features_inference.py # Real-time acoustic YamNet + STFT DSP audio pipeline
+│   │   └── face_features_inference.py# Real-time MediaPipe FaceMesh + OpenCV optical rPPG facial distress pipeline
 │   ├── simulation/
 │   │   ├── mechanistic_simulator.py  # Latent airway inflammation SDE solver and What-If engine
 │   │   ├── clock.py                  # Replay clock synchronizing 240-hour telemetry streams
@@ -509,13 +533,14 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   ├── llm/
 │   │   ├── llm.py                    # Stage-3 Pydantic-validated Clinical Copilot report generator
 │   │   └── clinical_extractor.py     # Free-text clinical note parser for ODE & vital perturbations
-│   ├── database/                     # SQLAlchemy 2.0 ORM models, PostgreSQL repository, migrations
+│   ├── database/                     # SQLAlchemy 2.0 ORM models (Acoustic & Visual tables), PostgreSQL repository
 │   ├── dataset/                      # Telemetry parquet series, synthetic patient distributions
-│   └── tests/                        # Comprehensive pytest test suite (test_p0.py)
+│   └── tests/                        # Comprehensive pytest test suite (test_p0.py: 21 passing tests)
+├── archive/                          # Archived superseded prototypes and obsolete scripts
 ├── frontend/                         # Next.js 16 (Turbopack) + React 19 + Three.js Web Application
 │   ├── app/                          # App Router: Home, /login, /patients, /[id]/forecast, /what-if, /adapt, /patient-portal
-│   ├── components/                   # 3D PulmonaryTwin3D, InteractiveThermalReveal, TelemetryChart
-│   ├── lib/                          # Typed API client (api.ts), auth context, fallback clinical state
+│   ├── components/                   # 3D PulmonaryTwin3D, InteractiveThermalReveal, PatientAdaptationView, TelemetryChart
+│   ├── lib/                          # Typed API client (api.ts: audio & video streaming), auth context, fallback state
 │   └── public/                       # 3D GLTF models, architecture diagrams, presentation PDF mirrors
 ├── docs/                             # Public PDF/SVG Architecture Diagram and Project Presentation
 │   ├── Architecture_Diagram.pdf      # Vector System Architecture Diagram (PDF)
@@ -694,12 +719,16 @@ Run the automated P0 test suite using the configured virtual environment:
 PYTHONPATH=. aasthma/.venv/bin/pytest aasthma/tests/test_p0.py -v
 ```
 
-The test suite exercises:
+The test suite exercises (21 automated tests, 100% pass rate):
 - Cohort data loading and 60-feature static / 20-channel dynamic dimensions (`test_fr1_fr2_cohort_loading`).
 - Simulation clock replay synchronization (`test_fr4_simulation_clock`).
 - Mechanistic ODE window integration and baseline counterfactuals (`test_fr8_ode_simulation`).
 - Counterfactual intervention sandbox physics (`test_fr10_what_if_sandbox`).
 - 90% split-conformal prediction intervals schedule (`test_fr16_conformal_uncertainty`).
+- Acoustic microphone audio streaming and YamNet cough detection (`test_acoustic_telemetry_flow`).
+- Doctor-triggered acoustic outlier digital twin re-scoring (`test_acoustic_outlier_model_inference`).
+- Webcam video frame ingestion and facial distress tracking (`test_visual_telemetry_flow`).
+- Doctor-triggered multimodal (acoustic + visual) outlier inference (`test_multimodal_outlier_model_inference`).
 - REST API endpoint contracts and JSON schema responses.
 
 ### 13.8 Troubleshooting Guide
@@ -749,6 +778,17 @@ curl -X POST "http://localhost:8000/api/predict/PT-8821" \
   ]
 }
 ```
+
+#### 13.9.1 Real-Time Biosensor & Multimodal Outlier Endpoints
+
+| Endpoint | Method | Input Payload | Output Summary |
+| :--- | :--- | :--- | :--- |
+| `/api/patients/{id}/audio-stream` | `POST` | `{"audio_base64": "...", "sample_rate": 16000, "client_coughs": 2}` | YamNet & STFT cough classification, instantaneous severity (0–3), live asthma attack chances % |
+| `/api/patients/{id}/acoustic-telemetry` | `GET` / `POST` | `limit=24` (GET) or `AcousticTelemetryPostRequest` (POST) | 24h acoustic time-series logs (hourly cough count, wheeze %, stridor, jitter, shimmer) |
+| `/api/patients/{id}/acoustic-inference` | `POST` | `{"hourly_cough_count": 22, "cough_severity": 3, "wheeze_percent_duration": 25.0}` | Re-scores 24h & 48h twin risks using acoustic cough load coupled with latent airway ODE |
+| `/api/patients/{id}/video-stream` | `POST` | `{"image_base64": "...", "client_mar": 0.42, "client_flaring": 0.30}` | Facial respiratory distress grade (0–3), mouth breathing status, video RR, optical rPPG pulse |
+| `/api/patients/{id}/visual-telemetry` | `GET` / `POST` | `limit=24` (GET) or `VisualTelemetryPostRequest` (POST) | 24h visual time-series logs (mouth breathing ratio, nasal flaring, head bobbing, video RR) |
+| `/api/patients/{id}/multimodal-inference` | `POST` | `{"acoustic": {...}, "visual": {...}}` | Clinician action fusing both acoustic microphone and webcam facial distress into the full twin ensemble |
 
 ---
 
