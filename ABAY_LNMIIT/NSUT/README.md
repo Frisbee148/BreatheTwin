@@ -39,7 +39,7 @@ All mandatory items required by the repository submission form are included and 
 | 8 | **15–20 Minute Unlisted YouTube Demo Video** | Included (Unlisted Video Link Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) • [YouTube Video](https://youtu.be/S4WMAG_yx4Y) |
 | 9 | **Open-Source License Details** | Included (MIT) | [Section 9: Open-Source License Details](#9-open-source-license-details) • [`LICENSE`](LICENSE) |
 | 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.pdf) |
-| 11 | **Presentation in PDF/PPT Format** | Included (PDF, 15 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) |
+| 11 | **Presentation in PDF/PPT Format** | Included (PDF, 18 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) |
 | 12 | **Public Accessibility Verification** | Verified | [Section 12: Public Access and Reproducibility](#12-public-access-and-reproducibility) |
 
 ---
@@ -549,7 +549,7 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 │   ├── architecture.puml             # PlantUML Diagram Source
 │   ├── backup/                       # Preserved Archive of Original Diagram Artifacts
 │   ├── BreathTwin_Project_Presentation.pdf # Presentation slide deck (Mirror PDF)
-│   └── Project_Presentation.pdf      # Complete 15-slide project presentation deck (Universal PDF)
+│   └── Project_Presentation.pdf      # Complete 18-slide project presentation deck (Universal PDF)
 ├── docker-compose.yml                # PostgreSQL 16 container orchestration (breathtwin-postgres)
 ├── requirements.txt                  # Python backend and ML dependencies
 ├── run.sh / stop.sh                  # One-command full-stack startup and teardown scripts
@@ -563,11 +563,11 @@ ABAY_LNMIIT/NSUT/                     # Submission Package Identifier
 
 ## 11. Project Presentation and Outcomes
 
-The complete project presentation slide deck is provided in universal PDF format directly inside the repository. The presentation covers the project lifecycle across **15 widescreen slides**—including clinical motivation, 3-stream data ingestion, mechanistic latent SDE, 3-stage predictive ensemble, adaptive clinical note adaptation, clinician and patient portal experiences, empirical benchmark validation, and safety guardrails.
+The complete project presentation slide deck is provided in universal PDF format directly inside the repository. The presentation covers the project lifecycle across **18 widescreen slides**—including clinical motivation, 3-stream data ingestion, multimodal bioacoustic and facial vision sensors, mechanistic latent SDE, 3-stage predictive ensemble, adaptive clinical note adaptation, clinician and patient portal experiences, empirical benchmark validation, and safety guardrails.
 
 - **Downloadable Project Presentation (PDF Format)**: [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) • Mirror: [`frontend/public/docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/frontend/public/docs/Project_Presentation.pdf)
 
-### Slide Deck Structure (15 Widescreen Slides)
+### Slide Deck Structure (18 Widescreen Slides)
 
 | # | Slide Title | Thematic Category | Core Contents & Visual Highlights |
 | :--- | :--- | :--- | :--- |
@@ -586,6 +586,9 @@ The complete project presentation slide deck is provided in universal PDF format
 | **13** | **Strong separation on the project’s synthetic held-out cohort** | Reported Evaluation | Benchmarks against LSTM and XGBoost baselines: 0.9399 (24h ROC-AUC), 0.9428 (48h ROC-AUC), 0.8435 weighted F1, and <65 ms counterfactual latency. |
 | **14** | **Built as decision support, with important limits made explicit** | Safety & Limitations | Transparent boundary setting: synthetic cohort integrity, clinician-in-the-loop control, RBAC session logs, and requirements for prospective real-world validation. |
 | **15** | **An open-source prototype built by an inter-college team** | Project Handoff | Full technical stack (Next.js, Three.js, FastAPI, PyTorch, PostgreSQL), team roles (Aarush Bhattacharjee & Rakshit Gupta), MIT license, and source repository. |
+| **16** | **Smart acoustic audio and webcam facial distress tracking** | Multimodal Biosensors | Dual edge patient-portal pipelines converting live microphone acoustics and webcam video into clinical respiratory biomarkers. |
+| **17** | **Acoustic frequency spectrum and transient cough burst detection** | Bioacoustic Sensing | 512-bin STFT audio frequency DSP, AudioSet YamNet classification, 400–1600 Hz tonal wheeze detection, and 48-hour flare-up risk elevation. |
+| **18** | **Optical facial geometry, mouth breathing, and rPPG vital signs** | Facial Computer Vision | MediaPipe 468 3D landmark tracking, Mouth Aspect Ratio (MAR) oral ventilation thresholding, nasal alar flaring, SCM strain, and contactless green-channel rPPG pulse. |
 
 ---
 
