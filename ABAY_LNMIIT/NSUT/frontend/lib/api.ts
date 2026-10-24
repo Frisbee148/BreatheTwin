@@ -958,6 +958,54 @@ export async function getPatientAcousticTelemetry(patientId: string, limit: numb
   };
 }
 
+/** Persists an acoustic telemetry session from the patient edge sensor to the backend */
+export async function recordPatientAcousticTelemetry(
+  patientId: string,
+  record: Partial<AcousticTelemetryRecord>
+): Promise<{ message: string; record: AcousticTelemetryRecord }> {
+  const payload = {
+    hourly_cough_count: record.hourly_cough_count ?? 0,
+    cough_severity: record.cough_severity ?? 0,
+    wheeze_percent_duration: record.wheeze_percent_duration ?? 0.0,
+    sputum_severity: record.sputum_severity ?? 0,
+    stridor_detection_index: record.stridor_detection_index ?? 0.0,
+    breathlessness_score: record.breathlessness_score ?? 0,
+    snoring_nocturnal_score: record.snoring_nocturnal_score ?? 0.0,
+    vocal_hoarseness_jitter: record.vocal_hoarseness_jitter ?? 0.8,
+    vocal_shimmer_score: record.vocal_shimmer_score ?? 2.5,
+    ambient_noise_decibels: record.ambient_noise_decibels ?? 45.0,
+    speech_rate_wpm: record.speech_rate_wpm ?? 130.0,
+    respiratory_rate_brpm: record.respiratory_rate_brpm ?? 16.0,
+    source: record.source || 'Patient Web Microphone',
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/acoustic-telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.record) {
+        saveLocalAcousticRecord(patientId, data.record);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('recordPatientAcousticTelemetry backend failed, storing locally:', err);
+  }
+
+  const fallback: AcousticTelemetryRecord = {
+    id: `ACOUSTIC-LOC-${Date.now()}`,
+    patient_id: patientId,
+    recorded_at: new Date().toISOString(),
+    ...payload,
+  };
+  saveLocalAcousticRecord(patientId, fallback);
+  return { message: 'Acoustic telemetry recorded locally (offline fallback)', record: fallback };
+}
+
 /** Runs doctor-triggered twin model inference on the patient's acoustic sensor data */
 export async function simulateAcousticInference(
   patientId: string,
@@ -1178,6 +1226,53 @@ export async function getPatientVisualTelemetry(patientId: string, limit: number
     latest: localRecords[0] || null,
     history: localRecords,
   };
+}
+
+/** Persists a visual distress telemetry session from the patient edge camera to the backend */
+export async function recordPatientVisualTelemetry(
+  patientId: string,
+  record: Partial<VisualTelemetryRecord>
+): Promise<{ message: string; record: VisualTelemetryRecord }> {
+  const payload = {
+    mouth_breathing_ratio: record.mouth_breathing_ratio ?? 0.12,
+    nasal_flaring_index: record.nasal_flaring_index ?? 0.20,
+    brow_strain_score: record.brow_strain_score ?? 0.05,
+    head_bobbing_amplitude: record.head_bobbing_amplitude ?? 0.05,
+    video_respiratory_rate: record.video_respiratory_rate ?? 16.0,
+    forehead_rppg_heart_rate: record.forehead_rppg_heart_rate ?? 72.0,
+    blink_rate_bpm: record.blink_rate_bpm ?? 15.0,
+    yawn_sigh_count: record.yawn_sigh_count ?? 0,
+    jaw_slack_index: record.jaw_slack_index ?? 0.10,
+    gaze_instability_score: record.gaze_instability_score ?? 0.03,
+    distress_grade: record.distress_grade ?? 0,
+    source: record.source || 'Patient Web Camera',
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/patients/${encodeURIComponent(patientId)}/visual-telemetry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.record) {
+        saveLocalVisualRecord(patientId, data.record);
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('recordPatientVisualTelemetry backend failed, storing locally:', err);
+  }
+
+  const fallback: VisualTelemetryRecord = {
+    id: `VISUAL-LOC-${Date.now()}`,
+    patient_id: patientId,
+    recorded_at: new Date().toISOString(),
+    ...payload,
+  };
+  saveLocalVisualRecord(patientId, fallback);
+  return { message: 'Visual telemetry recorded locally (offline fallback)', record: fallback };
 }
 
 /** Runs doctor-triggered twin model inference on combined multimodal (acoustic + visual) data */

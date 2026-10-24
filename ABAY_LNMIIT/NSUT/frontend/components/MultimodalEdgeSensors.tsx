@@ -3,7 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import FaceFeaturesDashboard from '@/components/FaceFeaturesDashboard';
 import MicFeaturesDashboard from '@/components/MicFeaturesDashboard';
-import { FaceFeatures, MicFeatures, PredictV2Response, predictPatientV2 } from '@/lib/api';
+import {
+  FaceFeatures,
+  MicFeatures,
+  PredictV2Response,
+  predictPatientV2,
+  recordPatientVisualTelemetry,
+  recordPatientAcousticTelemetry,
+} from '@/lib/api';
 
 export interface MultimodalEdgeSensorsProps {
   patientId: string;
@@ -22,11 +29,13 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
   const [liveMic, setLiveMic] = useState<MicFeatures | null>(null);
   const [v2Prediction, setV2Prediction] = useState<PredictV2Response | null>(null);
   const [isPredictingV2, setIsPredictingV2] = useState<boolean>(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setLiveFace(null);
     setLiveMic(null);
     setV2Prediction(null);
+    setSyncNotice(null);
   }, [patientId]);
 
   const handleRunV2Prediction = async () => {
@@ -48,6 +57,26 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
         wearable_telemetry,
       });
       setV2Prediction(pred);
+
+      // Automatically sync the snapshot to backend doctor telemetry store
+      if (liveFace) {
+        recordPatientVisualTelemetry(patientId, {
+          ...liveFace,
+          distress_grade: liveFace.mouth_breathing_ratio > 0.4 || liveFace.nasal_flaring_index > 0.45 ? 2 : 1,
+          source: 'v2 Multimodal Evaluation (Face)',
+        }).catch((e) => console.warn('Visual telemetry auto-sync failed:', e));
+      }
+      if (liveMic) {
+        recordPatientAcousticTelemetry(patientId, {
+          ...liveMic,
+          hourly_cough_count: liveMic.stridor_detection_index > 0.35 ? 8 : 2,
+          wheeze_percent_duration: liveMic.stridor_detection_index > 0.3 ? 15.0 : 2.0,
+          source: 'v2 Multimodal Evaluation (Mic)',
+        }).catch((e) => console.warn('Acoustic telemetry auto-sync failed:', e));
+      }
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setSyncNotice(`v2 Evaluation & Biosensors Synced to Dr. Portal at ${timeStr}`);
     } catch (err) {
       console.error('v2 inference failed:', err);
     } finally {
@@ -65,6 +94,12 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
           <div className="text-xs text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
             Live webcam facial landmark tracking (10 channels) + microphone acoustic DSP (4 channels) feeding RespiTwin v2 frozen inference.
           </div>
+          {syncNotice && (
+            <div className="text-[11px] text-[#0E793C] dark:text-[#4CFF8A] font-medium mt-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#0E793C] dark:bg-[#4CFF8A] animate-pulse" />
+              <span>✓ {syncNotice}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

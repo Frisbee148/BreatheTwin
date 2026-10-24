@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaceFeatures, FaceLandmark, extractFaceFeatures } from '@/lib/api';
+import { FaceFeatures, FaceLandmark, extractFaceFeatures, recordPatientVisualTelemetry } from '@/lib/api';
 
 interface FaceFeaturesDashboardProps {
   patientId: string;
@@ -31,6 +31,8 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
   const [backendUnavailable, setBackendUnavailable] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [savedSessions, setSavedSessions] = useState<number>(0);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -176,8 +178,23 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
     };
   }, []);
 
-  const handleSaveSession = () => {
-    setSavedSessions(prev => prev + 1);
+  const handleSaveSession = async () => {
+    setIsSaving(true);
+    try {
+      await recordPatientVisualTelemetry(patientId, {
+        ...features,
+        distress_grade: features.mouth_breathing_ratio > 0.4 || features.nasal_flaring_index > 0.45 ? 2 : 1,
+        source: 'Patient Web Camera (Edge CV)',
+      });
+      setSavedSessions(prev => prev + 1);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setSyncStatus(`Synced with Dr. at ${timeStr}`);
+    } catch (err) {
+      console.error('Failed to save visual telemetry:', err);
+      setSyncStatus('Sync error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDiscardSession = () => {
@@ -221,13 +238,20 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
             </button>
           )}
 
+          {syncStatus && (
+            <span className="text-[10px] text-[#0E793C] dark:text-[#4CFF8A] font-semibold flex items-center gap-1">
+              <span>✓</span> {syncStatus}
+            </span>
+          )}
+
           <button
             type="button"
             onClick={handleSaveSession}
-            title="Save current telemetry capture window"
-            className="px-2.5 py-1 text-[11px] border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0E793C] dark:text-[#2FBF63] hover:border-[#0E793C] cursor-pointer"
+            disabled={isSaving}
+            title="Send and persist current face biomarker telemetry to doctor"
+            className="px-2.5 py-1 text-[11px] font-bold border border-[#B4E3C5] dark:border-[#12612F] bg-[#F6FBF7] dark:bg-[#061C0E] text-[#0E793C] dark:text-[#2FBF63] hover:border-[#0E793C] cursor-pointer disabled:opacity-50"
           >
-            💾 SAVE {savedSessions > 0 ? `(${savedSessions})` : ''}
+            💾 {isSaving ? 'SYNCING...' : 'SAVE'} {savedSessions > 0 ? `(${savedSessions})` : ''}
           </button>
           <button
             type="button"

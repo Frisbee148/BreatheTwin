@@ -7,6 +7,7 @@ import { getPatient, getPatientTelemetry, getStoredCustomPatients } from '@/lib/
 import PatientNavHeader from '@/components/PatientNavHeader';
 import ThermalViewer from '@/components/ThermalViewer';
 import TelemetryChart from '@/components/TelemetryChart';
+import PatientRemoteBiosensorsCard from '@/components/PatientRemoteBiosensorsCard';
 
 export default function PatientTwinView({ patientId, initialPatient: propPatient }: { patientId: string; initialPatient?: Patient }) {
   const defaultPatient = propPatient || PATIENTS.find(p => p.id === patientId) || getStoredCustomPatients().find(p => p.id === patientId) || PATIENTS[0];
@@ -416,6 +417,9 @@ export default function PatientTwinView({ patientId, initialPatient: propPatient
               onStepChange={setReplayStep}
             />
           </div>
+
+          {/* Patient Remote Biosensors Telemetry (Ingested from Patient Edge Portal) */}
+          <PatientRemoteBiosensorsCard patientId={patientId} />
         </div>
       </div>
     </div>
