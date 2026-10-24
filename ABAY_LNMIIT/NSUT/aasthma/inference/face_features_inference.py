@@ -1,6 +1,8 @@
 import time
+import base64
 import threading
 import collections
+from datetime import datetime, timezone
 from typing import Dict, Optional, Any
 import cv2
 import numpy as np
@@ -120,6 +122,7 @@ class LiveFaceFeaturePipeline:
             "blink_flag": blink_flag,
             "jaw_slack": jaw_slack,
             "ipd": ipd,
+            "landmarks": [{"x": float(lm.x), "y": float(lm.y)} for lm in landmarks],
         }
 
     def _dsp_face_feature_extractor(self, frame: np.ndarray, client_metrics: Optional[dict] = None) -> dict:
@@ -217,6 +220,7 @@ class LiveFaceFeaturePipeline:
         """
         h, w, c = frame.shape
         feats = None
+        face_detected = False
 
         if self.face_mesh is not None:
             try:
@@ -224,6 +228,7 @@ class LiveFaceFeaturePipeline:
                 results = self.face_mesh.process(rgb_frame)
                 if results.multi_face_landmarks:
                     feats = self._extract_landmarks_features(results.multi_face_landmarks[0].landmark, w, h, frame)
+                    face_detected = True
             except Exception:
                 feats = None
 
@@ -316,7 +321,9 @@ class LiveFaceFeaturePipeline:
 
         return {
             "instant": instant,
-            "telemetry": self.get_latest_hourly_telemetry()
+            "telemetry": self.get_latest_hourly_telemetry(),
+            "landmarks": feats.get("landmarks", []),
+            "face_detected": face_detected,
         }
 
     def process_frame_bytes(self, image_bytes: bytes, client_metrics: Optional[dict] = None) -> dict:
@@ -329,6 +336,43 @@ class LiveFaceFeaturePipeline:
             # Fallback for empty/corrupt frame
             frame = np.full((160, 160, 3), 120, dtype=np.uint8)
         return self.process_frame_array(frame, client_metrics=client_metrics)
+
+    def process_base64_frame(self, base64_image: str) -> dict:
+        """Return the real-time feature API shape for a base64 webcam frame."""
+        try:
+            clean_image = base64_image.split(",", 1)[1] if "," in base64_image else base64_image
+            result = self.process_frame_bytes(base64.b64decode(clean_image))
+            return {
+                "features": result["telemetry"],
+                "landmarks": result["landmarks"],
+                "quality": 0.95 if result["face_detected"] else 0.0,
+                "face_detected": result["face_detected"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as exc:
+            return {
+                "features": self.get_fallback_features(),
+                "landmarks": [],
+                "quality": 0.0,
+                "face_detected": False,
+                "error": str(exc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+    @staticmethod
+    def get_fallback_features() -> dict:
+        return {
+            "mouth_breathing_ratio": 0.12,
+            "nasal_flaring_index": 0.20,
+            "brow_strain_score": 0.05,
+            "head_bobbing_amplitude": 0.05,
+            "video_respiratory_rate": 16.0,
+            "yawn_sigh_count": 0,
+            "blink_rate_bpm": 15.0,
+            "forehead_rppg_heart_rate": 72.0,
+            "jaw_slack_index": 0.10,
+            "gaze_instability_score": 0.03,
+        }
 
     def _video_ingestion_worker(self):
         """

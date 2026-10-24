@@ -1,7 +1,9 @@
 import io
 import time
+import base64
 import threading
 import collections
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
 import numpy as np
 import librosa
@@ -175,6 +177,59 @@ class LiveAudioFeaturePipeline:
             except Exception as fallback_exc:
                 print(f"⚠️ Audio decoding error: {exc} | Fallback: {fallback_exc}")
                 return {"instant": {"prob_cough": 0.0, "cough_detected": False}, "telemetry": self.get_latest_hourly_telemetry()}
+
+    def process_pcm_bytes(self, pcm_bytes: bytes, sample_rate: int = 16000) -> Dict[str, Any]:
+        """Extract the compact voice feature response from raw signed 16-bit PCM."""
+        try:
+            samples = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            result = self.process_audio_chunk(samples, sample_rate=sample_rate)
+            telemetry = result.get("telemetry", {})
+            features = {
+                key: telemetry[key]
+                for key in (
+                    "stridor_detection_index",
+                    "snoring_nocturnal_score",
+                    "vocal_hoarseness_jitter",
+                    "speech_rate_wpm",
+                )
+            }
+            return {
+                "features": features,
+                "quality": 0.0 if len(samples) == 0 else 0.95,
+                "is_silent": len(samples) == 0 or float(np.sqrt(np.mean(samples ** 2))) < 0.002,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        except Exception as exc:
+            return {
+                "features": self.get_fallback_features(),
+                "quality": 0.0,
+                "is_silent": True,
+                "error": str(exc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+    def process_base64_audio(self, base64_audio: str, sample_rate: int = 16000) -> Dict[str, Any]:
+        """Decode a base64 raw PCM payload sent by the browser microphone."""
+        try:
+            clean_audio = base64_audio.split(",", 1)[1] if "," in base64_audio else base64_audio
+            return self.process_pcm_bytes(base64.b64decode(clean_audio), sample_rate=sample_rate)
+        except Exception as exc:
+            return {
+                "features": self.get_fallback_features(),
+                "quality": 0.0,
+                "is_silent": True,
+                "error": str(exc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+
+    @staticmethod
+    def get_fallback_features() -> Dict[str, Any]:
+        return {
+            "stridor_detection_index": 0.0,
+            "snoring_nocturnal_score": 0.0,
+            "vocal_hoarseness_jitter": 0.8,
+            "speech_rate_wpm": 130.0,
+        }
 
     def _process_1s_window(self, audio_window: np.ndarray) -> Dict[str, Any]:
         """

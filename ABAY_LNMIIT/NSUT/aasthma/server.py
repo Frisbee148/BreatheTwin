@@ -1184,4 +1184,71 @@ def simulate_patient_multimodal_inference(patient_id: str, req: MultimodalInfere
         raise HTTPException(status_code=500, detail=f"Multimodal inference error: {exc}") from exc
 
 
+class FaceFeatureExtractRequest(BaseModel):
+    video_frame_base64: Optional[str] = None
+    image_base64: Optional[str] = None
 
+
+class MicFeatureExtractRequest(BaseModel):
+    audio_base64: Optional[str] = None
+    pcm_base64: Optional[str] = None
+    sample_rate: Optional[int] = 16000
+
+
+class PredictWithExtendedFeaturesRequest(BaseModel):
+    face_features: Optional[Dict[str, Any]] = None
+    mic_features: Optional[Dict[str, Any]] = None
+    wearable_telemetry: Optional[Dict[str, Any]] = None
+    end_hour: Optional[int] = None
+
+
+@app.post("/api/patients/{patient_id}/face-features")
+@app.post("/api/patients/{patient_id}/face-features/extract")
+def extract_patient_face_features(patient_id: str, req: Optional[FaceFeatureExtractRequest] = None):
+    """Extract face biomarkers and normalized landmarks from one browser frame."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    frame_data = (req.video_frame_base64 or req.image_base64) if req else None
+    try:
+        return engine.extract_face_features_realtime(video_frames=frame_data, patient_id=patient_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Face feature extraction failed: {exc}") from exc
+
+
+@app.post("/api/patients/{patient_id}/mic-features")
+@app.post("/api/patients/{patient_id}/mic-features/extract")
+def extract_patient_mic_features(patient_id: str, req: Optional[MicFeatureExtractRequest] = None):
+    """Extract voice biomarkers from a base64 PCM microphone chunk."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    audio_data = (req.audio_base64 or req.pcm_base64) if req else None
+    sample_rate = req.sample_rate if req and req.sample_rate else 16000
+    try:
+        return engine.extract_mic_features_realtime(
+            audio_data=audio_data,
+            patient_id=patient_id,
+            sample_rate=sample_rate,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Mic feature extraction failed: {exc}") from exc
+
+
+@app.post("/api/patients/{patient_id}/predict-v2")
+@app.post("/api/patients/{patient_id}/predict-with-extended-features")
+def predict_with_v2_extended_features(
+    patient_id: str,
+    req: Optional[PredictWithExtendedFeaturesRequest] = None,
+):
+    """Run v2 inference with face, voice, and wearable features."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Inference engine not ready")
+    try:
+        return engine.predict_with_face_mic_features(
+            patient_id=patient_id,
+            face_dict=req.face_features if req else None,
+            mic_dict=req.mic_features if req else None,
+            wearable_dict=req.wearable_telemetry if req else None,
+            end_hour=req.end_hour if req else None,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"v2 extended prediction failed: {exc}") from exc
