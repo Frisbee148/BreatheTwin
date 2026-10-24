@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FaceFeaturesDashboard from '@/components/FaceFeaturesDashboard';
 import MicFeaturesDashboard from '@/components/MicFeaturesDashboard';
 import { FaceFeatures, MicFeatures, PredictV2Response, predictPatientV2 } from '@/lib/api';
@@ -22,6 +22,12 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
   const [liveMic, setLiveMic] = useState<MicFeatures | null>(null);
   const [v2Prediction, setV2Prediction] = useState<PredictV2Response | null>(null);
   const [isPredictingV2, setIsPredictingV2] = useState<boolean>(false);
+
+  useEffect(() => {
+    setLiveFace(null);
+    setLiveMic(null);
+    setV2Prediction(null);
+  }, [patientId]);
 
   const handleRunV2Prediction = async () => {
     setIsPredictingV2(true);
@@ -53,7 +59,7 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
     <div className="space-y-6 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#B4E3C5] dark:border-[#12612F] pb-3">
         <div>
-          <h2 className="text-xl font-bold text-[#0E793C] dark:text-[#B6FFCC] tracking-wide">
+          <h2 id="edge-sensors-heading" className="text-xl font-bold text-[#0E793C] dark:text-[#B6FFCC] tracking-wide">
             {`◈ Real-Time Multimodal Edge Sensors (Face Video & Voice Mic)`}
           </h2>
           <div className="text-xs text-[#4A755A] dark:text-[#2FBF63] mt-0.5">
@@ -97,7 +103,9 @@ export default function MultimodalEdgeSensors({ patientId, currentTelemetry }: M
             <span className={liveMic ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : 'text-gray-400'}>
               {liveMic ? 'MIC ✓' : 'MIC (HEURISTIC)'}
             </span>
-            <span className="text-[#0E793C] dark:text-[#4CFF8A] font-bold">WEARABLE ✓</span>
+            <span className={currentTelemetry ? 'text-[#0E793C] dark:text-[#4CFF8A] font-bold' : 'text-gray-400'}>
+              {currentTelemetry ? 'WEARABLE ✓' : 'WEARABLE (HEURISTIC)'}
+            </span>
           </div>
         </div>
 

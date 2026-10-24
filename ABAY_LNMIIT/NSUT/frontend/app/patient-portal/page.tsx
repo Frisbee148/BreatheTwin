@@ -70,8 +70,6 @@ function PatientPortalContent() {
   const [recentLogs, setRecentLogs] = useState<PatientDailyLogEntry[]>([]);
 
   // Copilot Report State (Personalized AI Report for Patient)
-
-  // Copilot Report State (Personalized AI Report for Patient)
   const [copilotReport, setCopilotReport] = useState<CopilotReport | null>(null);
   const [isCopilotReportLoading, setIsCopilotReportLoading] = useState<boolean>(false);
   const [copilotReportError, setCopilotReportError] = useState<string | null>(null);
@@ -1165,12 +1163,11 @@ function PatientPortalContent() {
       ========================================================================= */}
       <section aria-labelledby="edge-sensors-heading" className="space-y-4">
         <MultimodalEdgeSensors
+          key={patient.id}
           patientId={patient.id}
           currentTelemetry={patient.currentTelemetry}
         />
       </section>
-
-
 
       {/* =========================================================================
           6. DAILY CHECK-IN AS A QUICK-TAP ROW
