@@ -53,9 +53,15 @@ export default function LoginPage() {
         errMsg.includes('Failed to fetch') ||
         errMsg.includes('NetworkError') ||
         errMsg.includes('Load failed');
+      const isDatabaseUnavailable =
+        errMsg.includes('PostgreSQL login error') &&
+        /connection refused|could not connect|connection timed out/i.test(errMsg);
 
-      // Local demo fallback ONLY if backend API is completely unreachable
-      if (isNetworkError) {
+      // Keep the seeded demo accounts usable when PostgreSQL is unavailable locally.
+      if (isNetworkError || isDatabaseUnavailable) {
+        if (isDatabaseUnavailable) {
+          console.warn('PostgreSQL is unavailable; using a local demo session.');
+        }
         if (role === 'doctor' && email === 'doctor@synclave.health' && password === 'doctor123') {
           loginAsDoctor('Dr. Vikram Mehta, MD');
           router.push('/patients');

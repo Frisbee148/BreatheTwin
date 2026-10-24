@@ -1,0 +1,11 @@
+.dashboard { min-height: 100vh; padding: clamp(1rem, 4vw, 3rem); background: #030a06; color: #d9f7e4; }
+.heading { max-width: 72rem; margin: 0 auto 1.5rem; }
+.heading h1 { margin: .25rem 0; font-size: clamp(1.5rem, 3vw, 2.25rem); }
+.heading p { color: #9dc0a9; font-size: .85rem; }
+.heading .eyebrow { color: #57ed92; text-transform: uppercase; letter-spacing: .12em; font: 700 .7rem ui-monospace, monospace; }
+.columns { max-width: 72rem; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1rem; }
+.column { display: grid; min-width: 0; gap: 1rem; }
+
+@media (max-width: 900px) {
+  .columns { grid-template-columns: 1fr; }
+}

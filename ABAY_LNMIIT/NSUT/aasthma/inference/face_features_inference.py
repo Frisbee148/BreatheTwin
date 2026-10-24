@@ -97,6 +97,7 @@ class LiveFaceFeaturePipeline:
         if frame is None or frame.size == 0:
             return {
                 "features": self.get_fallback_features(),
+                "landmarks": [],
                 "quality": 0.0,
                 "face_detected": False,
                 "timestamp": datetime.now(timezone.utc).isoformat()
@@ -109,12 +110,17 @@ class LiveFaceFeaturePipeline:
         if not results.multi_face_landmarks:
             return {
                 "features": self.get_fallback_features(),
+                "landmarks": [],
                 "quality": 0.0,
                 "face_detected": False,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
 
         landmarks = results.multi_face_landmarks[0].landmark
+        normalized_landmarks = [
+            {"x": float(landmark.x), "y": float(landmark.y)}
+            for landmark in landmarks
+        ]
         pts = np.array([[lm.x * w, lm.y * h, lm.z * w] for lm in landmarks])
 
         # 1. IPD Normalization Baseline (P33 to P263)
@@ -221,6 +227,7 @@ class LiveFaceFeaturePipeline:
 
         return {
             "features": features,
+            "landmarks": normalized_landmarks,
             "quality": 0.95,
             "face_detected": True,
             "timestamp": datetime.now(timezone.utc).isoformat()
@@ -238,6 +245,7 @@ class LiveFaceFeaturePipeline:
         except Exception as exc:
             return {
                 "features": self.get_fallback_features(),
+                "landmarks": [],
                 "quality": 0.0,
                 "face_detected": False,
                 "error": str(exc),

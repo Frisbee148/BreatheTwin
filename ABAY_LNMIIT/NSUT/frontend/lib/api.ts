@@ -1884,6 +1884,11 @@ export interface FaceFeatures {
   gaze_instability_score: number;
 }
 
+export interface FaceLandmark {
+  x: number;
+  y: number;
+}
+
 export interface MicFeatures {
   stridor_detection_index: number;
   snoring_nocturnal_score: number;
@@ -1922,7 +1927,7 @@ export interface PredictV2Response {
 export async function extractFaceFeatures(
   patientId: string,
   imageBase64?: string
-): Promise<{ features: FaceFeatures; quality: number; face_detected: boolean; timestamp: string }> {
+): Promise<{ features: FaceFeatures; landmarks: FaceLandmark[]; quality: number; face_detected: boolean; timestamp: string; error?: string }> {
   try {
     const res = await fetch(`${API_BASE}/patients/${patientId}/face-features`, {
       method: 'POST',
@@ -1933,33 +1938,60 @@ export async function extractFaceFeatures(
     if (res.ok) {
       return await res.json();
     }
+    let error = `Face extraction request failed (${res.status}).`;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') error = body.detail;
+    } catch {
+      // Keep the HTTP status message when the response is not JSON.
+    }
+    return {
+      features: {
+        mouth_breathing_ratio: 0.1,
+        nasal_flaring_index: 0.15,
+        brow_strain_score: 0.08,
+        head_bobbing_amplitude: 0.03,
+        video_respiratory_rate: 16.0,
+        yawn_sigh_count: 0,
+        blink_rate_bpm: 16.0,
+        forehead_rppg_heart_rate: 72.0,
+        jaw_slack_index: 0.1,
+        gaze_instability_score: 0.05,
+      },
+      landmarks: [],
+      quality: 0.0,
+      face_detected: false,
+      timestamp: new Date().toISOString(),
+      error,
+    };
   } catch (err) {
-    console.warn('Face extraction fallback:', err);
+    return {
+      features: {
+        mouth_breathing_ratio: 0.1,
+        nasal_flaring_index: 0.15,
+        brow_strain_score: 0.08,
+        head_bobbing_amplitude: 0.03,
+        video_respiratory_rate: 16.0,
+        yawn_sigh_count: 0,
+        blink_rate_bpm: 16.0,
+        forehead_rppg_heart_rate: 72.0,
+        jaw_slack_index: 0.1,
+        gaze_instability_score: 0.05,
+      },
+      landmarks: [],
+      quality: 0.0,
+      face_detected: false,
+      timestamp: new Date().toISOString(),
+      error: err instanceof Error ? err.message : 'Face extraction service is unavailable.',
+    };
   }
-  return {
-    features: {
-      mouth_breathing_ratio: 0.1,
-      nasal_flaring_index: 0.15,
-      brow_strain_score: 0.08,
-      head_bobbing_amplitude: 0.03,
-      video_respiratory_rate: 16.0,
-      yawn_sigh_count: 0,
-      blink_rate_bpm: 16.0,
-      forehead_rppg_heart_rate: 72.0,
-      jaw_slack_index: 0.1,
-      gaze_instability_score: 0.05,
-    },
-    quality: 0.0,
-    face_detected: false,
-    timestamp: new Date().toISOString(),
-  };
 }
 
 export async function extractMicFeatures(
   patientId: string,
   audioBase64?: string,
   sampleRate: number = 16000
-): Promise<{ features: MicFeatures; quality: number; is_silent: boolean; timestamp: string }> {
+): Promise<{ features: MicFeatures; quality: number; is_silent: boolean; timestamp: string; error?: string }> {
   try {
     const res = await fetch(`${API_BASE}/patients/${patientId}/mic-features`, {
       method: 'POST',
@@ -1970,20 +2002,39 @@ export async function extractMicFeatures(
     if (res.ok) {
       return await res.json();
     }
+    let error = `Voice extraction request failed (${res.status}).`;
+    try {
+      const body = await res.json();
+      if (typeof body.detail === 'string') error = body.detail;
+    } catch {
+      // Keep the HTTP status message when the response is not JSON.
+    }
+    return {
+      features: {
+        stridor_detection_index: 0.0,
+        snoring_nocturnal_score: 0.0,
+        vocal_hoarseness_jitter: 0.5,
+        speech_rate_wpm: 140.0,
+      },
+      quality: 0.0,
+      is_silent: true,
+      timestamp: new Date().toISOString(),
+      error,
+    };
   } catch (err) {
-    console.warn('Mic extraction fallback:', err);
+    return {
+      features: {
+        stridor_detection_index: 0.0,
+        snoring_nocturnal_score: 0.0,
+        vocal_hoarseness_jitter: 0.5,
+        speech_rate_wpm: 140.0,
+      },
+      quality: 0.0,
+      is_silent: true,
+      timestamp: new Date().toISOString(),
+      error: err instanceof Error ? err.message : 'Voice extraction service is unavailable.',
+    };
   }
-  return {
-    features: {
-      stridor_detection_index: 0.0,
-      snoring_nocturnal_score: 0.0,
-      vocal_hoarseness_jitter: 0.5,
-      speech_rate_wpm: 140.0,
-    },
-    quality: 0.0,
-    is_silent: true,
-    timestamp: new Date().toISOString(),
-  };
 }
 
 export async function predictPatientV2(

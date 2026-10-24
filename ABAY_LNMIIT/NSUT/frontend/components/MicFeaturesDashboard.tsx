@@ -15,6 +15,21 @@ const DEFAULT_MIC: MicFeatures = {
   speech_rate_wpm: 140.0,
 };
 
+function encodePcmSamples(samples: Float32Array): string {
+  const pcmSamples = new Int16Array(samples.length);
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index]));
+    pcmSamples[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+
+  const bytes = new Uint8Array(pcmSamples.buffer);
+  let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(binary);
+}
+
 export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: MicFeaturesDashboardProps) {
   const [isActive, setIsActive] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -28,11 +43,15 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const silentOutputRef = useRef<GainNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const sampleChunksRef = useRef<Float32Array[]>([]);
+  const bufferedSampleCountRef = useRef(0);
+  const requestInFlightRef = useRef(false);
+  const peakAudioLevelRef = useRef(0);
 
   // Draw audio oscilloscope waveform
   const drawWaveform = useCallback(() => {
@@ -76,64 +95,102 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
 
-    const level = Math.min(100, Math.round((maxAmp / 128) * 100));
-    setPeakAudioLevel(level);
+    peakAudioLevelRef.current = Math.min(100, Math.round((maxAmp / 128) * 100));
 
-    animationFrameRef.current = requestAnimationFrame(drawWaveform);
   }, [isActive]);
 
-  // Capture audio slice and send to backend
-  const captureAndExtract = useCallback(async () => {
-    if (!isActive) return;
-
-    // Simulate audio telemetry ping or send recorded slice
+  const processAudioChunk = useCallback(async (samples: Float32Array, sampleRate: number) => {
+    if (requestInFlightRef.current) return;
+    requestInFlightRef.current = true;
     try {
-      const res = await extractMicFeatures(patientId);
+      const res = await extractMicFeatures(patientId, encodePcmSamples(samples), sampleRate);
+      setErrorMessage(res.error ?? null);
       if (res && res.features) {
-        // If microphone is picking up sound, add realistic dynamics to test
-        const isDetectingSound = peakAudioLevel > 15;
-        const currentFeatures: MicFeatures = {
-          stridor_detection_index: isDetectingSound ? Number((Math.random() * 0.25).toFixed(3)) : res.features.stridor_detection_index,
-          snoring_nocturnal_score: res.features.snoring_nocturnal_score,
-          vocal_hoarseness_jitter: isDetectingSound ? Number((0.4 + Math.random() * 0.5).toFixed(2)) : res.features.vocal_hoarseness_jitter,
-          speech_rate_wpm: isDetectingSound ? Math.round(135 + Math.random() * 15) : res.features.speech_rate_wpm,
-        };
-
-        setFeatures(currentFeatures);
-        setQuality(res.quality > 0 ? res.quality : 0.95);
-        setIsSilent(!isDetectingSound);
+        setFeatures(res.features);
+        setQuality(res.quality);
+        setIsSilent(res.is_silent);
         setLastUpdated(new Date().toLocaleTimeString());
-        if (onFeaturesUpdate) {
-          onFeaturesUpdate(currentFeatures);
-        }
+        onFeaturesUpdate?.(res.features);
       }
-    } catch (err) {
-      console.warn('Audio telemetry extraction failed:', err);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Audio telemetry extraction failed.');
+    } finally {
+      requestInFlightRef.current = false;
     }
-  }, [isActive, patientId, peakAudioLevel, onFeaturesUpdate]);
+  }, [onFeaturesUpdate, patientId]);
 
   // Start audio stream
   const startStream = async () => {
     setErrorMessage(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMessage('Microphone access is unavailable in this browser or origin.');
+      return;
+    }
+    let stream: MediaStream | null = null;
+    let audioCtx: AudioContext | null = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       streamRef.current = stream;
 
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioCtx();
-      audioContextRef.current = audioCtx;
+      const context = new AudioContext();
+      audioCtx = context;
+      await context.resume();
+      audioContextRef.current = context;
 
-      const analyser = audioCtx.createAnalyser();
+      const analyser = context.createAnalyser();
       analyser.fftSize = 512;
       analyserRef.current = analyser;
 
-      const source = audioCtx.createMediaStreamSource(stream);
+      const source = context.createMediaStreamSource(stream);
       source.connect(analyser);
 
+      const processor = context.createScriptProcessor(4096, 1, 1);
+      const silentOutput = context.createGain();
+      silentOutput.gain.value = 0;
+      source.connect(processor);
+      processor.connect(silentOutput);
+      silentOutput.connect(audioCtx.destination);
+      processorRef.current = processor;
+      silentOutputRef.current = silentOutput;
+      sampleChunksRef.current = [];
+      bufferedSampleCountRef.current = 0;
+
+      processor.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0);
+        sampleChunksRef.current.push(new Float32Array(input));
+        bufferedSampleCountRef.current += input.length;
+        if (bufferedSampleCountRef.current < context.sampleRate) return;
+
+        if (requestInFlightRef.current) {
+          sampleChunksRef.current = [];
+          bufferedSampleCountRef.current = 0;
+          return;
+        }
+
+        const chunk = new Float32Array(bufferedSampleCountRef.current);
+        let offset = 0;
+        for (const part of sampleChunksRef.current) {
+          chunk.set(part, offset);
+          offset += part.length;
+        }
+        sampleChunksRef.current = [];
+        bufferedSampleCountRef.current = 0;
+        void processAudioChunk(chunk, context.sampleRate);
+      };
+
+      setLastUpdated(null);
       setIsActive(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      stream?.getTracks().forEach(track => track.stop());
+      if (audioCtx && audioCtx.state !== 'closed') void audioCtx.close();
+      streamRef.current = null;
+      audioContextRef.current = null;
       console.error('Microphone access error:', err);
-      setErrorMessage(err.message || 'Microphone access denied or disconnected. Using heuristic fallback values.');
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : 'Microphone access denied or disconnected.',
+      );
     }
   };
 
@@ -144,27 +201,42 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
+    if (processorRef.current) {
+      processorRef.current.onaudioprocess = null;
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    analyserRef.current?.disconnect();
+    analyserRef.current = null;
+    silentOutputRef.current?.disconnect();
+    silentOutputRef.current = null;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      if (audioContextRef.current.state !== 'closed') void audioContextRef.current.close();
       audioContextRef.current = null;
     }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    sampleChunksRef.current = [];
+    bufferedSampleCountRef.current = 0;
+    requestInFlightRef.current = false;
+    peakAudioLevelRef.current = 0;
     setPeakAudioLevel(0);
   };
 
   useEffect(() => {
     if (isActive) {
-      animationFrameRef.current = requestAnimationFrame(drawWaveform);
-      timerRef.current = setInterval(() => {
-        captureAndExtract();
-      }, 1500);
+      const drawFrame = () => {
+        drawWaveform();
+        animationFrameRef.current = requestAnimationFrame(drawFrame);
+      };
+      animationFrameRef.current = requestAnimationFrame(drawFrame);
+      timerRef.current = setInterval(() => setPeakAudioLevel(peakAudioLevelRef.current), 100);
     } else {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -173,7 +245,7 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, drawWaveform, captureAndExtract]);
+  }, [isActive, drawWaveform]);
 
   useEffect(() => {
     return () => {
@@ -205,7 +277,15 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
             ◈ Real-Time Voice Biomarkers (Acoustic 4-Channel)
           </span>
           <span className="text-[10px] px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#2FBF63] bg-[#EAF8EF] dark:bg-[#061C0E]">
-            {isActive ? (isSilent ? 'MONITORING SILENCE' : 'VOICE CAPTURED') : 'AUDIO IDLE (FALLBACK ACTIVE)'}
+            {isActive
+              ? errorMessage
+                ? 'API UNAVAILABLE'
+                : lastUpdated
+                  ? isSilent
+                    ? 'SILENCE DETECTED'
+                    : 'VOICE CAPTURED'
+                  : 'WAITING FOR AUDIO'
+              : 'MIC IDLE (NO LIVE DATA)'}
           </span>
         </div>
 
@@ -282,8 +362,8 @@ export default function MicFeaturesDashboard({ patientId, onFeaturesUpdate }: Mi
           </div>
 
           <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] flex justify-between">
-            <span>LAST SYNC: {lastUpdated || 'Initial Baseline'}</span>
-            <span>DSP: 16 kHz STFT</span>
+            <span>LAST SYNC: {lastUpdated || 'No live sample yet'}</span>
+            <span>QUALITY: {Math.round(quality * 100)}%</span>
           </div>
         </div>
 

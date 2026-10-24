@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FaceFeatures, extractFaceFeatures } from '@/lib/api';
+import { FaceFeatures, FaceLandmark, extractFaceFeatures } from '@/lib/api';
 
 interface FaceFeaturesDashboardProps {
   patientId: string;
@@ -23,16 +23,18 @@ const DEFAULT_FACE: FaceFeatures = {
 
 export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: FaceFeaturesDashboardProps) {
   const [isActive, setIsActive] = useState<boolean>(false);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [features, setFeatures] = useState<FaceFeatures>(DEFAULT_FACE);
   const [quality, setQuality] = useState<number>(0.0);
   const [faceDetected, setFaceDetected] = useState<boolean>(false);
+  const [landmarks, setLandmarks] = useState<FaceLandmark[]>([]);
+  const [backendUnavailable, setBackendUnavailable] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [savedSessions, setSavedSessions] = useState<number>(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const landmarksCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -49,7 +51,20 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const targetAspect = canvas.width / canvas.height;
+    const videoAspect = video.videoWidth / video.videoHeight;
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = video.videoWidth;
+    let sourceHeight = video.videoHeight;
+    if (videoAspect > targetAspect) {
+      sourceWidth = video.videoHeight * targetAspect;
+      sourceX = (video.videoWidth - sourceWidth) / 2;
+    } else if (videoAspect < targetAspect) {
+      sourceHeight = video.videoWidth / targetAspect;
+      sourceY = (video.videoHeight - sourceHeight) / 2;
+    }
+    ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
 
     try {
@@ -58,19 +73,44 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
         setFeatures(res.features);
         setQuality(res.quality);
         setFaceDetected(res.face_detected);
+        setLandmarks(res.face_detected ? res.landmarks ?? [] : []);
+        setBackendUnavailable(Boolean(res.error));
+        setErrorMessage(
+          res.error ?? (res.face_detected ? null : 'No face detected. Improve lighting and center your face.'),
+        );
         setLastUpdated(new Date().toLocaleTimeString());
         if (onFeaturesUpdate) {
           onFeaturesUpdate(res.features);
         }
       }
-    } catch (err) {
-      console.warn('Frame processing failed:', err);
+    } catch (err: unknown) {
+      setBackendUnavailable(true);
+      setErrorMessage(err instanceof Error ? err.message : 'Frame processing failed.');
     }
   }, [isActive, patientId, onFeaturesUpdate]);
+
+  useEffect(() => {
+    const canvas = landmarksCanvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!isActive || !faceDetected) return;
+
+    context.fillStyle = '#3DE07A';
+    for (const landmark of landmarks) {
+      const x = landmark.x * canvas.width;
+      const y = landmark.y * canvas.height;
+      context.beginPath();
+      context.arc(x, y, 1.35, 0, Math.PI * 2);
+      context.fill();
+    }
+  }, [faceDetected, isActive, landmarks]);
 
   // Start video stream
   const startStream = async () => {
     setErrorMessage(null);
+    setBackendUnavailable(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
@@ -81,18 +121,22 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-      setHasPermission(true);
       setIsActive(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Camera permission/access error:', err);
-      setHasPermission(false);
-      setErrorMessage(err.message || 'Camera access denied or device disconnected. Using heuristic fallback values.');
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : 'Camera access denied or device disconnected. Using heuristic fallback values.',
+      );
     }
   };
 
   // Stop video stream
   const stopStream = () => {
     setIsActive(false);
+    setFaceDetected(false);
+    setLandmarks([]);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -140,6 +184,7 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
     setFeatures(DEFAULT_FACE);
     setQuality(0.0);
     setFaceDetected(false);
+    setLandmarks([]);
   };
 
   return (
@@ -152,7 +197,7 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
             ◈ Real-Time Face Biomarkers (Computer Vision 10-Channel)
           </span>
           <span className="text-[10px] px-2 py-0.5 border border-[#B4E3C5] dark:border-[#12612F] text-[#0A602F] dark:text-[#2FBF63] bg-[#EAF8EF] dark:bg-[#061C0E]">
-            {isActive ? (faceDetected ? 'TRACKING 468 KEYPOINTS' : 'SCANNING FOR FACE') : 'STREAM IDLE (FALLBACK ACTIVE)'}
+          {isActive ? (faceDetected ? `TRACKING ${landmarks.length} KEYPOINTS` : 'SCANNING FOR FACE') : 'CAMERA IDLE (NO LIVE DATA)'}
           </span>
         </div>
 
@@ -214,22 +259,28 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
               playsInline
               muted
             />
+            <canvas
+              ref={landmarksCanvasRef}
+              width={320}
+              height={240}
+              aria-label="Live facial landmark overlay"
+              className={`absolute inset-0 h-full w-full pointer-events-none ${isActive && faceDetected ? 'block' : 'hidden'}`}
+            />
             {!isActive && (
               <div className="text-center p-4 text-gray-400 space-y-2">
                 <div className="text-2xl">📹</div>
-                <div className="text-[11px]">Camera stream stopped.</div>
-                <div className="text-[10px] text-[#2FBF63]">Deterministic heuristic fallbacks active.</div>
+                <div className="text-[11px]">Camera stream stopped. Live values are paused.</div>
               </div>
             )}
             {isActive && !faceDetected && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-[#FFE14A] text-[10px] tracking-wide font-bold">
-                ALIGN FACE IN CENTER
+                {backendUnavailable ? 'FACE API UNAVAILABLE' : 'ALIGN FACE IN CENTER'}
               </div>
             )}
             {/* Visual HUD overlay */}
             {isActive && faceDetected && (
               <div className="absolute top-2 left-2 text-[9px] bg-black/60 px-1.5 py-0.5 text-[#3DE07A] border border-[#12612F]">
-                FPS: ~30 | QUALITY: {(quality * 100).toFixed(0)}%
+                {landmarks.length} KEYPOINTS | QUALITY: {(quality * 100).toFixed(0)}%
               </div>
             )}
           </div>
@@ -237,7 +288,7 @@ export default function FaceFeaturesDashboard({ patientId, onFeaturesUpdate }: F
 
           <div className="text-[10px] text-[#4A755A] dark:text-[#2FBF63] flex justify-between">
             <span>LAST SYNC: {lastUpdated || 'Initial Baseline'}</span>
-            <span>SOURCE: {faceDetected ? 'Live Mesh' : 'Heuristic Imputed'}</span>
+            <span>SOURCE: {faceDetected ? 'Live Mesh' : backendUnavailable ? 'API UNAVAILABLE' : 'No live mesh'}</span>
           </div>
         </div>
 
