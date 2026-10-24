@@ -279,7 +279,12 @@ function PatientPortalContent() {
   // REAL-TIME WEBCAM FACIAL RESPIRATORY SENSOR STATE
   // ==========================================
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [isSimulatedCamera, setIsSimulatedCamera] = useState<boolean>(false);
   const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [cameraErrorMessage, setCameraErrorMessage] = useState<string | null>(null);
+  const [cameraErrorType, setCameraErrorType] = useState<
+    'permission_denied' | 'not_found' | 'in_use' | 'overconstrained' | 'insecure_context' | 'unknown' | null
+  >(null);
   const [mouthBreathingDetected, setMouthBreathingDetected] = useState<boolean>(false);
   const [nasalFlaringDetected, setNasalFlaringDetected] = useState<boolean>(false);
   const [accessoryStrainDetected, setAccessoryStrainDetected] = useState<boolean>(false);
@@ -292,21 +297,296 @@ function PatientPortalContent() {
 
   const videoElementRef = React.useRef<HTMLVideoElement | null>(null);
   const videoCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const simulatedCanvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const cameraStreamRef = React.useRef<MediaStream | null>(null);
   const videoIntervalRef = React.useRef<any>(null);
+  const simAnimationRef = React.useRef<number | null>(null);
+
+  // Live refs to prevent stale closure in animation loops
+  const mouthAspectRef = React.useRef(mouthAspectPct);
+  mouthAspectRef.current = mouthAspectPct;
+  const nasalFlaringRef = React.useRef(nasalFlaringDetected);
+  nasalFlaringRef.current = nasalFlaringDetected;
+  const accessoryStrainRef = React.useRef(accessoryStrainDetected);
+  accessoryStrainRef.current = accessoryStrainDetected;
+  const opticalHrRef = React.useRef(opticalHeartRate);
+  opticalHrRef.current = opticalHeartRate;
+  const respRateRef = React.useRef(videoRespiratoryRate);
+  respRateRef.current = videoRespiratoryRate;
+
+  const stopCameraMonitoring = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
+      cameraStreamRef.current = null;
+    }
+    if (simAnimationRef.current) {
+      cancelAnimationFrame(simAnimationRef.current);
+      simAnimationRef.current = null;
+    }
+    if (videoIntervalRef.current) {
+      clearInterval(videoIntervalRef.current);
+      videoIntervalRef.current = null;
+    }
+    if (videoElementRef.current) {
+      videoElementRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setIsSimulatedCamera(false);
+  };
+
+  const startSimulatedCameraMonitoring = () => {
+    stopCameraMonitoring();
+    setIsSimulatedCamera(true);
+    setCameraPermission('granted');
+    setIsCameraActive(true);
+    setCameraErrorMessage(null);
+    setCameraErrorType(null);
+
+    let frameTick = 0;
+    const renderSimulatedFrame = () => {
+      frameTick++;
+      const canvas = simulatedCanvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const w = canvas.width || 320;
+          const h = canvas.height || 240;
+          canvas.width = w;
+          canvas.height = h;
+
+          // 1. Dark medical viewport background
+          ctx.fillStyle = '#020A05';
+          ctx.fillRect(0, 0, w, h);
+
+          // 2. Grid coordinate mesh
+          ctx.strokeStyle = '#12612F';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          for (let x = 20; x < w; x += 30) {
+            ctx.moveTo(x, 0); ctx.lineTo(x, h);
+          }
+          for (let y = 20; y < h; y += 30) {
+            ctx.moveTo(0, y); ctx.lineTo(w, y);
+          }
+          ctx.stroke();
+
+          // 3. Head bobbing calculation if accessory strain is active
+          const bobOffset = accessoryStrainRef.current ? Math.sin(frameTick * 0.12) * 5 : 0;
+          const cx = w / 2;
+          const cy = h / 2 - 5 + bobOffset;
+
+          // 4. Stylized anatomical head outline
+          ctx.save();
+          ctx.fillStyle = '#1A3323';
+          ctx.strokeStyle = accessoryStrainRef.current ? '#F59E0B' : '#4CFF8A';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, 54, 72, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Neck & Sternocleidomastoid (SCM) strain lines
+          ctx.strokeStyle = accessoryStrainRef.current ? '#EF4444' : '#12612F';
+          ctx.lineWidth = accessoryStrainRef.current ? 2.5 : 1;
+          ctx.beginPath();
+          ctx.moveTo(cx - 24, cy + 68);
+          ctx.lineTo(cx - 36, cy + 115);
+          ctx.moveTo(cx + 24, cy + 68);
+          ctx.lineTo(cx + 36, cy + 115);
+          ctx.stroke();
+
+          // 5. Forehead green ROI box for optical rPPG pulse
+          const pulseGreen = Math.floor(180 + Math.sin(frameTick * 0.18) * 55);
+          ctx.fillStyle = `rgba(0, ${pulseGreen}, 80, 0.35)`;
+          ctx.strokeStyle = `rgb(0, ${pulseGreen}, 100)`;
+          ctx.lineWidth = 1;
+          ctx.fillRect(cx - 24, cy - 54, 48, 20);
+          ctx.strokeRect(cx - 24, cy - 54, 48, 20);
+          ctx.fillStyle = '#75FFA5';
+          ctx.font = '7px monospace';
+          ctx.fillText(`rPPG ROI [${opticalHrRef.current.toFixed(0)} BPM]`, cx - 22, cy - 38);
+
+          // 6. Eyes (with periodic blinking)
+          const isBlinking = frameTick % 90 < 5;
+          ctx.fillStyle = '#4CFF8A';
+          if (isBlinking) {
+            ctx.fillRect(cx - 28, cy - 14, 18, 2);
+            ctx.fillRect(cx + 10, cy - 14, 18, 2);
+          } else {
+            ctx.beginPath();
+            ctx.arc(cx - 19, cy - 14, 6, 0, Math.PI * 2);
+            ctx.arc(cx + 19, cy - 14, 6, 0, Math.PI * 2);
+            ctx.fill();
+            // Pupils
+            ctx.fillStyle = '#020A05';
+            ctx.beginPath();
+            ctx.arc(cx - 19, cy - 14, 2.5, 0, Math.PI * 2);
+            ctx.arc(cx + 19, cy - 14, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 7. Nose & Nasal Flaring (Alar index)
+          const isFlared = nasalFlaringRef.current;
+          const alarW = isFlared ? 12 : 7;
+          ctx.strokeStyle = isFlared ? '#EF4444' : '#4CFF8A';
+          ctx.fillStyle = isFlared ? 'rgba(239, 68, 68, 0.6)' : 'rgba(76, 255, 138, 0.4)';
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - 6);
+          ctx.lineTo(cx, cy + 14);
+          ctx.stroke();
+          // Nostrils
+          ctx.beginPath();
+          ctx.ellipse(cx - 7, cy + 15, alarW / 2, 3, 0, 0, Math.PI * 2);
+          ctx.ellipse(cx + 7, cy + 15, alarW / 2, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // 8. Mouth (Oral Aperture / MAR scaling)
+          const marNorm = mouthAspectRef.current / 100;
+          const mouthH = Math.max(3, marNorm * 38);
+          const isMouthBreathing = marNorm > 0.35;
+          ctx.fillStyle = isMouthBreathing ? '#EF4444' : '#061C0E';
+          ctx.strokeStyle = isMouthBreathing ? '#FF5555' : '#4CFF8A';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(cx, cy + 38, 22, mouthH, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          if (isMouthBreathing) {
+            ctx.fillStyle = '#FFF';
+            ctx.font = '8px monospace';
+            ctx.fillText('ORAL VENTILATION', cx - 38, cy + 54 + mouthH / 2);
+          }
+
+          // 9. Facial landmarks (468 points simulation)
+          ctx.fillStyle = '#2FBF63';
+          const pts = [
+            [cx - 40, cy], [cx + 40, cy],
+            [cx - 30, cy + 30], [cx + 30, cy + 30],
+            [cx - 15, cy + 60], [cx + 15, cy + 60],
+            [cx, cy + 68], [cx - 35, cy - 35], [cx + 35, cy - 35]
+          ];
+          pts.forEach(([px, py]) => {
+            ctx.beginPath();
+            ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          // 10. Scanline
+          const scanY = (frameTick * 2) % h;
+          ctx.fillStyle = 'rgba(76, 255, 138, 0.15)';
+          ctx.fillRect(0, scanY, w, 2);
+
+          ctx.restore();
+        }
+      }
+      simAnimationRef.current = requestAnimationFrame(renderSimulatedFrame);
+    };
+
+    simAnimationRef.current = requestAnimationFrame(renderSimulatedFrame);
+
+    // Periodic telemetry transmission (every 2.5s)
+    videoIntervalRef.current = setInterval(async () => {
+      const canvas = simulatedCanvasRef.current;
+      if (!canvas) return;
+      try {
+        const frameDataUrl = canvas.toDataURL('image/jpeg', 0.60);
+        const resp = await streamVideoChunk(patient.id, frameDataUrl, {
+          client_mar: mouthAspectRef.current / 100,
+          client_flaring: nasalFlaringRef.current ? 0.34 : 0.20,
+          client_brow_strain: accessoryStrainRef.current ? 0.50 : 0.05,
+          client_bobbing: accessoryStrainRef.current ? 0.20 : 0.04,
+          client_video_rr: respRateRef.current,
+          client_rppg_hr: opticalHrRef.current,
+        });
+
+        if (resp && resp.instant) {
+          setMouthBreathingDetected(!!resp.instant.mouth_breathing_detected);
+          setNasalFlaringDetected(!!resp.instant.nasal_flaring_detected);
+          setAccessoryStrainDetected(!!resp.instant.accessory_muscle_strain);
+          setFacialDistressGrade(resp.instant.distress_grade ?? 0);
+          if (resp.instant.video_respiratory_rate) {
+            setVideoRespiratoryRate(resp.instant.video_respiratory_rate);
+          }
+          if (resp.instant.forehead_rppg_heart_rate) {
+            setOpticalHeartRate(resp.instant.forehead_rppg_heart_rate);
+          }
+        }
+        if (resp && resp.patientRisk) {
+          setLiveAsthmaChances(resp.patientRisk.asthmaChancePercent);
+          setLiveRiskLevel(
+            resp.patientRisk.asthmaChancePercent >= 60
+              ? 'HIGH RISK'
+              : resp.patientRisk.asthmaChancePercent >= 35
+              ? 'ELEVATED'
+              : 'NORMAL'
+          );
+        }
+      } catch (err) {
+        console.warn('Simulated frame streaming error:', err);
+      }
+    }, 2500);
+  };
 
   const startCameraMonitoring = async () => {
+    stopCameraMonitoring();
+    setCameraErrorMessage(null);
+    setCameraErrorType(null);
+
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Webcam access is not supported in this browser environment.');
+        setCameraErrorType('insecure_context');
+        setCameraErrorMessage('Webcam access is not supported or origin is not a secure context (requires HTTPS or http://localhost).');
+        setCameraPermission('denied');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
-      });
+
+      // Check browser permissions query if available
+      if (navigator.permissions && (navigator.permissions as any).query) {
+        try {
+          const perm = await (navigator.permissions as any).query({ name: 'camera' });
+          if (perm && perm.state === 'denied') {
+            setCameraErrorType('permission_denied');
+            setCameraErrorMessage(
+              'Camera permission is set to "Blocked" for this site. In your browser address bar next to "localhost:3000", click the lock 🔒 or settings icon 🎛️, switch Camera to "Allow", and click Retry below.'
+            );
+            setCameraPermission('denied');
+            setIsCameraActive(false);
+            return;
+          }
+        } catch {
+          // Permissions query for camera not supported in this browser version
+        }
+      }
+
+      // Progressive constraint fallback to avoid OverconstrainedError
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        });
+      } catch (constraintErr: any) {
+        console.warn('Initial webcam constraint attempt failed, falling back:', constraintErr);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          });
+        } catch {
+          // Final fallback to absolute minimum constraint
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
+
+      if (!stream) {
+        throw new Error('Failed to acquire webcam stream.');
+      }
+
       cameraStreamRef.current = stream;
+      setIsSimulatedCamera(false);
       setCameraPermission('granted');
       setIsCameraActive(true);
+      setCameraErrorMessage(null);
+      setCameraErrorType(null);
 
       if (videoElementRef.current) {
         videoElementRef.current.srcObject = stream;
@@ -362,26 +642,39 @@ function PatientPortalContent() {
           console.warn('Frame transmission error:', err);
         }
       }, 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Camera permission denied or camera unavailable:', err);
       setCameraPermission('denied');
       setIsCameraActive(false);
+
+      const errName = err?.name || '';
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        setCameraErrorType('permission_denied');
+        setCameraErrorMessage(
+          'Webcam permission was blocked by the browser. In your browser address bar next to "localhost:3000", click the lock 🔒 or site controls 🎛️ icon, set Camera to "Allow", then click Retry below.'
+        );
+      } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        setCameraErrorType('not_found');
+        setCameraErrorMessage(
+          'No camera hardware detected on your device. Click "Launch Simulated Biosensor Stream" below to test full facial respiratory distress tracking.'
+        );
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        setCameraErrorType('in_use');
+        setCameraErrorMessage(
+          'Camera is currently in use by another app (Zoom, Google Meet, Teams, or another tab). Close the other app or use the simulated feed.'
+        );
+      } else if (errName === 'OverconstrainedError' || errName === 'ConstraintNotSatisfiedError') {
+        setCameraErrorType('overconstrained');
+        setCameraErrorMessage('Your webcam does not support the requested video resolution/mode.');
+      } else {
+        setCameraErrorType('unknown');
+        setCameraErrorMessage(err?.message || 'Unable to start camera.');
+      }
     }
   };
 
-  const stopCameraMonitoring = () => {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-      cameraStreamRef.current = null;
-    }
-    if (videoIntervalRef.current) {
-      clearInterval(videoIntervalRef.current);
-      videoIntervalRef.current = null;
-    }
-    if (videoElementRef.current) {
-      videoElementRef.current.srcObject = null;
-    }
-    setIsCameraActive(false);
+  const stopCameraMonitoringOriginal = () => {
+    stopCameraMonitoring();
   };
 
   const handleManualSyncVideo = async () => {
@@ -1722,11 +2015,17 @@ function PatientPortalContent() {
             <span
               className={`text-[10px] font-mono uppercase px-2.5 py-1 border font-bold ${
                 isCameraActive
-                  ? 'border-[#4CFF8A] bg-[#0E793C]/40 text-[#4CFF8A]'
+                  ? isSimulatedCamera
+                    ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300'
+                    : 'border-[#4CFF8A] bg-[#0E793C]/40 text-[#4CFF8A]'
                   : 'border-[#12612F] text-[#2FBF63] bg-[#020A05]'
               }`}
             >
-              {isCameraActive ? '● CAMERA ACTIVE' : '○ STANDBY'}
+              {isCameraActive
+                ? isSimulatedCamera
+                  ? '● SIMULATED BIOSENSOR ACTIVE'
+                  : '● CAMERA ACTIVE'
+                : '○ STANDBY'}
             </span>
           </div>
         </div>
@@ -1734,15 +2033,28 @@ function PatientPortalContent() {
         {/* Viewfinder and HUD */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-5 relative border border-[#12612F] bg-[#020A05] p-2 flex flex-col items-center justify-center min-h-[200px] overflow-hidden">
+            {/* Real Hardware Webcam Feed */}
             <video
               ref={videoElementRef}
               playsInline
               muted
               autoPlay
               className={`w-full max-h-[190px] object-cover border border-[#12612F]/60 ${
-                isCameraActive ? 'block' : 'hidden'
+                isCameraActive && !isSimulatedCamera ? 'block' : 'hidden'
               }`}
             />
+
+            {/* Synthetic Animated Biosensor Canvas */}
+            <canvas
+              ref={simulatedCanvasRef}
+              width={320}
+              height={240}
+              className={`w-full max-h-[190px] object-cover border border-[#12612F]/60 ${
+                isCameraActive && isSimulatedCamera ? 'block' : 'hidden'
+              }`}
+            />
+
+            {/* Hidden Offscreen Processing Canvas */}
             <canvas ref={videoCanvasRef} className="hidden" />
 
             {!isCameraActive && (
@@ -1750,15 +2062,24 @@ function PatientPortalContent() {
                 <div className="text-3xl">📹</div>
                 <div className="text-xs font-mono text-[#75FFA5]">Camera Inactive</div>
                 <p className="text-[11px] text-[#2FBF63] max-w-xs">
-                  Grant camera permissions to monitor accessory muscle strain, mouth breathing, and optical pulse.
+                  Enable hardware webcam or launch simulated biosensor to monitor accessory muscle strain, mouth breathing, and optical pulse.
                 </p>
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={startSimulatedCameraMonitoring}
+                    className="px-3 py-1 border border-cyan-400/80 bg-cyan-950/60 text-cyan-300 font-mono text-[11px] uppercase font-bold hover:bg-cyan-900 transition-colors cursor-pointer"
+                  >
+                    🎮 Quick Launch Simulator
+                  </button>
+                </div>
               </div>
             )}
 
             {isCameraActive && (
               <div className="absolute inset-2 pointer-events-none border border-[#4CFF8A]/30 flex flex-col justify-between p-2">
                 <div className="flex justify-between text-[9px] font-mono text-[#4CFF8A] bg-[#020A05]/80 px-1.5 py-0.5">
-                  <span>REC • 30 FPS</span>
+                  <span>{isSimulatedCamera ? 'SIMULATION FEED • 30 FPS' : 'LIVE CAMERA • 30 FPS'}</span>
                   <span>IPD LOCK: ACTIVE</span>
                 </div>
                 <div className="flex justify-between text-[9px] font-mono text-[#4CFF8A] bg-[#020A05]/80 px-1.5 py-0.5">
@@ -1851,21 +2172,50 @@ function PatientPortalContent() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-[#12612F]/40">
           <div className="flex flex-wrap items-center gap-2">
             {!isCameraActive ? (
-              <button
-                type="button"
-                onClick={startCameraMonitoring}
-                className="px-4 py-2 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5"
-              >
-                <span>📷</span> Enable Camera &amp; Track Face
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={startCameraMonitoring}
+                  className="px-4 py-2 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-mono font-bold text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>📷</span> Enable Camera &amp; Track Face
+                </button>
+                <button
+                  type="button"
+                  onClick={startSimulatedCameraMonitoring}
+                  className="px-3 py-2 border border-cyan-400 bg-cyan-950/60 text-cyan-300 font-mono font-bold text-xs uppercase tracking-wider hover:bg-cyan-900 transition-colors cursor-pointer flex items-center gap-1.5"
+                  title="Runs realistic facial telemetry simulation with no camera hardware or permissions required"
+                >
+                  <span>🎮</span> Simulate Webcam Feed
+                </button>
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={stopCameraMonitoring}
-                className="px-4 py-2 border border-red-500 bg-red-950/60 text-red-300 font-mono font-bold text-xs uppercase tracking-wider hover:bg-red-900 transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <span>🛑</span> Stop Camera
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={stopCameraMonitoring}
+                  className="px-4 py-2 border border-red-500 bg-red-950/60 text-red-300 font-mono font-bold text-xs uppercase tracking-wider hover:bg-red-900 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>🛑</span> Stop Feed
+                </button>
+                {!isSimulatedCamera ? (
+                  <button
+                    type="button"
+                    onClick={startSimulatedCameraMonitoring}
+                    className="px-3 py-2 border border-cyan-500/60 bg-cyan-950/40 text-cyan-300 font-mono text-xs cursor-pointer hover:bg-cyan-900/60 transition-colors"
+                  >
+                    Switch to Simulator
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startCameraMonitoring}
+                    className="px-3 py-2 border border-[#4CFF8A]/60 bg-[#061C0E] text-[#4CFF8A] font-mono text-xs cursor-pointer hover:bg-[#0E793C]/40 transition-colors"
+                  >
+                    Switch to Real Webcam
+                  </button>
+                )}
+              </>
             )}
 
             <button
@@ -1895,9 +2245,50 @@ function PatientPortalContent() {
           </div>
         </div>
 
-        {cameraPermission === 'denied' && (
-          <div className="p-2.5 border border-red-800 bg-red-950/40 text-red-200 text-xs font-mono">
-            ⚠ Camera permission was blocked. Please enable webcam permissions in your browser address bar to monitor facial respiratory biomarkers.
+        {/* Error / Permission Guidance Banner */}
+        {cameraErrorMessage && (
+          <div className="p-3 border border-amber-600/70 bg-amber-950/40 text-amber-200 text-xs font-mono space-y-2">
+            <div className="flex items-start gap-2">
+              <span className="text-amber-400 font-bold text-base leading-none">⚠</span>
+              <div className="flex-1 space-y-1">
+                <p className="font-semibold text-amber-300">{cameraErrorMessage}</p>
+                {cameraErrorType === 'permission_denied' && (
+                  <div className="mt-2 p-2.5 bg-[#020A05]/90 border border-amber-500/30 text-[11px] text-[#B6FFCC] space-y-1.5">
+                    <p className="font-bold text-[#4CFF8A]">How to enable camera in your browser:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-[#75FFA5]">
+                      <li>
+                        Look at your browser&apos;s address bar at the top (next to <code className="bg-[#04130A] px-1 py-0.5 border border-[#12612F] text-white">localhost:3000</code>).
+                      </li>
+                      <li>
+                        Click the <strong>site settings / tune icon 🎛️</strong> or <strong>padlock 🔒</strong> icon.
+                      </li>
+                      <li>
+                        Locate <strong>Camera</strong> in the permissions menu and change it from <em>Block</em> to <strong>Allow</strong>.
+                      </li>
+                      <li>
+                        Click the <strong>Retry Real Camera</strong> button below.
+                      </li>
+                    </ol>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-700/40">
+              <button
+                type="button"
+                onClick={startCameraMonitoring}
+                className="px-3 py-1.5 border border-[#4CFF8A] bg-[#4CFF8A] text-[#020A05] font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer flex items-center gap-1"
+              >
+                <span>🔄</span> Retry Real Camera
+              </button>
+              <button
+                type="button"
+                onClick={startSimulatedCameraMonitoring}
+                className="px-3 py-1.5 border border-cyan-400 bg-cyan-950/60 text-cyan-300 font-bold text-xs hover:bg-cyan-900 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <span>🎮</span> Launch Simulated Biosensor Stream (No Permission Needed)
+              </button>
+            </div>
           </div>
         )}
       </section>
