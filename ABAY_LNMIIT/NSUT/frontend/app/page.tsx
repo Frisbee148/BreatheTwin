@@ -775,7 +775,7 @@ export default function HomePage() {
                 &gt; 20-MINUTE CLINICAL &amp; ARCHITECTURAL VIDEO DEMONSTRATION
               </span>
               <a
-                href="https://youtu.be/S4WMAG_yx4Y"
+                href="https://youtu.be/AExmzZ8SQpY"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#4CFF8A] hover:underline font-semibold flex items-center gap-1"
@@ -787,7 +787,7 @@ export default function HomePage() {
             <div className="relative aspect-[16/9] w-full bg-[#020A05] border border-[#12612F] overflow-hidden">
               <iframe
                 className="w-full h-full border-0"
-                src="https://www.youtube-nocookie.com/embed/S4WMAG_yx4Y?rel=0"
+                src="https://www.youtube-nocookie.com/embed/AExmzZ8SQpY?rel=0"
                 title="BreathTwin 20-Minute Clinical & Architectural Video Demonstration"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -798,12 +798,12 @@ export default function HomePage() {
               <div>
                 <span className="text-white font-bold">DIRECT LINK:</span>{' '}
                 <a
-                  href="https://youtu.be/S4WMAG_yx4Y"
+                  href="https://youtu.be/AExmzZ8SQpY"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#4CFF8A] hover:underline underline-offset-2"
                 >
-                  https://youtu.be/S4WMAG_yx4Y
+                  https://youtu.be/AExmzZ8SQpY
                 </a>
               </div>
               <div className="text-[#3DE07A]">
@@ -841,7 +841,7 @@ export default function HomePage() {
             <div className="border border-[#12612F] bg-[#04130A] p-5 space-y-2 h-full">
               <div className="text-xs text-[#3DE07A] uppercase font-semibold">SUBMISSION ARTIFACTS</div>
               <div className="space-y-1.5">
-                <a href="https://youtu.be/S4WMAG_yx4Y" target="_blank" rel="noopener noreferrer" className="block text-[#4CFF8A] hover:underline font-bold">
+                <a href="https://youtu.be/AExmzZ8SQpY" target="_blank" rel="noopener noreferrer" className="block text-[#4CFF8A] hover:underline font-bold">
                   &bull; 20-Min Demo Video (YouTube) &rarr;
                 </a>
                 <a href="/docs/Architecture_Diagram_v2.pdf?v=20261020" target="_blank" rel="noopener noreferrer" className="block text-white hover:text-[#5CFF95] hover:underline">

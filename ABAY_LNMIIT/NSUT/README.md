@@ -36,7 +36,7 @@ All mandatory items required by the repository submission form are included and 
 | 5 | **Healthcare Use Case** | Included | [Section 5: Healthcare Use Case](#5-healthcare-use-case) |
 | 6 | **Technical Stack** | Included | [Section 6: Technical Stack](#6-technical-stack) |
 | 7 | **AI/ML Model or Framework Details** | Included | [Section 7: AI/ML Model and Framework Details](#7-aiml-model-and-framework-details) |
-| 8 | **15–20 Minute Unlisted YouTube Demo Video** | Included (Unlisted Video Link Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) • [YouTube Video](https://youtu.be/S4WMAG_yx4Y) |
+| 8 | **15–20 Minute Unlisted YouTube Demo Video** | Included (Unlisted Video Link Added) | [Section 8: 15–20 Minute Demo Video](#8-1520-minute-demo-video) • [YouTube Video](https://youtu.be/AExmzZ8SQpY) |
 | 9 | **Open-Source License Details** | Included (MIT) | [Section 9: Open-Source License Details](#9-open-source-license-details) • [`LICENSE`](LICENSE) |
 | 10 | **Architecture Diagram in PDF/PPT Format** | Included (PDF & SVG) | [Section 10: System and Codebase Architecture](#10-system-and-codebase-architecture) • [`docs/Architecture_Diagram.pdf`](ABAY_LNMIIT/NSUT/docs/Architecture_Diagram.pdf) |
 | 11 | **Presentation in PDF/PPT Format** | Included (PDF, 18 Slides) | [Section 11: Project Presentation and Outcomes](#11-project-presentation-and-outcomes) • [`docs/Project_Presentation.pdf`](ABAY_LNMIIT/NSUT/docs/Project_Presentation.pdf) |
@@ -432,8 +432,8 @@ The quantitative evaluation was conducted on a patient-split cohort generated fr
 
 > [!TIP]
 > **Unlisted YouTube Demonstration Video**:  
-> **[▶ Watch the BreathTwin 20-Minute Clinical & Architectural Demo on YouTube](https://youtu.be/S4WMAG_yx4Y)**  
-> **Direct Video URL**: `https://youtu.be/S4WMAG_yx4Y`  
+> **[▶ Watch the BreathTwin 20-Minute Clinical & Architectural Demo on YouTube](https://youtu.be/AExmzZ8SQpY)**  
+> **Direct Video URL**: `https://youtu.be/AExmzZ8SQpY`  
 > *(Unlisted submission video; publicly accessible without additional permissions; duration: ~20 minutes)*
 
 ### Video Walkthrough Chapters (20 Minutes)
